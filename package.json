@@ -1,0 +1,30 @@
+{
+  "name": "fx-analysis-desk",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Claude writes evidence-based FX analysis and reviews on a schedule; hosted on Vercel. Analysis only, not trading advice.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test --experimental-strip-types tests/*.test.ts"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.3.0",
+    "@vercel/blob": "^2.8.2",
+    "marked": "^18.1.2",
+    "next": "^16.4.3",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "typescript": "~5.9"
+  }
+}

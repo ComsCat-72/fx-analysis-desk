@@ -10,3 +10,10 @@ var/
 .pytest_cache/
 docs/examples/demo.db
 site/
+node_modules/
+.next/
+.vercel/
+.data/
+next-env.d.ts
+**/dist/
+*.tsbuildinfo
