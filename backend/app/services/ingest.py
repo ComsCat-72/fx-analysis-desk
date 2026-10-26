@@ -74,6 +74,16 @@ def build_higher_timeframes(db: Session, instrument: str, session: SessionDef, s
         m += timedelta(days=7)
 
 
+def component_symbol(provider: str, code: str) -> str:
+    """Provider symbol for a DXY component pair code such as USD_JPY."""
+    a, b = code.split("_")
+    if provider == "twelvedata":
+        return f"{a}/{b}"
+    if provider == "yahoo":
+        return f"{b}=X" if a == "USD" else f"{a}{b}=X"
+    return code
+
+
 def ingest_prices(db: Session, provider: PriceProvider, inst: Instrument, session: SessionDef,
                   start_day: date, end_day: date, as_of: datetime | None = None) -> dict:
     """Fetch H1 for [start_day, end_day] trading days, store, then aggregate D1 and W1."""
@@ -82,11 +92,14 @@ def ingest_prices(db: Session, provider: PriceProvider, inst: Instrument, sessio
     e = min(session.close_at(end_day), as_of)
     if inst.kind == "index_computed":
         comps = {}
-        for sym in DXY_WEIGHTS:
-            comps[sym] = provider.candles(sym, sym, "H1", s, e)
+        for code in DXY_WEIGHTS:
+            comps[code] = provider.candles(component_symbol(provider.name, code), code, "H1", s, e)
         h1 = dxy_candles(comps)
     else:
-        h1 = provider.candles(inst.provider_symbol or inst.code, inst.code, "H1", s, e)
+        sym = inst.symbol_for(provider.name) or (inst.code if provider.is_fixture else None)
+        if sym is None:
+            raise ProviderError(f"{inst.display} has no symbol configured for provider '{provider.name}'")
+        h1 = provider.candles(sym, inst.code, "H1", s, e)
     h1 = [with_completion(c, as_of) for c in h1]
     n = upsert_candles(db, h1)
     prov = h1[0].provider if h1 else provider.name

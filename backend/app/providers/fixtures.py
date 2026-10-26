@@ -67,8 +67,11 @@ class FixturePriceProvider(PriceProvider):
             raise ValueError("fixtures provide H1 only; D1/W1 are aggregated deterministically")
         t = start.replace(minute=0, second=0, microsecond=0)
         out = []
+        bars = self.session.expected_h1_bars
         while t < end:
-            if self.session.trading_day_of(t) is not None:
+            d = self.session.trading_day_of(t)
+            # Exchange sessions (e.g. the US cash index) only trade the last N hours before the close.
+            if d is not None and (bars is None or self.session.close_at(d) - t <= timedelta(hours=bars)):
                 out.append(self._h1(instrument, t))
             t += timedelta(hours=1)
         return out

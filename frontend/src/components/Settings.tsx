@@ -60,14 +60,14 @@ export function SettingsDrawer({ open, onClose, config, instrument }: { open: bo
               </Section>
               <Section title="Credentials" icon={<KeyRound className="size-4" />}>
                 <ul className="space-y-1.5">
-                  {cred("oanda", "OANDA prices (spot mid)", "set OANDA_API_TOKEN")}
-                  {cred("oanda_account", "OANDA live quotes", "set OANDA_ACCOUNT_ID")}
-                  {cred("anthropic", "Claude report writer and review", "set ANTHROPIC_API_KEY")}
+                  {cred("twelvedata", "Twelve Data prices (free key: FX, gold)", "set TWELVEDATA_API_KEY")}
+                  <li className="flex items-center gap-2 text-[13px]"><CheckCircle2 className="size-4 text-ok" /><span>Yahoo Finance (DXY, Nasdaq-100)</span><span className="ml-auto text-[12px] text-faint">no key needed</span></li>
+                  {cred("anthropic", "Claude report writer and review (optional)", "set ANTHROPIC_API_KEY")}
                   {cred("fred", "FRED bond yields", "set FRED_API_KEY")}
                 </ul>
                 <p className="text-[12px] text-faint">Secrets live in <code>.env</code>, never in the database or UI. Provider choice is in <code>config/app.yaml</code>.</p>
                 <div className="flex flex-wrap gap-1.5 text-[12px]">
-                  <Badge>Prices: {String(config.providers.prices)}</Badge>
+                  <Badge>Prices ({instrument}): {String((config.providers.prices as Record<string, string>)[instrument] ?? "default")}</Badge>
                   <Badge>Calendar: {String((config.providers.calendar as { primary: string }).primary)}</Badge>
                   <Badge>News: {String((config.providers.news as { primary: string }).primary)}</Badge>
                 </div>

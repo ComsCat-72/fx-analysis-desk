@@ -125,7 +125,8 @@ class HttpClient:
                 time.sleep(wait)
             self._last = time.monotonic()
             try:
-                with httpx.Client(timeout=self.timeout, headers=self.headers, transport=self.transport) as c:
+                with httpx.Client(timeout=self.timeout, headers=self.headers, transport=self.transport,
+                                  follow_redirects=True) as c:
                     r = c.get(url, params=params)
                 if r.status_code in (429, 500, 502, 503, 504) and attempt < self.retries:
                     time.sleep(self.backoff[min(attempt, len(self.backoff) - 1)])

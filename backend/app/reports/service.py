@@ -15,7 +15,7 @@ from ..content.semantic import semantic_review
 from ..content.terminology import Dictionary
 from ..domain.evaluation import DIRECTION_LABELS, Direction
 from ..models import Evaluation, Outlook, OutlookChange, Report, ReportVersion, TerminologyTerm
-from ..services.registry import instruments, session_def
+from ..services.registry import instruments, session_def, session_for
 from .facts import build_bundle, published_versions
 from .render import render
 from .templates import ANALYSIS_KINDS, headings
@@ -86,7 +86,7 @@ def generate_draft(db: Session, instrument: str, kind: str, period: date, cutoff
                    writer_name: str | None = None, version_type: str | None = None, max_revisions: int = 1) -> ReportVersion:
     cutoff = cutoff or datetime.now(timezone.utc)
     inst = instruments(False)[instrument]
-    s = session_def()
+    s = session_for(instrument)
     report = get_or_create_report(db, instrument, kind, period)
     bundle = build_bundle(db, inst, kind, period, cutoff, s).to_dict()
     hd = headings(kind, bundle["meta"], bundle.get("evaluation"))

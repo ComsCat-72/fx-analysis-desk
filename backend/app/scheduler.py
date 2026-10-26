@@ -20,7 +20,7 @@ from sqlalchemy.exc import IntegrityError
 from .config import app_config
 from .db import session_scope
 from .models import JobRun, Setting, now_utc
-from .services.registry import instruments, session_def
+from .services.registry import instruments, session_def, session_for
 
 log = logging.getLogger("fxdesk.scheduler")
 JOBS = ("weekly_analysis", "daily_analysis", "daily_review", "weekly_review")
@@ -77,8 +77,8 @@ def refresh_inputs(db, instrument: str, now: datetime) -> list[str]:
     from .services.registry import calendar_provider, price_provider
     problems = []
     try:
-        s = session_def()
-        ingest.ingest_prices(db, price_provider(), instruments()[instrument], s,
+        s = session_for(instrument)
+        ingest.ingest_prices(db, price_provider(instrument), instruments()[instrument], s,
                              (now - timedelta(days=21)).date(), now.date(), as_of=now)
     except Exception as e:  # noqa: BLE001
         problems.append(f"prices: {e}")

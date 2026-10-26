@@ -20,6 +20,9 @@ class SessionDef:
     week_open_weekday: int = 6
     week_close_weekday: int = 4
     holidays: frozenset[date] = field(default_factory=frozenset)
+    # Hourly bars a complete session must contain. None = every hour between the boundaries
+    # (24 for spot FX). Exchange sessions set it (7 for the US cash index, 23 for ICE futures).
+    expected_h1_bars: int | None = None
 
     @classmethod
     def from_config(cls, name: str, cfg: dict, holidays: list | None = None) -> "SessionDef":
@@ -30,6 +33,7 @@ class SessionDef:
             week_open_weekday=cfg.get("week_open_weekday", 6),
             week_close_weekday=cfg.get("week_close_weekday", 4),
             holidays=frozenset(date.fromisoformat(str(h)) for h in (holidays or [])),
+            expected_h1_bars=cfg.get("expected_h1_bars"),
         )
 
     # --- day boundaries -------------------------------------------------
@@ -141,7 +145,7 @@ def aggregate(candles: list[Candle], timeframe: str, start: datetime, end: datet
 
 def daily_from_hourly(h1: list[Candle], session: SessionDef, d: date, as_of: datetime) -> Candle | None:
     start, end = session.day_bounds(d)
-    expected = int((end - start) / timedelta(hours=1))
+    expected = session.expected_h1_bars or int((end - start) / timedelta(hours=1))
     return aggregate(h1, "D1", start, end, expected, as_of)
 
 

@@ -28,8 +28,8 @@ from ..services.ingest import load_candles
 KINDS = ("weekly_analysis", "daily_analysis", "daily_review", "weekly_review")
 
 # Currencies whose releases matter for each non-FX instrument.
-EXTRA_CURRENCIES = {"index_computed": ["USD", "EUR", "JPY", "GBP", "CAD", "SEK", "CHF"],
-                    "metal_spot": ["USD"], "index_cfd": ["USD"]}
+DXY_BASKET = ["USD", "EUR", "JPY", "GBP", "CAD", "SEK", "CHF"]
+EXTRA_CURRENCIES = {"index": DXY_BASKET, "index_computed": DXY_BASKET, "metal_spot": ["USD"], "index_cash": ["USD"]}
 
 
 def economies(inst: Instrument) -> list[tuple[str, str]]:
@@ -38,8 +38,8 @@ def economies(inst: Instrument) -> list[tuple[str, str]]:
         return [("base", inst.base), ("quote", inst.quote)]
     if inst.kind == "metal_spot":
         return [("base", "XAU (gold)"), ("quote", "USD")]
-    if inst.kind == "index_cfd":
-        return [("base", "US equities (NAS100)"), ("quote", "USD")]
+    if inst.kind == "index_cash":
+        return [("base", "US equities (Nasdaq-100)"), ("quote", "USD")]
     return [("base", "USD"), ("quote", "Basket currencies (EUR, JPY, GBP, CAD, SEK, CHF)")]
 
 

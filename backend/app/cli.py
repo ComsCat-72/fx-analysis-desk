@@ -91,6 +91,97 @@ def demo_week(out: Path) -> None:
     print(f"wrote {len(written)} example reports to {out}")
 
 
+def replay_week(out: Path, instruments_: list[str], writer: str | None, monday: date | None = None) -> int:
+    """Real-data end-to-end run: ingest live prices, calendar and central-bank feeds, then replay the
+    last complete week report by report. Each report is generated with its own historical data cutoff,
+    so it only sees data that existed at that time. Also drafts this week's weekly and today's daily analysis.
+    Writes Markdown reports and summary.json to `out`. Returns the number of failed steps."""
+    import json
+    from zoneinfo import ZoneInfo
+
+    out.mkdir(parents=True, exist_ok=True)
+    os.environ.setdefault("DATABASE_URL", f"sqlite:///{out / 'replay.db'}")
+    from . import config, db as appdb
+    config.reload()
+    appdb.reset_engine()
+    init_db()
+    from .config import app_config
+    from .db import session_scope
+    from .providers.central_banks import CentralBankFeeds
+    from .reports import service
+    from .services import ingest
+    from .services.registry import calendar_provider, instruments, price_provider, price_provider_name, session_for
+
+    tz = ZoneInfo(app_config()["display"]["timezone"])
+    now = datetime.now(timezone.utc)
+
+    def local(d, hh, mm=0):
+        return datetime(d.year, d.month, d.day, hh, mm, tzinfo=tz).astimezone(timezone.utc)
+
+    summary: dict = {"generated_at": now.isoformat(), "inputs": {}, "reports": []}
+    failures = 0
+    with session_scope() as db:
+        for code in instruments_:
+            inst = instruments(False)[code]
+            s = session_for(code)
+            try:
+                r = ingest.ingest_prices(db, price_provider(code), inst, s, (now - timedelta(days=120)).date(), now.date(), as_of=now)
+                summary["inputs"][code] = {"ok": True, "provider": price_provider_name(code), **r}
+            except Exception as e:  # noqa: BLE001 - recorded in the summary
+                failures += 1
+                summary["inputs"][code] = {"ok": False, "provider": price_provider_name(code), "error": f"{type(e).__name__}: {e}"}
+            db.commit()
+        for name, fn in [("calendar", lambda: ingest.upsert_events(db, calendar_provider().week_events(), now=now)),
+                         ("central_banks", lambda: ingest.upsert_policy(db, CentralBankFeeds(app_config()["providers"]["central_banks"]["feeds"]).items()))]:
+            try:
+                summary["inputs"][name] = {"ok": True, "stored": fn()}
+            except Exception as e:  # noqa: BLE001
+                failures += 1
+                summary["inputs"][name] = {"ok": False, "error": f"{type(e).__name__}: {e}"}
+            db.commit()
+        ingest.mark_unavailable(db, now)
+        db.commit()
+
+        fx = session_for("GBP_USD")
+        mon = monday or fx.week_monday(now.date()) - timedelta(days=7)
+        steps = [("weekly_analysis", mon, local(mon - timedelta(days=1), 20))]
+        for d in fx.week_trading_days(mon):
+            steps.append(("daily_analysis", d, local(d, 8, 30)))
+            steps.append(("daily_review", d, local(d + timedelta(days=1), 7, 30)))
+        steps.append(("weekly_review", mon, local(mon + timedelta(days=5), 10)))
+        this_mon = fx.week_monday(now.date())
+        steps.append(("weekly_analysis", this_mon, now))
+        if fx.trading_day_of(now):
+            steps.append(("daily_analysis", fx.trading_day_of(now), now))
+
+        for code in instruments_:
+            if not summary["inputs"].get(code, {}).get("ok"):
+                continue
+            for kind, period, cutoff in steps:
+                rec = {"instrument": code, "kind": kind, "period": period.isoformat(), "cutoff": cutoff.isoformat()}
+                try:
+                    v = service.generate_draft(db, code, kind, period, cutoff=cutoff, writer_name=writer)
+                    rec.update({"version_id": v.id, "data_mode": v.data_mode, "providers": v.facts["meta"].get("providers"),
+                                "missing": v.missing, "warnings": [w["message"] for w in v.facts.get("warnings", [])]})
+                    try:
+                        service.publish(db, v.id, now=cutoff + timedelta(minutes=5))
+                        rec["status"] = "published"
+                    except service.PublishError as e:
+                        rec["status"] = "draft (publication blocked)"
+                        rec["blocking"] = [f"{f['check']}/{f['category']}: {f['message']}" for f in e.findings] or [str(e)]
+                    (out / f"{code}_{period.isoformat()}_{kind}{'_now' if cutoff == now else ''}.md").write_text(v.body_md)
+                except Exception as e:  # noqa: BLE001
+                    failures += 1
+                    db.rollback()
+                    rec.update({"status": "error", "error": f"{type(e).__name__}: {e}"})
+                db.commit()
+                summary["reports"].append(rec)
+    (out / "summary.json").write_text(json.dumps(summary, indent=1, default=str))
+    pub = sum(r.get("status") == "published" for r in summary["reports"])
+    print(f"replay: {pub}/{len(summary['reports'])} reports published, {failures} failed steps; see {out / 'summary.json'}")
+    return failures
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="fxdesk")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -116,6 +207,11 @@ def main(argv: list[str] | None = None) -> int:
     ex.add_argument("--out", required=True)
     dw = sub.add_parser("demo-week")
     dw.add_argument("--out", default=str(Path(__file__).resolve().parents[2] / "docs" / "examples"))
+    rp = sub.add_parser("replay-week")
+    rp.add_argument("--out", required=True)
+    rp.add_argument("--instruments", default="GBP_USD")
+    rp.add_argument("--writer", default=None)
+    rp.add_argument("--week", default=None, help="Monday of the week to replay (default: last complete week)")
     sub.add_parser("scheduler")
     a = p.parse_args(argv)
 
@@ -123,16 +219,19 @@ def main(argv: list[str] | None = None) -> int:
         init_db()
     elif a.cmd == "demo-week":
         demo_week(Path(a.out))
+    elif a.cmd == "replay-week":
+        return 1 if replay_week(Path(a.out), a.instruments.split(), a.writer,
+                                date.fromisoformat(a.week) if a.week else None) else 0
     elif a.cmd == "scheduler":
         from .scheduler import run_forever
         run_forever()
     else:
         from .db import session_scope
         from .services import ingest
-        from .services.registry import calendar_provider, instruments, price_provider, session_def
+        from .services.registry import calendar_provider, instruments, price_provider, session_for
         with session_scope() as db:
             if a.cmd == "ingest":
-                r = ingest.ingest_prices(db, price_provider(), instruments()[a.instrument], session_def(),
+                r = ingest.ingest_prices(db, price_provider(a.instrument), instruments()[a.instrument], session_for(a.instrument),
                                          date.fromisoformat(a.start), date.fromisoformat(a.end))
                 print(r)
             elif a.cmd == "calendar":

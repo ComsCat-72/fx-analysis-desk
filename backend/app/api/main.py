@@ -21,7 +21,7 @@ from ..models import (DataQualityWarning, EconomicEvent, Evaluation, JobRun, New
                       TerminologyTerm, now_utc)
 from ..reports import service
 from ..services import ingest
-from ..services.registry import instruments, price_provider_name, session_def
+from ..services.registry import instruments, price_provider_name, session_def, session_for
 
 app = FastAPI(title="FX Analysis Desk", version="0.1.0",
               description="Evidence-based FX analysis and reporting. Analysis only; no trading advice or signals.")
@@ -89,9 +89,10 @@ def get_config(db: Session = DB):
         "publication_mode": (mode.value or {}).get("mode") if mode else cfg["reports"]["publication_mode"],
         "writer": cfg["reports"]["writer"], "schedules": cfg["schedules"], "technical": cfg["technical"],
         "evaluation": cfg["evaluation"],
-        "providers": {"prices": price_provider_name(), "calendar": cfg["providers"]["calendar"],
+        "providers": {"prices": {code: price_provider_name(code) for code in instruments()}, "calendar": cfg["providers"]["calendar"],
                       "news": cfg["providers"]["news"], "yields": cfg["providers"]["yields"]},
-        "credentials": {"anthropic": bool(e.anthropic_api_key), "oanda": bool(e.oanda_api_token),
+        "credentials": {"anthropic": bool(e.anthropic_api_key), "twelvedata": bool(e.twelvedata_api_key),
+                        "oanda": bool(e.oanda_api_token),
                         "oanda_account": bool(e.oanda_account_id), "fred": bool(e.fred_api_key)},
     }
 
@@ -342,7 +343,7 @@ def warnings(instrument: str | None = None, db: Session = DB):
 @app.get("/api/freshness")
 def freshness(instrument: str, db: Session = DB):
     from ..models import CandleRow
-    s = session_def()
+    s = session_for(instrument)
     now = datetime.now(timezone.utc)
     last = db.scalar(select(CandleRow).where(CandleRow.instrument == instrument, CandleRow.timeframe == "H1",
                                              CandleRow.complete.is_(True)).order_by(CandleRow.end.desc()))
@@ -456,9 +457,10 @@ class IngestIn(BaseModel):
 def run_ingest(body: IngestIn, db: Session = DB):
     from ..services.registry import price_provider
     try:
-        r = ingest.ingest_prices(db, price_provider(), instruments()[body.instrument], session_def(), body.start, body.end)
+        r = ingest.ingest_prices(db, price_provider(body.instrument), instruments()[body.instrument],
+                                 session_for(body.instrument), body.start, body.end)
     except Exception as e:
-        ingest.record_health(db, type("H", (), {"provider": price_provider_name(), "ok": False, "latency_ms": None, "message": str(e)}))
+        ingest.record_health(db, type("H", (), {"provider": price_provider_name(body.instrument), "ok": False, "latency_ms": None, "message": str(e)}))
         raise HTTPException(502, f"{type(e).__name__}: {e}")
     return r
 

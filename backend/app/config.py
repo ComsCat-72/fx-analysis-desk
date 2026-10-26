@@ -29,6 +29,7 @@ class Env(BaseSettings):
     oanda_environment: str = "practice"  # practice | live
 
     fred_api_key: str | None = None
+    twelvedata_api_key: str | None = None
 
     # Access control for hosted deployments. When ADMIN_TOKEN is set, every write needs the
     # X-Admin-Token header; PROTECT_READS=true also requires it for reading reports.

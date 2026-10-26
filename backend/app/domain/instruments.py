@@ -13,24 +13,28 @@ class Instrument:
     display: str
     base: str
     quote: str
-    kind: str          # fx_spot | metal_spot | index_computed | index_cfd
+    kind: str          # fx_spot | metal_spot | index (DXY) | index_computed (DXY from spot) | index_cash
     decimals: int
-    provider_symbol: str | None = None
+    price_provider: str | None = None      # provider name; None -> providers.prices.primary
+    symbols: dict | None = None            # provider name -> symbol at that provider
+    session: str | None = None             # session definition name; None -> default_session
     label: str | None = None
     enabled: bool = True
 
     @classmethod
     def from_config(cls, code: str, cfg: dict) -> "Instrument":
         return cls(code=code, display=cfg["display"], base=cfg["base"], quote=cfg["quote"], kind=cfg["kind"],
-                   decimals=int(cfg["decimals"]), provider_symbol=cfg.get("provider_symbol"),
+                   decimals=int(cfg["decimals"]), price_provider=cfg.get("price_provider"),
+                   symbols=dict(cfg.get("symbols") or {}), session=cfg.get("session"),
                    label=cfg.get("label"), enabled=cfg.get("enabled", True))
+
+    def symbol_for(self, provider: str) -> str | None:
+        return (self.symbols or {}).get(provider)
 
     @property
     def currencies(self) -> list[str]:
         """Economies analysed separately in reports."""
-        if self.kind == "index_computed":
-            return ["USD"]
-        if self.kind == "index_cfd":
+        if self.kind in ("index", "index_computed", "index_cash"):
             return ["USD"]
         return [c for c in (self.base, self.quote) if c not in ("XAU", "NAS100", "BASKET")] or [self.quote]
 

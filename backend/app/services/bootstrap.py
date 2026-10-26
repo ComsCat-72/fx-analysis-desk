@@ -12,7 +12,7 @@ def sync_config(db: Session) -> None:
     for code, c in cfg["instruments"].items():
         row = db.get(Instrument, code) or Instrument(code=code)
         row.display, row.base, row.quote, row.kind = c["display"], c["base"], c["quote"], c["kind"]
-        row.decimals, row.provider_symbol, row.label = int(c["decimals"]), c.get("provider_symbol"), c.get("label")
+        row.decimals, row.provider_symbol, row.label = int(c["decimals"]), (c.get("symbols") or {}).get(c.get("price_provider") or ""), c.get("label")
         row.enabled = c.get("enabled", True)
         db.merge(row)
     for name, s in cfg["sessions"].items():

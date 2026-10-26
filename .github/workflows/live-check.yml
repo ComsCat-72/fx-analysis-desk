@@ -1,0 +1,39 @@
+# End-to-end check on LIVE free data: ingests real prices (Twelve Data with a free key, else Yahoo),
+# the real calendar feed and central-bank feeds, replays last week's reports with historical cutoffs,
+# and publishes the generated reports + summary.json to the `live-check` branch for review.
+name: Live data check
+on:
+  workflow_dispatch:
+    inputs:
+      instruments:
+        description: Space-separated instrument codes
+        default: GBP_USD EUR_USD AUD_USD NZD_USD USD_CHF XAU_USD DXY NAS100
+permissions:
+  contents: write
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -r requirements.txt
+      - name: Replay last week on live data
+        env:
+          TWELVEDATA_API_KEY: ${{ secrets.TWELVEDATA_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          if [ -z "$TWELVEDATA_API_KEY" ]; then
+            echo "No TWELVEDATA_API_KEY secret: FX pairs use Yahoo (no key); XAU/USD will be reported as unavailable."
+            export PRICE_PROVIDER=yahoo
+          fi
+          WRITER=template; [ -n "$ANTHROPIC_API_KEY" ] && WRITER=claude
+          cd backend && python -m app.cli replay-week --out ../live-out --instruments "${{ inputs.instruments }}" --writer $WRITER || true
+          test -f ../live-out/summary.json
+      - name: Publish results to the live-check branch
+        run: |
+          cd live-out && rm -f replay.db
+          git init -q && git checkout -q -b live-check
+          git -c user.name=live-check -c user.email=live-check@users.noreply.github.com add -A
+          git -c user.name=live-check -c user.email=live-check@users.noreply.github.com commit -qm "live check $(date -u +%FT%TZ)"
+          git push -fq "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" live-check

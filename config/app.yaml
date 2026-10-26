@@ -17,6 +17,13 @@ sessions:
     daily_close: "17:00"
     week_open_weekday: 6     # Sunday (Mon=0)
     week_close_weekday: 4    # Friday
+  us_equity_cash:
+    description: "US cash equity session 09:30-16:00 New York (Nasdaq-100 index); hourly bars start at :30."
+    anchor_timezone: America/New_York
+    daily_close: "16:00"
+    week_open_weekday: 6
+    week_close_weekday: 4
+    expected_h1_bars: 7
   # Market holidays (trading days with no daily candle expected), ISO dates.
   holidays: []
 
@@ -26,6 +33,11 @@ timeframes:
   context: [W1, D1]
   structure: H1
 
+# Each instrument names its price provider and the symbol used there. Free sources:
+#   twelvedata - free personal API key (TWELVEDATA_API_KEY); spot FX and XAU/USD
+#   yahoo      - no key, unofficial (personal use); official DXY and Nasdaq-100 index levels, FX fallback
+#   oanda      - free practice account where available
+#   fixture    - synthetic development data
 instruments:
   GBP_USD:
     display: GBP/USD
@@ -33,7 +45,8 @@ instruments:
     quote: USD
     kind: fx_spot
     decimals: 5
-    provider_symbol: GBP_USD
+    price_provider: twelvedata
+    symbols: {twelvedata: GBP/USD, yahoo: GBPUSD=X, oanda: GBP_USD}
     enabled: true
   EUR_USD:
     display: EUR/USD
@@ -41,7 +54,8 @@ instruments:
     quote: USD
     kind: fx_spot
     decimals: 5
-    provider_symbol: EUR_USD
+    price_provider: twelvedata
+    symbols: {twelvedata: EUR/USD, yahoo: EURUSD=X, oanda: EUR_USD}
     enabled: true
   AUD_USD:
     display: AUD/USD
@@ -49,7 +63,8 @@ instruments:
     quote: USD
     kind: fx_spot
     decimals: 5
-    provider_symbol: AUD_USD
+    price_provider: twelvedata
+    symbols: {twelvedata: AUD/USD, yahoo: AUDUSD=X, oanda: AUD_USD}
     enabled: true
   NZD_USD:
     display: NZD/USD
@@ -57,7 +72,8 @@ instruments:
     quote: USD
     kind: fx_spot
     decimals: 5
-    provider_symbol: NZD_USD
+    price_provider: twelvedata
+    symbols: {twelvedata: NZD/USD, yahoo: NZDUSD=X, oanda: NZD_USD}
     enabled: true
   USD_CHF:
     display: USD/CHF
@@ -65,7 +81,8 @@ instruments:
     quote: CHF
     kind: fx_spot
     decimals: 5
-    provider_symbol: USD_CHF
+    price_provider: twelvedata
+    symbols: {twelvedata: USD/CHF, yahoo: CHF=X, oanda: USD_CHF}
     enabled: true
   XAU_USD:
     display: XAU/USD
@@ -73,31 +90,38 @@ instruments:
     quote: USD
     kind: metal_spot
     decimals: 2
-    provider_symbol: XAU_USD
+    price_provider: twelvedata
+    # No free spot gold on Yahoo (only GC=F futures, which must not be mixed with spot).
+    symbols: {twelvedata: XAU/USD, oanda: XAU_USD}
     enabled: true
   DXY:
-    display: DXY (computed)
+    display: DXY
     base: USD
     quote: BASKET
-    kind: index_computed
+    kind: index
     decimals: 3
-    # Computed from spot with the published ICE weights. Not the official ICE futures-based value.
-    label: "Computed from spot FX using the published ICE formula; not the official ICE value."
+    price_provider: yahoo
+    symbols: {yahoo: DX-Y.NYB}
+    label: "ICE US Dollar Index level as published via Yahoo Finance."
     enabled: true
   NAS100:
-    display: NAS100 (CFD)
+    display: Nasdaq-100
     base: NAS100
     quote: USD
-    kind: index_cfd
-    decimals: 1
-    provider_symbol: NAS100_USD
-    label: "OANDA NAS100 CFD price; not the official Nasdaq-100 index level and not futures."
+    kind: index_cash
+    decimals: 2
+    session: us_equity_cash
+    price_provider: yahoo
+    symbols: {yahoo: "^NDX"}
+    label: "Nasdaq-100 cash index level (09:30-16:00 New York), via Yahoo Finance; not futures or a CFD."
     enabled: true
 
 providers:
   prices:
-    primary: oanda            # oanda | fixture
-    price_component: M        # M = mid. Never mixed with bid/ask or futures.
+    # Default when an instrument names no provider. PRICE_PROVIDER in the environment overrides
+    # every instrument (e.g. PRICE_PROVIDER=yahoo for a no-key setup, fixture for offline work).
+    primary: twelvedata
+    price_component: M        # OANDA only: M = mid. Each series keeps one provider and price type; never mixed.
     stale_after_seconds: 300
   calendar:
     primary: ff_weekly_json   # schedule + forecast + previous only (no actuals)
