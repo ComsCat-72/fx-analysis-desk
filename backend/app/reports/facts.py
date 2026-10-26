@@ -414,7 +414,9 @@ def source_label(c) -> str:
 def coverage_note(c) -> str:
     """Disclose gaps when an aggregated candle was built from fewer bars than a full period has."""
     if c.bars and c.expected_bars and c.bars < c.expected_bars:
-        return f"; built from {c.bars} of {c.expected_bars} hourly bars ({c.expected_bars - c.bars} missing from the source)"
+        why = ("; the source's trading week opens after 17:00 New York on Sunday"
+               if c.start.astimezone(timezone.utc).weekday() == 6 and c.timeframe == "D1" else "")
+        return f"; built from {c.bars} of {c.expected_bars} hourly bars ({c.expected_bars - c.bars} not provided by the source{why})"
     return ""
 
 

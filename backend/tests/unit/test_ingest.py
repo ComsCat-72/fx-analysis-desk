@@ -69,3 +69,10 @@ def test_missing_actual_becomes_unavailable(db):
     ingest.upsert_events(db, [_ev(t)])
     assert ingest.mark_unavailable(db, t + timedelta(hours=3)) == 1
     assert db.scalar(select(EconomicEvent)).state == "unavailable"
+
+
+def test_monday_week_open_delay_is_provider_specific():
+    from app.services.ingest import allowed_missing
+    assert allowed_missing("yahoo", date(2026, 10, 19)) == 3       # Monday: 1 general + 2 late open
+    assert allowed_missing("yahoo", date(2026, 10, 20)) == 1       # Tuesday: general allowance only
+    assert allowed_missing("twelvedata", date(2026, 10, 19)) == 1

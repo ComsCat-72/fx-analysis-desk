@@ -121,6 +121,9 @@ providers:
     # Default when an instrument names no provider. PRICE_PROVIDER in the environment overrides
     # every instrument (e.g. PRICE_PROVIDER=yahoo for a no-key setup, fixture for offline work).
     primary: twelvedata
+    # Hours after the Sunday 17:00 New York open before a source's week starts (measured from live data):
+    # Yahoo FX starts 2 hours later, so Monday sessions have 22 of 24 hourly bars. Allowed on Mondays and disclosed.
+    week_open_delay_hours: {yahoo: 2}
     price_component: M        # OANDA only: M = mid. Each series keeps one provider and price type; never mixed.
     stale_after_seconds: 300
   calendar:

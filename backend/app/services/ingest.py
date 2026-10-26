@@ -53,6 +53,17 @@ def load_candles(db: Session, instrument: str, timeframe: str, start: datetime, 
     return [to_domain(r) for r in db.scalars(q.order_by(CandleRow.start))]
 
 
+def allowed_missing(provider: str, d: date) -> int:
+    """Missing hourly bars tolerated for a session: the general allowance, plus the source's documented
+    late week open on Mondays."""
+    from ..config import app_config
+    cfg = app_config()
+    n = cfg["technical"].get("max_missing_h1_bars", 0)
+    if d.weekday() == 0:
+        n += (cfg["providers"]["prices"].get("week_open_delay_hours") or {}).get(provider, 0)
+    return n
+
+
 def build_higher_timeframes(db: Session, instrument: str, session: SessionDef, start_day: date, end_day: date,
                             as_of: datetime, provider: str) -> None:
     s, _ = session.day_bounds(session.week_monday(start_day))
@@ -62,8 +73,7 @@ def build_higher_timeframes(db: Session, instrument: str, session: SessionDef, s
     d = session.week_monday(start_day)
     while d <= end_day:
         if session.is_weekday_session(d):
-            from ..config import app_config
-            c = daily_from_hourly(h1, session, d, as_of, app_config()["technical"].get("max_missing_h1_bars", 0))
+            c = daily_from_hourly(h1, session, d, as_of, allowed_missing(provider, d))
             if c:
                 d1.append(c)
         d += timedelta(days=1)
