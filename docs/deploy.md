@@ -6,9 +6,9 @@
 
 1. **Neon:** create a project in Frankfurt and copy the connection string.
 2. **Vercel:** sign up with GitHub, choose **Add New → Project**, and import `ComsCat-72/fx-analysis-desk`. Leave the framework preset as **Other** and the root directory as `./`; `vercel.json` supplies the build settings.
-3. **Environment variables** (Settings → Environment Variables, or the import screen): `DATABASE_URL`, `ADMIN_TOKEN`, `APP_ENV=production`, `OANDA_API_TOKEN`, `OANDA_ACCOUNT_ID`, `OANDA_ENVIRONMENT=practice`, `ANTHROPIC_API_KEY`.
+3. **Environment variables** (Settings → Environment Variables, or the import screen): `DATABASE_URL`, `ADMIN_TOKEN`, `APP_ENV=production`, `TWELVEDATA_API_KEY` (free), and optionally `ANTHROPIC_API_KEY`.
 
-   Demo without OANDA: `APP_ENV=development`, `PRICE_PROVIDER=fixture`, `CALENDAR_PROVIDER=fixture`.
+   No Twelve Data key yet: set `PRICE_PROVIDER=yahoo` (all FX from Yahoo; XAU/USD unavailable). Synthetic demo instead: `APP_ENV=development`, `PRICE_PROVIDER=fixture`, `CALENDAR_PROVIDER=fixture`.
 4. **Deploy.** Then open `https://<project>.vercel.app/api/health` and check it returns `{"ok":true}`.
 5. **GitHub schedule:** add the secrets `APP_URL` (your vercel.app URL) and `ADMIN_TOKEN` (see the last section). Vercel's own cron is limited to once a day on Hobby, so GitHub Actions runs the schedule.
 
@@ -28,9 +28,9 @@ The free instance has 512 MB RAM and 0.1 vCPU, runs in Frankfurt or Washington, 
    - `DATABASE_URL`: the Neon string.
    - `ADMIN_TOKEN`: a long random string.
    - `APP_ENV`: `production`.
-   - `OANDA_API_TOKEN`, `OANDA_ACCOUNT_ID`, `OANDA_ENVIRONMENT=practice`, `ANTHROPIC_API_KEY`, and optionally `FRED_API_KEY`.
+   - `TWELVEDATA_API_KEY` (free), and optionally `ANTHROPIC_API_KEY` and `FRED_API_KEY`.
 
-   Demo without OANDA: `APP_ENV=development`, `PRICE_PROVIDER=fixture`, `CALENDAR_PROVIDER=fixture`.
+   No Twelve Data key yet: set `PRICE_PROVIDER=yahoo` (all FX from Yahoo; XAU/USD unavailable). Synthetic demo instead: `APP_ENV=development`, `PRICE_PROVIDER=fixture`, `CALENDAR_PROVIDER=fixture`.
 7. **Deploy.** The public URL is `https://<service>-<org>.koyeb.app`. Then do step 4 (GitHub schedule secrets) below, using that URL as `APP_URL`.
 
 # Render + Neon + GitHub Actions (alternative)
@@ -46,7 +46,7 @@ The free instance has 512 MB RAM and 0.1 vCPU, runs in Frankfurt or Washington, 
 1. **Neon:** sign up at neon.tech, create a project (region: Frankfurt is nearest to East Africa), and copy the connection string (`postgresql://...?sslmode=require`).
 2. **Render:** sign up at render.com with GitHub, choose **New → Blueprint**, and pick this repository. Render reads `render.yaml`. Then fill in:
    - `DATABASE_URL`: the Neon string.
-   - `OANDA_API_TOKEN`, `OANDA_ACCOUNT_ID`, `ANTHROPIC_API_KEY`, and `FRED_API_KEY` (optional).
+   - `TWELVEDATA_API_KEY` (free), and optionally `ANTHROPIC_API_KEY` and `FRED_API_KEY`.
    - `ADMIN_TOKEN` is generated for you; copy it from the service's Environment tab.
 3. Open `https://<service>.onrender.com`. Click the key icon and paste the admin token to enable drafting and publishing.
 4. **Schedules:** in GitHub, open the repo's Settings → Secrets and variables → Actions:

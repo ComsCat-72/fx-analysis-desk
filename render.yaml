@@ -16,12 +16,8 @@ services:
         generateValue: true
       - key: PROTECT_READS
         value: "false"
-      - key: OANDA_API_TOKEN
+      - key: TWELVEDATA_API_KEY
         sync: false
-      - key: OANDA_ACCOUNT_ID
-        sync: false
-      - key: OANDA_ENVIRONMENT
-        value: practice
       - key: ANTHROPIC_API_KEY
         sync: false
       - key: FRED_API_KEY

@@ -266,7 +266,9 @@ class TemplateWriter:
 
 def get_writer(name: str | None = None):
     from ..config import app_config
-    name = name or app_config()["reports"].get("writer", "claude")
+    name = name or app_config()["reports"].get("writer", "auto")
+    if name == "auto":  # free by default: Claude only when a key is configured (each report records its writer)
+        name = "claude" if env().anthropic_api_key else "template"
     if name == "template":
         return TemplateWriter()
     return ClaudeWriter()

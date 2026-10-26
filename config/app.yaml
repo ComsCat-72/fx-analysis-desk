@@ -169,7 +169,7 @@ evaluation:
 
 reports:
   publication_mode: manual    # manual | automatic (automatic must be explicitly enabled)
-  writer: claude              # claude | template (template = offline, deterministic sentences only)
+  writer: auto                # auto (Claude if ANTHROPIC_API_KEY is set, else template) | claude | template
   length_words:
     daily_analysis: [250, 400]
     daily_review: [250, 400]

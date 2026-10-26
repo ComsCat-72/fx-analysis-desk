@@ -87,7 +87,7 @@ def get_config(db: Session = DB):
         "instruments": [{"code": i.code, "display": i.display, "base": i.base, "quote": i.quote, "kind": i.kind,
                          "label": i.label, "decimals": i.decimals} for i in instruments().values()],
         "publication_mode": (mode.value or {}).get("mode") if mode else cfg["reports"]["publication_mode"],
-        "writer": cfg["reports"]["writer"], "schedules": cfg["schedules"], "technical": cfg["technical"],
+        "writer": ("claude" if e.anthropic_api_key else "template") if cfg["reports"]["writer"] == "auto" else cfg["reports"]["writer"], "schedules": cfg["schedules"], "technical": cfg["technical"],
         "evaluation": cfg["evaluation"],
         "providers": {"prices": {code: price_provider_name(code) for code in instruments()}, "calendar": cfg["providers"]["calendar"],
                       "news": cfg["providers"]["news"], "yields": cfg["providers"]["yields"]},

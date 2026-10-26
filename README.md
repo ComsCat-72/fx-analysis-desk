@@ -32,9 +32,10 @@ Fixture prices sit near 1.00000 on purpose, so they can't be mistaken for real q
 
 ## Running with real data
 
-1. Set `OANDA_API_TOKEN` (a free practice account works) and `ANTHROPIC_API_KEY` in `.env`. `FRED_API_KEY` is optional.
+1. Get a free Twelve Data key (twelvedata.com/pricing) and set `TWELVEDATA_API_KEY` in `.env`. DXY and the Nasdaq-100 come from Yahoo with no key. Without a key, set `PRICE_PROVIDER=yahoo` for FX as well. `ANTHROPIC_API_KEY` is optional: without it, reports use the free built-in template writer.
 2. Initialise the database: `cd backend && ../.venv/bin/python -m app.cli init-db`
 3. Ingest prices: `python -m app.cli ingest --instrument GBP_USD --from 2026-07-01 --to 2026-10-30`
+   (or run the whole chain on live data: `python -m app.cli replay-week --out ../var/live --instruments "GBP_USD DXY NAS100"`)
 4. Calendar and central banks: `python -m app.cli calendar` and `python -m app.cli central-banks`
 5. Start the API with `uvicorn app.api.main:app` and the scheduler with `python -m app.cli scheduler`, or generate drafts from the dashboard.
 
@@ -57,7 +58,7 @@ Covered: EAT conversion across the US and UK daylight-saving changes, session bo
 
 ```
 backend/app/domain      deterministic core (sessions, technical, breaks, evaluation, events, validation)
-backend/app/providers   OANDA, calendar feed, central-bank RSS, FRED, development fixtures
+backend/app/providers   Twelve Data, Yahoo, OANDA, calendar feed, central-bank RSS, FRED, development fixtures
 backend/app/reports     fact bundles, templates, prompts, writers, rendering, publication service
 backend/app/content     advice, terminology, factual/integrity checks, semantic review
 backend/app/api         FastAPI endpoints used by the dashboard
