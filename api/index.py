@@ -24,4 +24,15 @@ try:
 except Exception:  # noqa: BLE001 - keep serving so /api/health can report the problem
     logging.exception("database initialisation failed")
 
-from app.api.main import app  # noqa: E402,F401
+from app.api.main import app as fastapi_app  # noqa: E402
+
+
+async def app(scope, receive, send):
+    """Vercel may or may not strip the public /api prefix before the request reaches this service.
+    The FastAPI routes live under /api, so restore the prefix when it is missing."""
+    if scope["type"] in ("http", "websocket"):
+        path = scope.get("path", "")
+        if not path.startswith("/api"):
+            scope = dict(scope, path="/api" + (path if path.startswith("/") else "/" + path),
+                         raw_path=None)
+    await fastapi_app(scope, receive, send)
