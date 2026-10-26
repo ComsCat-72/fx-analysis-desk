@@ -1,0 +1,24 @@
+# Manual live check of the free data sources (no secrets needed). Results are pushed to the live-check branch.
+name: live-check
+on:
+  workflow_dispatch:
+  push:
+    branches: [live-check-run]
+permissions:
+  contents: write
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: node --experimental-strip-types scripts/live-check.ts
+      - name: Publish results to the live-check branch
+        run: |
+          cd out
+          git init -q && git checkout -q -b live-check
+          git config user.name live-check && git config user.email live-check@users.noreply.github.com
+          git add -A && git commit -qm "live check $(date -u +%FT%TZ)"
+          git push -fq "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" live-check

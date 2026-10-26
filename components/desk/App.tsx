@@ -1,0 +1,184 @@
+"use client";
+
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { CalendarDays, ChevronLeft, ChevronRight, FlaskConical, KeyRound, Lock, Moon, Settings2, Sun } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { api, getToken, setToken, type Kind, type VersionSummary, type Week } from "./api";
+import { ReportPane } from "./ReportPane";
+import { SettingsDrawer } from "./Settings";
+import { CalendarPanel, EvaluationPanel, EvidencePanel, FreshnessBar, LevelsPanel, ScreenshotPanel } from "./SidePanels";
+import { Timeline } from "./Timeline";
+import { Badge, Button, Spinner, cx, inputCls } from "./ui";
+
+export const iso = (d: Date) => d.toISOString().slice(0, 10);
+export function addDays(s: string, n: number) { const d = new Date(s + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() + n); return iso(d); }
+export function mondayOf(s: string) { const d = new Date(s + "T12:00:00Z"); const wd = (d.getUTCDay() + 6) % 7; return addDays(s, -wd); }
+function todayIn(tz: string) {
+  // formatToParts: "en-CA" does not give YYYY-MM-DD in every browser.
+  const p = Object.fromEntries(new Intl.DateTimeFormat("en-US", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date()).map((x) => [x.type, x.value]));
+  return `${p.year}-${p.month}-${p.day}`;
+}
+
+export const TABS: { kind: Kind; label: string }[] = [
+  { kind: "weekly_analysis", label: "Weekly analysis" },
+  { kind: "daily_analysis", label: "Daily analysis" },
+  { kind: "daily_review", label: "Previous-day review" },
+  { kind: "weekly_review", label: "Weekly review" },
+];
+
+export function pickVersion(vs: VersionSummary[] | undefined): VersionSummary | undefined {
+  if (!vs?.length) return undefined;
+  const pub = vs.filter((v) => v.status === "published");
+  const drafts = vs.filter((v) => v.status === "draft");
+  return drafts.length && (!pub.length || drafts[drafts.length - 1].version > pub[pub.length - 1].version)
+    ? drafts[drafts.length - 1] : pub[pub.length - 1] ?? vs[vs.length - 1];
+}
+
+export function slotVersions(week: Week | undefined, kind: Kind, day: string, reviewDay: string | null): { versions: VersionSummary[]; period: string } {
+  if (!week) return { versions: [], period: day };
+  if (kind === "weekly_analysis") return { versions: week.weekly_analysis, period: week.week_key };
+  if (kind === "weekly_review") return { versions: week.weekly_review, period: week.week_key };
+  if (kind === "daily_analysis") return { versions: week.days.find((d) => d.date === day)?.daily_analysis ?? [], period: day };
+  // Previous-day review: an explicitly chosen session, else the trading day before the selected day.
+  const idx = week.days.findIndex((d) => d.date === day);
+  const target = reviewDay ?? (idx > 0 ? week.days[idx - 1].date : week.days[0]?.date ?? day);
+  return { versions: week.days.find((d) => d.date === target)?.daily_review ?? [], period: target };
+}
+
+function TokenDialog({ onDone }: { onDone: () => void }) {
+  const [t, setT] = useState(getToken());
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4" role="dialog" aria-modal aria-label="Admin token">
+      <form className="panel w-full max-w-sm space-y-3 p-5" onSubmit={(e) => { e.preventDefault(); setToken(t.trim()); onDone(); }}>
+        <h2 className="flex items-center gap-2 font-semibold"><Lock className="size-4 text-accent" />Admin token required</h2>
+        <p className="text-[13px] text-muted">This deployment is protected. Enter the ADMIN_TOKEN configured on the server. It is kept in this browser only.</p>
+        <input autoFocus type="password" value={t} onChange={(e) => setT(e.target.value)} className={cx(inputCls, "w-full")} aria-label="Admin token" />
+        <div className="flex justify-end"><Button variant="primary" type="submit">Unlock</Button></div>
+      </form>
+    </div>
+  );
+}
+
+export default function App() {
+  const qc = useQueryClient();
+  const [needToken, setNeedToken] = useState(false);
+  useEffect(() => {
+    const h = () => setNeedToken(true);
+    window.addEventListener("fx:auth-required", h);
+    return () => window.removeEventListener("fx:auth-required", h);
+  }, []);
+  const cfg = useQuery({ queryKey: ["config"], queryFn: api.config });
+  const tz = cfg.data?.display.timezone ?? "Africa/Kampala";
+  const [instrument, setInstrument] = useState<string>(() => { try { return localStorage.getItem("fx.instrument") ?? "GBP_USD"; } catch { return "GBP_USD"; } });
+  const [weekKey, setWeekKey] = useState(() => mondayOf(todayIn("Africa/Kampala")));
+  const [day, setDay] = useState(() => todayIn("Africa/Kampala"));
+  const [tab, setTab] = useState<Kind>("daily_analysis");
+  const [reviewDay, setReviewDay] = useState<string | null>(null);
+  const [versionId, setVersionId] = useState<string | null>(null);
+  const [focusCite, setFocusCite] = useState<string | null>(null);
+  const [settings, setSettings] = useState(false);
+  const [theme, setTheme] = useState<"dark" | "light">(() => { try { return (localStorage.getItem("fx.theme") as "dark" | "light") ?? "dark"; } catch { return "dark"; } });
+
+  useEffect(() => { document.documentElement.dataset.theme = theme; try { localStorage.setItem("fx.theme", theme); } catch { /* storage unavailable */ } }, [theme]);
+  useEffect(() => { try { localStorage.setItem("fx.instrument", instrument); } catch { /* storage unavailable */ } }, [instrument]);
+
+  const week = useQuery({ queryKey: ["week", instrument, weekKey], queryFn: () => api.week(instrument, weekKey) });
+  const days = week.data?.days.map((d) => d.date) ?? [];
+  // While the week is (re)loading keep the chosen day, so an action never targets a fallback slot.
+  const selDay = !days.length || days.includes(day) ? day : days.find((d) => d === todayIn(tz)) ?? days[0];
+  const slot = useMemo(() => slotVersions(week.data, tab, selDay, reviewDay), [week.data, tab, selDay, reviewDay]);
+  const current = versionId ?? pickVersion(slot.versions)?.id ?? null;
+  const inst = cfg.data?.instruments.find((i) => i.code === instrument);
+
+  const select = (k: Kind, d?: string, review?: string) => {
+    setTab(k); if (d) setDay(d); setReviewDay(review ?? null); setVersionId(null); setFocusCite(null);
+  };
+  const shiftWeek = (n: number) => { const w = addDays(weekKey, 7 * n); setWeekKey(w); setDay(w); setReviewDay(null); setVersionId(null); };
+
+  const tokenDialog = needToken && <TokenDialog onDone={() => { setNeedToken(false); qc.invalidateQueries(); }} />;
+  if (cfg.isLoading) return <>{tokenDialog}<Spinner label="Loading configuration" /></>;
+  if (cfg.error && needToken) return <>{tokenDialog}</>;
+  if (cfg.error) return (
+    <div className="mx-auto max-w-3xl space-y-3 p-6">
+      <h1 className="text-lg font-semibold text-danger">The API is not responding correctly</h1>
+      <pre className="whitespace-pre-wrap rounded-lg border border-line bg-surface p-3 font-mono text-[13px] text-fg">{(cfg.error as Error).message || String(cfg.error)}</pre>
+      <p className="text-sm text-muted">Open <a className="text-accent underline" href="/api/health">/api/health</a> for the server's start-up status. Nothing above contains secrets.</p>
+    </div>
+  );
+
+  return (
+    <div className="mx-auto flex min-h-screen max-w-[1760px] flex-col gap-3 px-4 pb-6 pt-3 sm:px-5">
+      <header className="panel flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2.5">
+        <div className="flex items-center gap-2.5">
+          <div className="grid size-8 place-items-center rounded-lg bg-accent-soft text-accent" aria-hidden>
+            <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M3 17l5-6 4 3 5-7 4 4" /><path d="M3 21h18" /></svg>
+          </div>
+          <div className="leading-tight">
+            <div className="text-[15px] font-semibold">FX Analysis Desk</div>
+            <div className="text-[11.5px] text-faint">Analysis and reporting · not trading advice</div>
+          </div>
+        </div>
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+          <label className="sr-only" htmlFor="inst">Instrument</label>
+          <select id="inst" value={instrument} onChange={(e) => { setInstrument(e.target.value); setVersionId(null); }}
+            className={cx(inputCls, "num min-w-0 flex-1 cursor-pointer font-medium sm:w-44 sm:flex-none")}>
+            {cfg.data!.instruments.map((i) => <option key={i.code} value={i.code}>{i.display}</option>)}
+          </select>
+          <div className="flex items-center rounded-lg border border-line bg-surface-2">
+            <button className="grid size-9 cursor-pointer place-items-center text-muted hover:text-fg" onClick={() => shiftWeek(-1)} aria-label="Previous week"><ChevronLeft className="size-4" /></button>
+            <label className="flex items-center gap-1.5 px-1 text-sm">
+              <CalendarDays className="size-4 text-muted" aria-hidden />
+              <span className="sr-only">Week of</span>
+              <input type="date" value={weekKey} onChange={(e) => e.target.value && (setWeekKey(mondayOf(e.target.value)), setDay(mondayOf(e.target.value)), setVersionId(null))}
+                className="num w-[8.6rem] cursor-pointer bg-transparent text-fg focus:outline-none" />
+            </label>
+            <button className="grid size-9 cursor-pointer place-items-center text-muted hover:text-fg" onClick={() => shiftWeek(1)} aria-label="Next week"><ChevronRight className="size-4" /></button>
+          </div>
+        </div>
+        {inst?.label && <span className="hidden text-[12px] text-faint xl:inline">{inst.label}</span>}
+        <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
+          {cfg.data!.app_env !== "production" && <Badge tone="fixture" title="Development environment"><FlaskConical className="size-3" />Development</Badge>}
+          <Badge tone={cfg.data!.publication_mode === "automatic" ? "warn" : "neutral"}>
+            {cfg.data!.publication_mode === "automatic" ? "Auto-publish ON" : "Manual publication"}
+          </Badge>
+          <span className="hidden text-[12px] text-muted sm:inline">Times in {cfg.data!.display.timezone_label} ({tz})</span>
+          <Button variant="ghost" size="sm" onClick={() => setTheme(theme === "dark" ? "light" : "dark")} title="Toggle theme">
+            {theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}<span className="sr-only">Toggle theme</span>
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => setNeedToken(true)} title="Admin token"><KeyRound className="size-4" /><span className="sr-only">Admin token</span></Button>
+          <Button size="sm" onClick={() => setSettings(true)}><Settings2 className="size-4" aria-hidden />Configure</Button>
+        </div>
+      </header>
+
+      <FreshnessBar instrument={instrument} />
+
+      <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-[260px_minmax(0,1fr)] 2xl:grid-cols-[270px_minmax(0,1fr)_420px]">
+        <div className="order-2 flex flex-col gap-3 lg:order-none">
+          {week.isLoading ? <Spinner /> : <Timeline week={week.data!} tab={tab} day={selDay} reviewDay={slot.period} onSelect={select} />}
+        </div>
+        <div className="order-1 flex min-w-0 flex-col gap-3 lg:order-none">
+          <ReportPane key={`${instrument}-${tab}-${slot.period}`} instrument={instrument} tab={tab} onTab={(k) => select(k)}
+            period={slot.period} versions={slot.versions} versionId={current} onVersion={setVersionId}
+            onCite={setFocusCite} credentials={cfg.data!.credentials} defaultWriter={cfg.data!.writer} weekKey={weekKey} />
+          <div className="grid gap-3 lg:grid-cols-2 2xl:hidden">
+            <EvidencePanel versionId={current} focus={focusCite} />
+            <CalendarPanel instrument={instrument} weekKey={weekKey} />
+          </div>
+        </div>
+        <aside className="order-3 flex min-w-0 flex-col gap-3 lg:order-none lg:col-span-2 2xl:col-span-1">
+          <div className="hidden flex-col gap-3 2xl:flex">
+            <EvidencePanel versionId={current} focus={focusCite} />
+            <CalendarPanel instrument={instrument} weekKey={weekKey} />
+          </div>
+          <div className="grid gap-3 lg:grid-cols-2 2xl:grid-cols-1">
+            <LevelsPanel instrument={instrument} decimals={inst?.decimals ?? 5} />
+            <EvaluationPanel instrument={instrument} />
+          </div>
+          <ScreenshotPanel instrument={instrument} />
+        </aside>
+      </div>
+      {tokenDialog}
+      <SettingsDrawer open={settings} onClose={() => setSettings(false)} config={cfg.data!} instrument={instrument} />
+    </div>
+  );
+}

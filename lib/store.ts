@@ -1,0 +1,163 @@
+// JSON document store: Vercel Blob in deployments (BLOB_READ_WRITE_TOKEN), a local .data/ folder otherwise.
+// - putImmutable(): create-only. Published report versions are written this way, so the store itself refuses
+//   to overwrite them (Blob: allowOverwrite=false; local: exclusive create).
+// - update(): read-modify-write with an ETag precondition and retries, so concurrent writers never lose updates.
+import { createHash } from "node:crypto";
+import { promises as fs } from "node:fs";
+import path from "node:path";
+
+export class ImmutableError extends Error {}
+class PreconditionFailed extends Error {}
+
+interface Backend {
+  read(p: string): Promise<{ text: string; etag: string } | null>;
+  write(p: string, body: string | Buffer, o: { create?: boolean; etag?: string; contentType?: string }): Promise<{ url: string }>;
+  list(prefix: string): Promise<string[]>;
+  del(p: string): Promise<void>;
+  url(p: string): Promise<string | null>;
+}
+
+const blobAccess = () => (process.env.BLOB_ACCESS === "private" ? "private" : "public") as "public" | "private";
+
+function blobBackend(): Backend {
+  // Imported lazily so local development and tests never need the SDK configured.
+  const sdk = import("@vercel/blob");
+  return {
+    async read(p) {
+      const { get } = await sdk;
+      const r = await get(p, { access: blobAccess(), useCache: false });
+      if (!r || !r.stream) return null;
+      return { text: await new Response(r.stream).text(), etag: r.blob.etag };
+    },
+    async write(p, body, o) {
+      const { put } = await sdk;
+      try {
+        const r = await put(p, body, {
+          access: blobAccess(), addRandomSuffix: false, contentType: o.contentType ?? "application/json",
+          cacheControlMaxAge: 60, ...(o.create ? { allowOverwrite: false } : o.etag ? { ifMatch: o.etag } : { allowOverwrite: true }),
+        });
+        return { url: r.url };
+      } catch (e) {
+        const msg = String((e as Error)?.message ?? e);
+        if (o.create && /exist/i.test(msg)) throw new ImmutableError(`${p} already exists and cannot be overwritten`);
+        if (o.etag && /precondition|etag|412/i.test(msg)) throw new PreconditionFailed(p);
+        throw e;
+      }
+    },
+    async list(prefix) {
+      const { list } = await sdk;
+      const out: string[] = [];
+      let cursor: string | undefined;
+      do {
+        const r = await list({ prefix, cursor, limit: 1000 });
+        out.push(...r.blobs.map((b) => b.pathname));
+        cursor = r.hasMore ? r.cursor : undefined;
+      } while (cursor);
+      return out;
+    },
+    async del(p) {
+      const { del } = await sdk;
+      await del(p);
+    },
+    async url(p) {
+      const { head } = await sdk;
+      try { return (await head(p)).url; } catch { return null; }
+    },
+  };
+}
+
+function fsBackend(root: string): Backend {
+  const file = (p: string) => path.join(/*turbopackIgnore: true*/ root, p);
+  const tag = (s: string | Buffer) => createHash("sha1").update(s).digest("hex");
+  return {
+    async read(p) {
+      try { const text = await fs.readFile(file(p), "utf8"); return { text, etag: tag(text) }; } catch { return null; }
+    },
+    async write(p, body, o) {
+      await fs.mkdir(path.dirname(file(p)), { recursive: true });
+      if (o.create) {
+        try { await fs.writeFile(file(p), body, { flag: "wx" }); } catch (e) {
+          if ((e as NodeJS.ErrnoException).code === "EEXIST") throw new ImmutableError(`${p} already exists and cannot be overwritten`);
+          throw e;
+        }
+      } else {
+        if (o.etag) {
+          const cur = await this.read(p);
+          if (cur && cur.etag !== o.etag) throw new PreconditionFailed(p);
+        }
+        await fs.writeFile(file(p), body);
+      }
+      return { url: `/api/files/${p}` };
+    },
+    async list(prefix) {
+      const out: string[] = [];
+      async function walk(dir: string) {
+        let ents: import("node:fs").Dirent[] = [];
+        try { ents = await fs.readdir(dir, { withFileTypes: true }); } catch { return; }
+        for (const e of ents) {
+          const full = path.join(dir, e.name);
+          if (e.isDirectory()) await walk(full);
+          else out.push(path.relative(root, full).split(path.sep).join("/"));
+        }
+      }
+      await walk(root);
+      return out.filter((p) => p.startsWith(prefix)).sort();
+    },
+    async del(p) { await fs.rm(file(p), { force: true }); },
+    async url(p) { try { await fs.access(file(p)); return `/api/files/${p}`; } catch { return null; } },
+  };
+}
+
+const localRoot = () => process.env.DATA_DIR || path.join(/*turbopackIgnore: true*/ process.cwd(), ".data");
+
+let backend: Backend | null = null;
+export function store(): Backend {
+  if (!backend) backend = process.env.BLOB_READ_WRITE_TOKEN ? blobBackend() : fsBackend(localRoot());
+  return backend;
+}
+/** For tests: point the store at a fresh local directory. */
+export function useLocalStore(dir: string) { backend = fsBackend(dir); }
+export const storageMode = () => (process.env.BLOB_READ_WRITE_TOKEN ? "vercel-blob" : "local-files");
+
+export async function getJSON<T>(p: string): Promise<T | null> {
+  const r = await store().read(p);
+  return r ? (JSON.parse(r.text) as T) : null;
+}
+
+export async function putJSON(p: string, data: unknown): Promise<void> {
+  await store().write(p, JSON.stringify(data), {});
+}
+
+/** Create-only write. Throws ImmutableError if the document already exists. */
+export async function putImmutable(p: string, data: unknown): Promise<void> {
+  await store().write(p, JSON.stringify(data), { create: true });
+}
+
+/** Read-modify-write with optimistic concurrency. `fn` may mutate and/or return the new value. */
+export async function update<T>(p: string, init: () => T, fn: (cur: T) => T | void): Promise<T> {
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const r = await store().read(p);
+    const cur = r ? (JSON.parse(r.text) as T) : init();
+    const next = (fn(cur) ?? cur) as T;
+    try {
+      await store().write(p, JSON.stringify(next), r ? { etag: r.etag } : {});
+      return next;
+    } catch (e) {
+      if (!(e instanceof PreconditionFailed)) throw e;
+      await new Promise((res) => setTimeout(res, 150 * (attempt + 1) + Math.random() * 200));
+    }
+  }
+  throw new Error(`could not update ${p}: too many concurrent writers`);
+}
+
+export async function putFile(p: string, body: Buffer, contentType: string): Promise<string> {
+  return (await store().write(p, body, { create: true, contentType })).url;
+}
+export async function readFile(p: string): Promise<Buffer | null> {
+  if (process.env.BLOB_READ_WRITE_TOKEN) {
+    const { get } = await import("@vercel/blob");
+    const r = await get(p, { access: blobAccess(), useCache: false });
+    return r?.stream ? Buffer.from(await new Response(r.stream).arrayBuffer()) : null;
+  }
+  try { return await fs.readFile(/*turbopackIgnore: true*/ path.join(localRoot(), p)); } catch { return null; }
+}
