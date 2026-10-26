@@ -3,6 +3,8 @@
 name: Probe data sources
 on:
   workflow_dispatch:
+permissions:
+  contents: write
 jobs:
   probe:
     runs-on: ubuntu-latest
@@ -36,7 +38,11 @@ jobs:
           get snb.xml "https://www.snb.ch/public/en/rss/pressrel"
           get frankfurter.json "https://api.frankfurter.app/latest?from=USD"
           cat index.txt
-      - uses: actions/upload-artifact@v4
-        with:
-          name: probe
-          path: out
+      - name: Publish samples to the probe-data branch (truncated, raw responses only)
+        run: |
+          cd out
+          for f in *; do [ "$f" = index.txt ] || head -c 60000 "$f" > "$f.tmp" && mv "$f.tmp" "$f" 2>/dev/null || true; done
+          git init -q && git checkout -q -b probe-data
+          git -c user.name=probe -c user.email=probe@users.noreply.github.com add -A
+          git -c user.name=probe -c user.email=probe@users.noreply.github.com commit -qm "probe samples $(date -u +%FT%TZ)"
+          git push -fq "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" probe-data
