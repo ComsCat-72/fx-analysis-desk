@@ -19,7 +19,7 @@ from ..providers.calendar_ff import event_id
 
 def to_domain(r: CandleRow) -> Candle:
     return Candle(r.instrument, r.timeframe, r.start, r.end, r.open, r.high, r.low, r.close, r.complete,
-                  r.provider, r.price_component, r.is_fixture, r.volume)
+                  r.provider, r.price_component, r.is_fixture, r.volume, r.bars, r.expected_bars)
 
 
 def upsert_candles(db: Session, candles: list[Candle]) -> int:
@@ -31,11 +31,13 @@ def upsert_candles(db: Session, candles: list[Candle]) -> int:
         if row is None:
             db.add(CandleRow(instrument=c.instrument, timeframe=c.timeframe, start=c.start, end=c.end, open=c.open,
                              high=c.high, low=c.low, close=c.close, volume=c.volume, complete=c.complete,
+                             bars=c.bars, expected_bars=c.expected_bars,
                              provider=c.provider, price_component=c.price_component, is_fixture=c.is_fixture))
             n += 1
         elif not row.complete:
             # Only incomplete candles may be refreshed; complete candles are final.
             row.open, row.high, row.low, row.close, row.complete, row.end = c.open, c.high, c.low, c.close, c.complete, c.end
+            row.bars, row.expected_bars = c.bars, c.expected_bars
             row.retrieved_at = now_utc()
             n += 1
     db.flush()
@@ -60,7 +62,8 @@ def build_higher_timeframes(db: Session, instrument: str, session: SessionDef, s
     d = session.week_monday(start_day)
     while d <= end_day:
         if session.is_weekday_session(d):
-            c = daily_from_hourly(h1, session, d, as_of)
+            from ..config import app_config
+            c = daily_from_hourly(h1, session, d, as_of, app_config()["technical"].get("max_missing_h1_bars", 0))
             if c:
                 d1.append(c)
         d += timedelta(days=1)

@@ -137,6 +137,9 @@ providers:
     price_relative_tolerance: 0.0002
 
 technical:
+  # Free feeds occasionally skip an hourly bar. A session missing at most this many hours still counts
+  # as complete; reports disclose "built from N of M hourly bars". 0 = strict.
+  max_missing_h1_bars: 1
   swings:
     left_bars: 3
     right_bars: 3             # a swing is confirmed only after this many later bars close

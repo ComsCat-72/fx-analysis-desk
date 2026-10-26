@@ -107,6 +107,8 @@ class Candle:
     price_component: str = "M"
     is_fixture: bool = False
     volume: float | None = None
+    bars: int | None = None             # sub-candles an aggregated candle was built from
+    expected_bars: int | None = None    # sub-candles a full period contains
 
     def __post_init__(self):
         if not (self.low <= min(self.open, self.close) and self.high >= max(self.open, self.close)):
@@ -123,16 +125,18 @@ def _check_homogeneous(candles: list[Candle]) -> None:
 
 
 def aggregate(candles: list[Candle], timeframe: str, start: datetime, end: datetime,
-              expected_count: int, as_of: datetime) -> Candle | None:
+              expected_count: int, as_of: datetime, max_missing: int = 0) -> Candle | None:
     """Combine ordered sub-candles inside [start, end) into one candle.
 
-    complete = every expected sub-candle is present and complete, and the period has ended by as_of.
+    complete = at most `max_missing` expected sub-candles are absent, every present one is complete,
+    and the period has ended by as_of. The bar counts are kept so reports can disclose gaps.
     """
     inside = sorted((c for c in candles if start <= c.start < end), key=lambda c: c.start)
     if not inside:
         return None
     _check_homogeneous(inside)
-    complete = (len(inside) == expected_count and all(c.complete for c in inside) and end <= to_utc(as_of))
+    complete = (expected_count - max_missing <= len(inside) <= expected_count
+                and all(c.complete for c in inside) and end <= to_utc(as_of))
     first = inside[0]
     return Candle(
         instrument=first.instrument, timeframe=timeframe, start=start, end=end,
@@ -140,13 +144,15 @@ def aggregate(candles: list[Candle], timeframe: str, start: datetime, end: datet
         close=inside[-1].close, complete=complete, provider=first.provider,
         price_component=first.price_component, is_fixture=first.is_fixture,
         volume=sum(c.volume or 0 for c in inside) if any(c.volume is not None for c in inside) else None,
+        bars=len(inside), expected_bars=expected_count,
     )
 
 
-def daily_from_hourly(h1: list[Candle], session: SessionDef, d: date, as_of: datetime) -> Candle | None:
+def daily_from_hourly(h1: list[Candle], session: SessionDef, d: date, as_of: datetime,
+                      max_missing: int = 0) -> Candle | None:
     start, end = session.day_bounds(d)
     expected = session.expected_h1_bars or int((end - start) / timedelta(hours=1))
-    return aggregate(h1, "D1", start, end, expected, as_of)
+    return aggregate(h1, "D1", start, end, expected, as_of, max_missing)
 
 
 def weekly_from_daily(d1: list[Candle], session: SessionDef, monday: date, as_of: datetime) -> Candle | None:

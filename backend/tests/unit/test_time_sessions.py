@@ -102,3 +102,13 @@ class TestAggregation:
         c = bar(s, 1, 1.1, 0.9, 1.0)
         assert not with_completion(c, s + timedelta(minutes=30)).complete
         assert with_completion(c, s + timedelta(hours=1)).complete
+
+
+def test_missing_bar_tolerance_is_bounded_and_recorded():
+    start, end = S.day_bounds(date(2026, 10, 27))
+    h1 = series(start, [1.3 + i * 0.0001 for i in range(24)])
+    one_gap = h1[:5] + h1[6:]
+    d = daily_from_hourly(one_gap, S, date(2026, 10, 27), as_of=end, max_missing=1)
+    assert d.complete and d.bars == 23 and d.expected_bars == 24
+    assert not daily_from_hourly(one_gap, S, date(2026, 10, 27), as_of=end).complete          # strict by default
+    assert not daily_from_hourly(h1[:5] + h1[7:], S, date(2026, 10, 27), as_of=end, max_missing=1).complete

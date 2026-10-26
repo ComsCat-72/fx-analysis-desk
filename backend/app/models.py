@@ -50,6 +50,8 @@ class CandleRow(Base):
     low: Mapped[float] = mapped_column(Float)
     close: Mapped[float] = mapped_column(Float)
     volume: Mapped[float | None] = mapped_column(Float)
+    bars: Mapped[int | None] = mapped_column(Integer)
+    expected_bars: Mapped[int | None] = mapped_column(Integer)
     complete: Mapped[bool] = mapped_column(Boolean)
     provider: Mapped[str] = mapped_column(String(60))
     price_component: Mapped[str] = mapped_column(String(4), default="M")

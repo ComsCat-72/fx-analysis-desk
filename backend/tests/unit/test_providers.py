@@ -101,3 +101,12 @@ def test_fixture_prices_are_labelled_and_deterministic():
     # no candles generated in the weekend gap
     assert p.candles("X", "GBP_USD", "H1", datetime(2026, 10, 31, tzinfo=UTC), datetime(2026, 10, 31, 12, tzinfo=UTC)) == []
     assert 0.8 < a[0].close < 1.2  # synthetic level near 1.0, unlike any real GBP/USD quote
+
+
+def test_policy_relevance_filter():
+    from app.reports.facts import is_monetary_policy
+    assert is_monetary_policy("decision", "FOMC statement")
+    assert is_monetary_policy("speech", "Bowman, Supervisory Modernization")           # speeches are kept
+    assert not is_monetary_policy("minutes", "Banknote imagery advisory group minutes")
+    assert not is_monetary_policy("press", "Federal Reserve Board announces termination of enforcement actions")
+    assert is_monetary_policy("minutes", "Minutes of the Monetary Policy Committee meeting")

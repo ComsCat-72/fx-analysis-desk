@@ -234,9 +234,9 @@ def build_bundle(db: Session, inst: Instrument, kind: str, period: date, cutoff:
         pd = session.trading_day_of(p.start)
         chg = p.close - p.open
         b.add("facts", "F", {"kind": "price", "text": f"Previous complete session ({pd.strftime('%a %d %b %Y')}, "
-                             f"ends 17:00 New York = {format_display(p.end, tz, tzl, with_date=False)}): "
+                             f"ends {session.daily_close} New York = {format_display(p.end, tz, tzl, with_date=False)}): "
                              f"open {_f(p.open, d)}, high {_f(p.high, d)}, low {_f(p.low, d)}, close {_f(p.close, d)}; "
-                             f"change {chg:+.{d}f} ({p.provider} mid).",
+                             f"change {chg:+.{d}f} ({source_label(p)}){coverage_note(p)}.",
                              "values": _ohlc_values(p, d) + [f"{chg:+.{d}f}", f"{abs(chg):.{d}f}"],
                              "source": p.provider, "time": p.end.isoformat(), "role": "previous_session"})
         b.add("levels", "L", _auto_level(db, inst, "D1", "support", p.low, p.low, f"previous session low ({pd})", p.end, is_fixture))
@@ -357,8 +357,11 @@ def build_bundle(db: Session, inst: Instrument, kind: str, period: date, cutoff:
 
     # ---------------- policy and news ----------------
     p_from = cutoff - timedelta(days=10)
-    for p in db.scalars(select(PolicyItem).where(PolicyItem.currency.in_(curs), PolicyItem.published_at <= cutoff,
-                                                 PolicyItem.published_at >= p_from).order_by(PolicyItem.published_at.desc()).limit(12)):
+    policy_rows = [p for p in db.scalars(select(PolicyItem).where(PolicyItem.currency.in_(curs), PolicyItem.published_at <= cutoff,
+                                                               PolicyItem.published_at >= p_from)
+                                         .order_by(PolicyItem.published_at.desc()).limit(200))
+                   if is_monetary_policy(p.kind, p.title)][:12]
+    for p in policy_rows:
         b.add("policy", "P", {"kind": "policy", "bank": p.bank, "currency": p.currency, "type": p.kind,
                               "title": p.title, "url": p.url, "published_display": format_display(p.published_at, tz, tzl),
                               "text": f"{p.bank.upper()} {p.kind}: \"{p.title}\" ({format_display(p.published_at, tz, tzl)}). "
@@ -399,6 +402,33 @@ def build_bundle(db: Session, inst: Instrument, kind: str, period: date, cutoff:
         cal.update({str(dd.day), str(dd.year)})
     b.meta["calendar_numbers"] = sorted(cal)
     return b
+
+
+PRICE_COMPONENT = {"M": "mid", "C": "composite", "L": "last traded"}
+
+
+def source_label(c) -> str:
+    return f"{c.provider} {PRICE_COMPONENT.get(c.price_component, c.price_component)}"
+
+
+def coverage_note(c) -> str:
+    """Disclose gaps when an aggregated candle was built from fewer bars than a full period has."""
+    if c.bars and c.expected_bars and c.bars < c.expected_bars:
+        return f"; built from {c.bars} of {c.expected_bars} hourly bars ({c.expected_bars - c.bars} missing from the source)"
+    return ""
+
+
+def is_monetary_policy(kind: str, title: str) -> bool:
+    """Keep central-bank items that bear on policy, the economy or markets; drop administrative notices."""
+    t = title.lower()
+    if any(w in t for w in ("banknote", "enforcement action", "job vacanc", "appointment of", "cybersecurity",
+                            "consultation on", "supervisory", "regulators unveil", "bank holiday")):
+        return False
+    if kind in ("decision", "speech"):
+        return True
+    return any(w in t for w in ("monetary", "policy", "rate", "inflation", "fomc", "mpc", "minutes of the monetary",
+                                "economic", "outlook", "statement", "financial stability", "beige book",
+                                "projections", "governor", "chair", "president lagarde", "bulletin"))
 
 
 def _nums(text: str) -> list[str]:
@@ -529,14 +559,15 @@ def _daily_evaluation(db, b: Bundle, inst, period, session, rules, cfg, d, tz, t
         thr = cfg["evaluation"]["inconclusive_atr_fraction"] * atr_v if atr_v else 0
         net = day.close - day.open
         ev["session_direction"] = "consolidated" if abs(net) <= thr else ("rose" if net > 0 else "fell")
-        eff = currency_effect(inst, net) if inst.kind == "fx_spot" else {}
+        moved = ev["session_direction"] != "consolidated"
+        eff = currency_effect(inst, net) if inst.kind == "fx_spot" and moved else {}
         seq = ""
         if hi_bar and lo_bar:
             first = "high" if hi_bar.start < lo_bar.start else "low"
             seq = (f" The session high came at {format_display(hi_bar.start, tz, tzl)} and the low at "
                    f"{format_display(lo_bar.start, tz, tzl)} (the {first} came first).")
         fid = b.add("facts", "F", {"kind": "price", "role": "reviewed_session",
-                                   "text": f"Reviewed session {period.strftime('%a %d %b %Y')} (ends 17:00 New York): open {_f(day.open, d)}, "
+                                   "text": f"Reviewed session {period.strftime('%a %d %b %Y')} (ends {session.daily_close} New York{coverage_note(day)}): open {_f(day.open, d)}, "
                                            f"high {_f(day.high, d)}, low {_f(day.low, d)}, close {_f(day.close, d)}; net {net:+.{d}f}; "
                                            f"classified as '{ev['session_direction']}' (threshold {_f(thr, d)} = "
                                            f"{cfg['evaluation']['inconclusive_atr_fraction']} x ATR).{seq}"
