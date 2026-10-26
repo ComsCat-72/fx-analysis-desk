@@ -1,0 +1,161 @@
+# FX Analysis Desk: main configuration.
+# Everything here can be changed without code edits. Secrets live in .env, never here.
+
+display:
+  # IANA zone used for every time shown to readers. Africa/Kampala = EAT (UTC+3, no DST).
+  # Note: Africa/Kigali is CAT (UTC+2), one hour behind EAT.
+  timezone: Africa/Kampala
+  timezone_label: EAT
+  show_source_timestamps: true
+
+# Session definitions. Candle boundaries are computed from these with zoneinfo,
+# so daylight-saving changes in the anchor zone are handled automatically.
+sessions:
+  fx_ny_close:
+    description: "Spot FX day ends 17:00 New York; week runs Sunday 17:00 to Friday 17:00 New York."
+    anchor_timezone: America/New_York
+    daily_close: "17:00"
+    week_open_weekday: 6     # Sunday (Mon=0)
+    week_close_weekday: 4    # Friday
+  # Market holidays (trading days with no daily candle expected), ISO dates.
+  holidays: []
+
+default_session: fx_ny_close
+
+timeframes:
+  context: [W1, D1]
+  structure: H1
+
+instruments:
+  GBP_USD:
+    display: GBP/USD
+    base: GBP
+    quote: USD
+    kind: fx_spot
+    decimals: 5
+    provider_symbol: GBP_USD
+    enabled: true
+  EUR_USD:
+    display: EUR/USD
+    base: EUR
+    quote: USD
+    kind: fx_spot
+    decimals: 5
+    provider_symbol: EUR_USD
+    enabled: true
+  AUD_USD:
+    display: AUD/USD
+    base: AUD
+    quote: USD
+    kind: fx_spot
+    decimals: 5
+    provider_symbol: AUD_USD
+    enabled: true
+  NZD_USD:
+    display: NZD/USD
+    base: NZD
+    quote: USD
+    kind: fx_spot
+    decimals: 5
+    provider_symbol: NZD_USD
+    enabled: true
+  USD_CHF:
+    display: USD/CHF
+    base: USD
+    quote: CHF
+    kind: fx_spot
+    decimals: 5
+    provider_symbol: USD_CHF
+    enabled: true
+  XAU_USD:
+    display: XAU/USD
+    base: XAU
+    quote: USD
+    kind: metal_spot
+    decimals: 2
+    provider_symbol: XAU_USD
+    enabled: true
+  DXY:
+    display: DXY (computed)
+    base: USD
+    quote: BASKET
+    kind: index_computed
+    decimals: 3
+    # Computed from spot with the published ICE weights. Not the official ICE futures-based value.
+    label: "Computed from spot FX using the published ICE formula; not the official ICE value."
+    enabled: true
+  NAS100:
+    display: NAS100 (CFD)
+    base: NAS100
+    quote: USD
+    kind: index_cfd
+    decimals: 1
+    provider_symbol: NAS100_USD
+    label: "OANDA NAS100 CFD price; not the official Nasdaq-100 index level and not futures."
+    enabled: true
+
+providers:
+  prices:
+    primary: oanda            # oanda | fixture
+    price_component: M        # M = mid. Never mixed with bid/ask or futures.
+    stale_after_seconds: 300
+  calendar:
+    primary: ff_weekly_json   # schedule + forecast + previous only (no actuals)
+    actuals: manual           # manual | official adapters (see docs/providers.md)
+  central_banks:
+    feeds: [fed, ecb, boe, rba, rbnz, snb]
+  yields:
+    primary: fred
+  news:
+    primary: manual           # Reuters/WSJ require a licence; headlines are user-entered with links.
+  conflicts:
+    # Relative tolerance before two providers' prices are treated as conflicting.
+    price_relative_tolerance: 0.0002
+
+technical:
+  swings:
+    left_bars: 3
+    right_bars: 3             # a swing is confirmed only after this many later bars close
+  atr_period: 14
+  moving_averages:
+    - {type: SMA, period: 20}
+    - {type: SMA, period: 50}
+    - {type: EMA, period: 20}
+  rsi:
+    enabled: false
+    period: 14
+  breaks:
+    basis: close              # close | wick. Close = candle close beyond the boundary.
+    timeframe: H1
+    sustained_closes: 2       # consecutive closes beyond the boundary needed for a sustained break
+    reversal_closes: 1        # closes back through the opposite side after confirmation = reversed
+
+evaluation:
+  wording: assessment         # assessment | correct_incorrect (display only; distinctions are kept)
+  # A net move smaller than this fraction of daily ATR is "Inconclusive".
+  inconclusive_atr_fraction: 0.25
+  # If the session also moved this many ATRs against the final direction, the result is "Mixed".
+  mixed_excursion_atr_fraction: 0.5
+
+reports:
+  publication_mode: manual    # manual | automatic (automatic must be explicitly enabled)
+  writer: claude              # claude | template (template = offline, deterministic sentences only)
+  length_words:
+    daily_analysis: [250, 400]
+    daily_review: [250, 400]
+    weekly_analysis: [400, 650]
+    weekly_review: [450, 700]
+  partial_publication: block  # block | label (label = publish a clearly marked partial report)
+
+schedules:
+  # Cron expressions in the display timezone.
+  weekly_analysis: "0 20 * * 0"   # Sunday 20:00 EAT
+  daily_analysis: "30 8 * * 1-5"  # weekdays 08:30 EAT
+  daily_review: "30 7 * * 2-6"    # Tue-Sat 07:30 EAT (reviews the previous session)
+  weekly_review: "0 10 * * 6"     # Saturday 10:00 EAT
+  retries: 3
+  backoff_seconds: [30, 120, 600]
+
+delivery:
+  enabled: false              # external delivery only if explicitly enabled
+  channels: []
