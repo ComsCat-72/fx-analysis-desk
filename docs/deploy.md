@@ -1,4 +1,26 @@
-# Free hosting: Render + Neon + GitHub Actions
+# Free hosting
+
+Recommended: **Koyeb (app) + Neon (database) + GitHub Actions (schedule)**. Render works the same way via `render.yaml` if you have free capacity there.
+
+## Koyeb (free instance)
+
+The free instance has 512 MB RAM and 0.1 vCPU, runs in Frankfurt or Washington, and scales to zero after an hour without traffic.
+
+1. **Neon:** create a project in AWS Frankfurt (eu-central-1) and copy the connection string.
+2. **Koyeb:** sign up with GitHub, then choose **Create Service → Web service → GitHub** and select `ComsCat-72/fx-analysis-desk`, branch `main`.
+3. **Builder:** Dockerfile (path `Dockerfile`, no build arguments, no command override).
+4. **Instance:** Free, region Frankfurt.
+5. **Ports:** 8000, HTTP, route `/`. **Health check:** HTTP on port 8000, path `/api/health`. Allow a generous grace period (about 60s), because migrations run on start.
+6. **Environment variables** (use *Secret* for keys):
+   - `DATABASE_URL`: the Neon string.
+   - `ADMIN_TOKEN`: a long random string.
+   - `APP_ENV`: `production`.
+   - `OANDA_API_TOKEN`, `OANDA_ACCOUNT_ID`, `OANDA_ENVIRONMENT=practice`, `ANTHROPIC_API_KEY`, and optionally `FRED_API_KEY`.
+
+   Demo without OANDA: `APP_ENV=development`, `PRICE_PROVIDER=fixture`, `CALENDAR_PROVIDER=fixture`.
+7. **Deploy.** The public URL is `https://<service>-<org>.koyeb.app`. Then do step 4 (GitHub schedule secrets) below, using that URL as `APP_URL`.
+
+# Render + Neon + GitHub Actions (alternative)
 
 | Part | Service (free plan) | Why |
 |---|---|---|
