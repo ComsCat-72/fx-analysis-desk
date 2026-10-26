@@ -1,12 +1,14 @@
 """Database engine, session, and a UTC-aware datetime column type."""
 from __future__ import annotations
 
+import os
 from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import datetime, timezone
 
 from sqlalchemy import DateTime, create_engine, event
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
+from sqlalchemy.pool import NullPool
 from sqlalchemy.types import TypeDecorator
 
 from .config import env
@@ -54,7 +56,9 @@ def engine():
         if url.startswith("sqlite:///"):
             from pathlib import Path
             Path(url.removeprefix("sqlite:///")).parent.mkdir(parents=True, exist_ok=True)
-        _engine = create_engine(url, future=True, pool_pre_ping=True)
+        # Serverless (Vercel): no pool held across invocations; Neon's pooler does the pooling.
+        pool = {"poolclass": NullPool} if os.environ.get("VERCEL") else {}
+        _engine = create_engine(url, future=True, pool_pre_ping=True, **pool)
         if url.startswith("sqlite"):
             @event.listens_for(_engine, "connect")
             def _fk(conn, _):

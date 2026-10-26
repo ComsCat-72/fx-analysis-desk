@@ -11,7 +11,7 @@ Automated, evidence-based FX analysis and reporting: weekly analysis, daily anal
 - **Checks run before publication:** advice detection, prohibited terminology, number and citation tracing, integrity (in-line results described as surprises, unconfirmed "sustained" breaks, causal overreach, probabilities with no stated method), continuity, and a second-pass semantic review by Claude.
 - **Published reports are immutable**, enforced by both the ORM and database triggers. Corrections and intraday updates become new versions with a change note, and changes of outlook go into an outlook change log. Reviews always compare against the *original* published version and its data cutoff.
 
-See [`docs/architecture.md`](docs/architecture.md) for details, and [`docs/deploy.md`](docs/deploy.md) for free hosting (Render + Neon + GitHub Actions).
+See [`docs/architecture.md`](docs/architecture.md) for details, and [`docs/deploy.md`](docs/deploy.md) for free hosting (Vercel or Render, Neon, GitHub Actions).
 
 ## Quick start (offline, development fixtures)
 

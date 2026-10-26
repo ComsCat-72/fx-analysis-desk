@@ -223,7 +223,11 @@ def export_pdf(version_id: int, db: Session = DB):
     if not v:
         raise HTTPException(404)
     name = f"{v.report.instrument}_{v.report.kind}_{v.report.period_key}_v{v.version}.pdf"
-    return Response(to_pdf(v.body_md, v.title), media_type="application/pdf",
+    try:
+        pdf = to_pdf(v.body_md, v.title)
+    except (ImportError, OSError):  # WeasyPrint or its Pango libraries missing (e.g. on Vercel)
+        raise HTTPException(501, "PDF export is not available on this host; use the Markdown export")
+    return Response(pdf, media_type="application/pdf",
                     headers={"Content-Disposition": f'attachment; filename="{name}"'})
 
 

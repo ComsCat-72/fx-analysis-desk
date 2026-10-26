@@ -1,0 +1,5 @@
+docs/
+frontend/shots/
+backend/tests/
+var/
+.env

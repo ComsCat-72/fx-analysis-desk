@@ -1,0 +1,18 @@
+# Python dependencies for the Vercel function (api/index.py). Same as backend/requirements.txt minus
+# WeasyPrint (needs Pango, which Vercel's runtime lacks: PDF export returns 501 there), the scheduler
+# (GitHub Actions triggers jobs) and test tools.
+fastapi>=0.115
+sqlalchemy>=2.0
+alembic>=1.13
+pydantic>=2.7
+pydantic-settings>=2.3
+httpx>=0.27
+pandas>=2.2
+numpy>=1.26
+anthropic>=2.3
+markdown>=3.6
+python-multipart>=0.0.9
+psycopg[binary]>=3.1
+tzdata
+pyyaml>=6
+feedparser>=6

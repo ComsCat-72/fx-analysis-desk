@@ -1,6 +1,7 @@
-# Free-tier scheduler: Render's free web service sleeps when idle, so GitHub Actions triggers the
-# report jobs. Times are UTC (EAT = UTC+3). GitHub may start scheduled runs a few minutes late.
-# Requires repository secrets APP_URL (e.g. https://fx-analysis-desk.onrender.com) and ADMIN_TOKEN,
+# Free-tier scheduler: neither a Vercel function nor Render's sleeping free service can run its own
+# scheduler, so GitHub Actions triggers the report jobs. Times are UTC (EAT = UTC+3). GitHub may start
+# scheduled runs a few minutes late.
+# Requires repository secrets APP_URL (e.g. https://fx-analysis-desk.vercel.app) and ADMIN_TOKEN,
 # and repository variable INSTRUMENTS (space-separated, default "GBP_USD").
 name: Report schedule
 on:
