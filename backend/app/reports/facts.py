@@ -638,7 +638,7 @@ def _weekly_evaluation(db, b: Bundle, inst, monday, session, rules, cfg, d, tz, 
             rng = (o.range_lower, o.range_upper) if o.range_lower is not None and o.range_upper is not None else None
             dr = assess_direction(Direction(o.direction), o.reference_price, day, o.atr_at_publication, cfg["evaluation"], rng)
             conds = _conditions_eval(o, bars, rules, d)
-            row.update({"published_bias": DIRECTION_LABELS[Direction(o.direction)] + (f" — {o.qualification}" if o.qualification else ""),
+            row.update({"published_bias": DIRECTION_LABELS[Direction(o.direction)],
                         "directional": dr.label(cfg["evaluation"].get("wording", "assessment")),
                         "conditional": "; ".join(f"{c['side']} {c['boundary']}: {c['outcome']}" for c in conds) or "No conditions stated",
                         "version": o0.version})

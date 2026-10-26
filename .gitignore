@@ -8,3 +8,4 @@ node_modules/
 frontend/dist/
 var/
 .pytest_cache/
+docs/examples/demo.db

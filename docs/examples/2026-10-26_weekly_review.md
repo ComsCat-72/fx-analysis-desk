@@ -10,11 +10,11 @@
 
 | Day | Published bias | Directional assessment | Conditional assessment |
 |---|---|---|---|
-| Monday | Neutral — rule-based: derived from confirmed 1H swing structure only | Supported | above 1.00523: Condition not reached; below 0.98870: Briefly reached, not sustained |
-| Tuesday | Upward lean — rule-based: derived from confirmed 1H swing structure only | Inconclusive | above 1.00051: Confirmed, then reversed; below 0.98870: Condition not reached |
-| Wednesday | Downward lean — rule-based: derived from confirmed 1H swing structure only | Inconclusive | above 1.00272: Briefly reached, not sustained; below 0.99054: Condition not reached |
-| Thursday | Neutral — rule-based: derived from confirmed 1H swing structure only | Supported | above 1.00372: Condition not reached; below 0.98870: Confirmed, then reversed |
-| Friday | Neutral — rule-based: derived from confirmed 1H swing structure only | Supported | above 1.00067: Condition not reached; below 0.98613: Confirmed |
+| Monday | Neutral | Supported | above 1.00523: Condition not reached; below 0.98870: Briefly reached, not sustained |
+| Tuesday | Upward lean | Inconclusive | above 1.00051: Confirmed, then reversed; below 0.98870: Condition not reached |
+| Wednesday | Downward lean | Inconclusive | above 1.00272: Briefly reached, not sustained; below 0.99054: Condition not reached |
+| Thursday | Neutral | Supported | above 1.00372: Condition not reached; below 0.98870: Confirmed, then reversed |
+| Friday | Neutral | Supported | above 1.00067: Condition not reached; below 0.98613: Confirmed |
 
 Week of 26 Oct 2026: open 0.99598, high 1.00372, low 0.98080, close 0.98567; net -0.01031; weekly ATR(12) 0.02272, threshold 0.00568 [F10].
 
