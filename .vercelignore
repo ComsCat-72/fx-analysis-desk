@@ -1,0 +1,6 @@
+.venv
+var
+**/node_modules
+frontend/dist
+backend/tests
+docs/examples

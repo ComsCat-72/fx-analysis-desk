@@ -1,0 +1,17 @@
+# Runtime dependencies for the Vercel Python function (api/index.py).
+# Docker and local development use backend/requirements.txt (which adds WeasyPrint and pytest).
+fastapi>=0.115
+sqlalchemy>=2.0
+alembic>=1.13
+pydantic>=2.7
+pydantic-settings>=2.3
+httpx>=0.27
+apscheduler>=3.10,<4
+anthropic>=2.3
+markdown>=3.6
+xhtml2pdf>=0.2.16
+python-multipart>=0.0.9
+psycopg[binary]>=3.1
+tzdata
+pyyaml>=6
+feedparser>=6

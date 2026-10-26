@@ -1,5 +1,18 @@
 # Free hosting
 
+## Vercel (Hobby, free) + Neon + GitHub Actions
+
+`vercel.json` serves the dashboard as static files and runs the API as one Python function (`api/index.py`, up to 300s per request). PDFs use the pure-Python renderer there. Uploaded screenshots live in `/tmp` and are lost between requests; confirmed levels are stored in the database. Vercel's Hobby plan is for non-commercial use.
+
+1. **Neon:** create a project in Frankfurt and copy the connection string.
+2. **Vercel:** sign up with GitHub, choose **Add New → Project**, and import `ComsCat-72/fx-analysis-desk`. Leave the framework preset as **Other** and the root directory as `./`; `vercel.json` supplies the build settings.
+3. **Environment variables** (Settings → Environment Variables, or the import screen): `DATABASE_URL`, `ADMIN_TOKEN`, `APP_ENV=production`, `OANDA_API_TOKEN`, `OANDA_ACCOUNT_ID`, `OANDA_ENVIRONMENT=practice`, `ANTHROPIC_API_KEY`.
+
+   Demo without OANDA: `APP_ENV=development`, `PRICE_PROVIDER=fixture`, `CALENDAR_PROVIDER=fixture`.
+4. **Deploy.** Then open `https://<project>.vercel.app/api/health` and check it returns `{"ok":true}`.
+5. **GitHub schedule:** add the secrets `APP_URL` (your vercel.app URL) and `ADMIN_TOKEN` (see the last section). Vercel's own cron is limited to once a day on Hobby, so GitHub Actions runs the schedule.
+
+
 Recommended: **Koyeb (app) + Neon (database) + GitHub Actions (schedule)**. Render works the same way via `render.yaml` if you have free capacity there.
 
 ## Koyeb (free instance)
