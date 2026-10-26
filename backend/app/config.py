@@ -20,8 +20,9 @@ class Env(BaseSettings):
     storage_dir: Path = REPO_ROOT / "var" / "uploads"
 
     anthropic_api_key: str | None = None
-    claude_model: str = "claude-sonnet-5-5"
-    claude_review_model: str = "claude-sonnet-5-5"
+    claude_model: str = "claude-opus-5-5"
+    claude_review_model: str = "claude-opus-5-5"
+    claude_effort: str = "high"
 
     oanda_api_token: str | None = None
     oanda_account_id: str | None = None
