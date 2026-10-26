@@ -15,6 +15,7 @@ os.environ.setdefault("STORAGE_DIR", "/tmp/uploads")
 if not os.environ.get("DATABASE_URL"):
     # Without a database URL nothing persists between requests; set DATABASE_URL (Neon) in Vercel.
     os.environ["DATABASE_URL"] = "sqlite:////tmp/fxdesk.db"
+    os.environ["EPHEMERAL_DATABASE"] = "1"
     logging.warning("DATABASE_URL not set: using ephemeral /tmp SQLite; data will not persist")
 
 from app.cli import init_db  # noqa: E402

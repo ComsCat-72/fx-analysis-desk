@@ -45,7 +45,12 @@ async def admin_token_guard(request: Request, call_next):
 
 @app.get("/api/health")
 def health():
-    return {"ok": True}
+    """Liveness plus the storage mode, so a deployment without a persistent database is obvious."""
+    import os
+    url = env().database_url
+    persistent = os.environ.get("EPHEMERAL_DATABASE") != "1"  # set by the serverless entry point
+    return {"ok": True, "app_env": env().app_env, "database": url.split(":", 1)[0].split("+")[0],
+            "persistent_database": persistent}
 
 
 @app.get("/api/auth/check")
@@ -157,11 +162,28 @@ class DraftIn(BaseModel):
 def draft(body: DraftIn, db: Session = DB):
     if body.instrument not in instruments():
         raise HTTPException(400, "unknown instrument")
+    from ..scheduler import data_is_stale, refresh_inputs
+    now = datetime.now(timezone.utc)
+    problems = refresh_inputs(db, body.instrument, now) if data_is_stale(db, body.instrument, now) else []
     try:
         v = service.generate_draft(db, body.instrument, body.kind, body.period, writer_name=body.writer)
     except Exception as e:  # surfaced to the UI, never hidden
-        raise HTTPException(422, f"{type(e).__name__}: {e}")
-    return get_report(v.id, db)
+        raise HTTPException(422, f"{type(e).__name__}: {e}" + (f" (data refresh: {'; '.join(problems)})" if problems else ""))
+    return {**get_report(v.id, db), "refresh_problems": problems}
+
+
+class RefreshIn(BaseModel):
+    instrument: str
+
+
+@app.post("/api/refresh")
+def refresh(body: RefreshIn, db: Session = DB):
+    """Fetch the latest prices (backfilling history on first use) and the calendar for one instrument."""
+    from ..scheduler import refresh_inputs
+    if body.instrument not in instruments():
+        raise HTTPException(400, "unknown instrument")
+    problems = refresh_inputs(db, body.instrument, datetime.now(timezone.utc))
+    return {"problems": problems, "freshness": freshness(body.instrument, db)}
 
 
 class SectionsIn(BaseModel):

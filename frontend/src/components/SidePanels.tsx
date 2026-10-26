@@ -6,12 +6,22 @@ import { api, type FactItem } from "../api";
 import { Badge, Button, DirectionTag, Empty, Field, Panel, Spinner, cx, inputCls } from "../ui";
 
 export function FreshnessBar({ instrument }: { instrument: string }) {
+  const qc = useQueryClient();
   const f = useQuery({ queryKey: ["fresh", instrument], queryFn: () => api.freshness(instrument), refetchInterval: 60_000 });
   const w = useQuery({ queryKey: ["warnings", instrument], queryFn: () => api.warnings(instrument), refetchInterval: 60_000 });
+  const h = useQuery({ queryKey: ["health"], queryFn: api.health, staleTime: 300_000 });
+  const refresh = useMutation({ mutationFn: () => api.refresh(instrument), onSuccess: () => qc.invalidateQueries() });
   const conflicts = (w.data ?? []).filter((x) => x.code === "source_conflict");
   if (!f.data) return null;
   const tone = f.data.status === "ok" ? "ok" : f.data.status === "stale" ? "warn" : "danger";
   return (
+    <div className="space-y-2">
+    {h.data && !h.data.persistent_database && (
+      <div className="rounded-lg border border-[color-mix(in_srgb,var(--danger)_40%,transparent)] bg-danger-soft px-3 py-2 text-[13px] text-danger" role="alert">
+        <strong>No persistent database.</strong> DATABASE_URL is not set on the server, so reports and data are kept in temporary storage and
+        disappear between requests. Add your Neon connection string as DATABASE_URL in the hosting settings and redeploy.
+      </div>
+    )}
     <div className="flex flex-wrap items-center gap-2 text-[13px]" aria-live="polite">
       <Badge tone={tone}><Clock className="size-3" />Data {f.data.status === "ok" ? "fresh" : f.data.status}</Badge>
       <span className="text-muted">{f.data.message}</span>
@@ -19,6 +29,13 @@ export function FreshnessBar({ instrument }: { instrument: string }) {
       <Badge tone={f.data.market_open ? "accent" : "neutral"}>{f.data.market_open ? "Market open" : "Market closed"}</Badge>
       {f.data.is_fixture && <Badge tone="fixture">Prices are development fixtures</Badge>}
       {conflicts.length > 0 && <Badge tone="danger"><AlertTriangle className="size-3" />{conflicts.length} source conflict{conflicts.length > 1 ? "s" : ""}: interpretation withheld</Badge>}
+      <Button size="sm" variant={f.data.status === "ok" ? "ghost" : "primary"} busy={refresh.isPending} onClick={() => refresh.mutate()}
+        title="Fetch the latest prices and calendar (first run backfills about 4 months)">
+        {refresh.isPending ? "Fetching data…" : "Fetch latest data"}
+      </Button>
+      {refresh.data && refresh.data.problems.length > 0 && <span className="text-danger">Data source problems: {refresh.data.problems.join("; ")}</span>}
+      {refresh.error && <span className="text-danger">{String(refresh.error)}</span>}
+    </div>
     </div>
   );
 }

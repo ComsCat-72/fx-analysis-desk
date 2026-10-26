@@ -75,22 +75,48 @@ def refresh_inputs(db, instrument: str, now: datetime) -> list[str]:
     from .models import ProviderHealth
     from .services import ingest
     from .services.registry import calendar_provider, price_provider
+    from sqlalchemy import func, select
+
+    from .models import CandleRow, Setting
     problems = []
     try:
         s = session_for(instrument)
+        # First run backfills enough daily history for ATR(14) and SMA(50); later runs only top up.
+        n_daily = db.scalar(select(func.count()).select_from(CandleRow).where(
+            CandleRow.instrument == instrument, CandleRow.timeframe == "D1")) or 0
+        days = 130 if n_daily < 60 else 21
         ingest.ingest_prices(db, price_provider(instrument), instruments()[instrument], s,
-                             (now - timedelta(days=21)).date(), now.date(), as_of=now)
+                             (now - timedelta(days=days)).date(), now.date(), as_of=now)
     except Exception as e:  # noqa: BLE001
         problems.append(f"prices: {e}")
+        db.rollback()
         db.add(ProviderHealth(provider="prices", ok=False, message=str(e)[:500]))
-    try:
-        ingest.upsert_events(db, calendar_provider().week_events(), now=now)
-        ingest.mark_unavailable(db, now)
-    except Exception as e:  # noqa: BLE001
-        problems.append(f"calendar: {e}")
-        db.add(ProviderHealth(provider="calendar", ok=False, message=str(e)[:500]))
+    # The calendar feed is rate limited; refresh it at most every 30 minutes.
+    last = db.get(Setting, "calendar_refreshed_at")
+    fresh = last and datetime.fromisoformat(last.value["at"]) > now - timedelta(minutes=30)
+    if not fresh:
+        try:
+            ingest.upsert_events(db, calendar_provider().week_events(), now=now)
+            ingest.mark_unavailable(db, now)
+            db.merge(Setting(key="calendar_refreshed_at", value={"at": now.isoformat()}, updated_at=now))
+        except Exception as e:  # noqa: BLE001
+            problems.append(f"calendar: {e}")
+            db.rollback()
+            db.add(ProviderHealth(provider="calendar", ok=False, message=str(e)[:500]))
     db.commit()
     return problems
+
+
+def data_is_stale(db, instrument: str, now: datetime) -> bool:
+    """True when no hourly data is stored, or the market is open and the latest stored bar is over 2h old."""
+    from sqlalchemy import select
+
+    from .models import CandleRow
+    last = db.scalar(select(CandleRow.end).where(CandleRow.instrument == instrument, CandleRow.timeframe == "H1")
+                     .order_by(CandleRow.end.desc()).limit(1))
+    if last is None:
+        return True
+    return session_for(instrument).market_open(now) and now - last > timedelta(hours=2)
 
 
 def run_job(job: str, instrument: str, now: datetime | None = None, force: bool = False, writer: str | None = None) -> dict:

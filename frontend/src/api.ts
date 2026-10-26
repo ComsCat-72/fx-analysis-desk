@@ -75,6 +75,8 @@ async function req<T>(path: string, init?: RequestInit): Promise<T> {
 const q = (o: Record<string, string>) => new URLSearchParams(o).toString();
 
 export const api = {
+  health: () => req<{ ok: boolean; app_env: string; database: string; persistent_database: boolean }>("/api/health"),
+  refresh: (instrument: string) => req<{ problems: string[]; freshness: Freshness }>("/api/refresh", { method: "POST", body: JSON.stringify({ instrument }) }),
   authCheck: () => req<{ token_required: boolean; protect_reads: boolean; valid: boolean }>("/api/auth/check"),
   config: () => req<AppConfig>("/api/config"),
   week: (inst: string, wk: string) => req<Week>(`/api/weeks/${inst}/${wk}`),

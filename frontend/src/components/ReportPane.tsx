@@ -116,7 +116,8 @@ export function ReportPane({ instrument, tab, onTab, period, versions, versionId
     qc.invalidateQueries({ queryKey: ["evaluations", instrument] });
     if (id) { qc.invalidateQueries({ queryKey: ["report", id] }); onVersion(id); }
   };
-  const draft = useMutation({ mutationFn: () => api.draft(instrument, tab, period, writer), onSuccess: (r) => refresh(r.id) });
+  const draft = useMutation({ mutationFn: () => api.draft(instrument, tab, period, writer),
+    onSuccess: (r) => { refresh(r.id); qc.invalidateQueries({ queryKey: ["fresh", instrument] }); qc.invalidateQueries({ queryKey: ["cal"] }); } });
   const publish = useMutation({ mutationFn: () => api.publish(versionId!, note || undefined, partial), onSuccess: (r) => { setNote(""); refresh(r.id); } });
   const correct = useMutation({ mutationFn: (t: "correction" | "update") => api.correct(versionId!, t), onSuccess: (r) => refresh(r.id) });
   const r = report.data;
@@ -146,7 +147,7 @@ export function ReportPane({ instrument, tab, onTab, period, versions, versionId
           </select>
         </label>
         <Button size="sm" variant={versions.length ? "secondary" : "primary"} busy={draft.isPending} onClick={() => draft.mutate()}>
-          <Sparkles className="size-4" aria-hidden />Generate draft
+          <Sparkles className="size-4" aria-hidden />{draft.isPending ? "Fetching data and drafting…" : "Generate draft"}
         </Button>
         {r && r.status === "published" && (
           <>
@@ -188,6 +189,11 @@ export function ReportPane({ instrument, tab, onTab, period, versions, versionId
         <div className="min-w-0 overflow-x-hidden p-5">
           {versionId == null ? (
             <Empty>No report for this slot yet. Generate a draft to preview it before publishing.</Empty>
+          ) : report.error ? (
+            <div className="rounded-lg border border-[color-mix(in_srgb,var(--danger)_35%,transparent)] bg-danger-soft p-3 text-sm text-danger" role="alert">
+              Could not load this report: {String((report.error as Error).message ?? report.error)}.
+              {" "}If this keeps happening, check that DATABASE_URL is set on the server (see the warning above).
+            </div>
           ) : report.isLoading || !r ? <Spinner label="Loading report" /> : (
             <FadeIn k={r.id}>
               <div className="mb-3 flex flex-wrap items-center gap-2 text-[12.5px]">

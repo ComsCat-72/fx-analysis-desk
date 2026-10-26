@@ -3,6 +3,9 @@ import os
 import pytest
 
 os.environ.setdefault("APP_ENV", "development")
+# Tests never touch the network: data refreshes use the labelled synthetic providers.
+os.environ.setdefault("PRICE_PROVIDER", "fixture")
+os.environ.setdefault("CALENDAR_PROVIDER", "fixture")
 
 
 @pytest.fixture()
