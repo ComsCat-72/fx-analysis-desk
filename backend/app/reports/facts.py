@@ -421,11 +421,11 @@ def coverage_note(c) -> str:
 def is_monetary_policy(kind: str, title: str) -> bool:
     """Keep central-bank items that bear on policy, the economy or markets; drop administrative notices."""
     t = title.lower()
+    if kind in ("decision", "speech"):
+        return True  # officials' speeches and policy decisions are always relevant context
     if any(w in t for w in ("banknote", "enforcement action", "job vacanc", "appointment of", "cybersecurity",
                             "consultation on", "supervisory", "regulators unveil", "bank holiday")):
         return False
-    if kind in ("decision", "speech"):
-        return True
     return any(w in t for w in ("monetary", "policy", "rate", "inflation", "fomc", "mpc", "minutes of the monetary",
                                 "economic", "outlook", "statement", "financial stability", "beige book",
                                 "projections", "governor", "chair", "president lagarde", "bulletin"))
