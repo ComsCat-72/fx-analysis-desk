@@ -222,7 +222,7 @@ def build_bundle(db: Session, inst: Instrument, kind: str, period: date, cutoff:
         last = h1[-1]
         ref_price, ref_time = last.close, last.end
         b.add("facts", "F", {"kind": "price", "text": f"Latest complete 1H candle for {inst.display} closed at "
-                             f"{_f(last.close, d)} at {format_display(last.end, tz, tzl)} ({last.provider} mid). "
+                             f"{_f(last.close, d)} at {format_display(last.end, tz, tzl)} ({source_label(last)}). "
                              "This is an hourly close, not a daily closing price.",
                              "values": [_f(last.close, d)], "source": last.provider, "time": last.end.isoformat(),
                              "role": "reference_price"})
@@ -549,8 +549,12 @@ def _daily_evaluation(db, b: Bundle, inst, period, session, rules, cfg, d, tz, t
     s_start, s_end = session.day_bounds(period)
     day = next((c for c in d1_all if c.start == s_start), None)
     ev: dict = {"session_date": period.isoformat()}
+    if orig is not None:
+        ev["original"] = outlook_summary(orig, tz, tzl)
     if day is None or not day.complete:
-        b.missing.append(f"No complete session candle for {period.isoformat()}; the review cannot assess the session.")
+        got = f" ({day.bars} of {day.expected_bars} hourly bars available)" if day is not None and day.bars else ""
+        b.missing.append(f"No complete session candle for {period.isoformat()}{got}; the review cannot assess the session.")
+        ev["session_incomplete"] = True
     else:
         bars = [c for c in h1_all if s_start <= c.start < s_end]
         hi_bar = max(bars, key=lambda c: c.high) if bars else None

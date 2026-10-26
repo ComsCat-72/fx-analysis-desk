@@ -57,6 +57,9 @@ def _review_header(kind: str, bundle: dict) -> str:
         o = ev.get("original")
         if not o:
             return "_No published daily analysis exists for this session; there is no original outlook to compare against._"
+        if ev.get("session_incomplete"):
+            return (f"**Original outlook:** {o['direction_label']} — version {o['version']}, published {o['published_display']}. "
+                    "_The session's price data is incomplete, so the outlook is not assessed._")
         lines = [f"**Original outlook:** {o['direction_label']}" + (f", {o['qualification']}" if o.get("qualification") else "")
                  + f" — version {o['version']}, published {o['published_display']}, data cutoff {o['data_cutoff_display']}."]
         if ev.get("latest"):

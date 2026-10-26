@@ -141,6 +141,15 @@ def replay_week(out: Path, instruments_: list[str], writer: str | None, monday: 
             db.commit()
         ingest.mark_unavailable(db, now)
         db.commit()
+        # Per-session bar coverage, so data gaps are visible in the summary.
+        from sqlalchemy import select as _select
+        from .models import CandleRow
+        summary["coverage"] = {
+            code: [{"start": r.start.isoformat(), "bars": r.bars, "expected": r.expected_bars, "complete": r.complete}
+                   for r in db.scalars(_select(CandleRow).where(CandleRow.instrument == code, CandleRow.timeframe == "D1",
+                                                               CandleRow.start >= now - timedelta(days=16))
+                                       .order_by(CandleRow.start))]
+            for code in instruments_}
 
         fx = session_for("GBP_USD")
         mon = monday or fx.week_monday(now.date()) - timedelta(days=7)
