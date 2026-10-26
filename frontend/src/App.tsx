@@ -91,7 +91,13 @@ export default function App() {
   const tokenDialog = needToken && <TokenDialog onDone={() => { setNeedToken(false); qc.invalidateQueries(); }} />;
   if (cfg.isLoading) return <>{tokenDialog}<Spinner label="Loading configuration" /></>;
   if (cfg.error && needToken) return <>{tokenDialog}</>;
-  if (cfg.error) return <div className="p-6 text-danger">Cannot reach the API: {String(cfg.error)}</div>;
+  if (cfg.error) return (
+    <div className="mx-auto max-w-3xl space-y-3 p-6">
+      <h1 className="text-lg font-semibold text-danger">The API is not responding correctly</h1>
+      <pre className="whitespace-pre-wrap rounded-lg border border-line bg-surface p-3 font-mono text-[13px] text-fg">{(cfg.error as Error).message || String(cfg.error)}</pre>
+      <p className="text-sm text-muted">Open <a className="text-accent underline" href="/api/health">/api/health</a> for the server's start-up status. Nothing above contains secrets.</p>
+    </div>
+  );
 
   return (
     <div className="mx-auto flex min-h-screen max-w-[1760px] flex-col gap-3 px-4 pb-6 pt-3 sm:px-5">

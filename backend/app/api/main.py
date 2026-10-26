@@ -30,6 +30,16 @@ DB = Depends(get_session)
 OPEN_PATHS = {"/api/health", "/api/auth/check"}
 
 
+@app.exception_handler(Exception)
+async def unhandled_error(request: Request, exc: Exception):
+    """Unexpected errors come back as JSON with the cause (secrets masked) so the dashboard can show it."""
+    import logging
+    import re
+    logging.exception("unhandled error on %s", request.url.path)
+    msg = re.sub(r"(://[^:/@\s]+:)[^@\s]+@", r"\1***@", f"{type(exc).__name__}: {exc}")
+    return JSONResponse({"detail": msg[:1500]}, status_code=500)
+
+
 @app.middleware("http")
 async def admin_token_guard(request: Request, call_next):
     """No token configured -> open (local use). Token configured -> writes always need it."""

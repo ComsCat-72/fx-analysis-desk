@@ -66,7 +66,12 @@ async function req<T>(path: string, init?: RequestInit): Promise<T> {
   if (r.status === 401) window.dispatchEvent(new Event("fx:auth-required"));
   if (!r.ok) {
     let detail: unknown = r.statusText;
-    try { detail = (await r.json()).detail; } catch { /* non-JSON error */ }
+    try {
+      const j = await r.json();
+      detail = j.error ? `${j.detail ?? "Error"}: ${j.error}${j.where ? ` (${j.where.join(" > ")})` : ""}` : j.detail;
+    } catch {
+      detail = `HTTP ${r.status}${r.statusText ? " " + r.statusText : ""} (the server returned a non-JSON error; check the hosting logs)`;
+    }
     throw new ApiError(r.status, detail);
   }
   return r.json() as Promise<T>;
