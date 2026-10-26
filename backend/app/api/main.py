@@ -2,10 +2,11 @@
 from __future__ import annotations
 
 from datetime import date, datetime, timedelta, timezone
-from pathlib import Path
 
-from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile
-from fastapi.responses import FileResponse, PlainTextResponse, Response
+import hmac
+
+from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, UploadFile
+from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from sqlalchemy import select
@@ -15,7 +16,7 @@ from ..config import REPO_ROOT, app_config, env
 from ..db import get_session
 from ..domain.timeutil import format_display, to_zone
 from ..export import to_pdf
-from ..models import (DataQualityWarning, EconomicEvent, Evaluation, EventValueHistory, JobRun, NewsItem, Outlook,
+from ..models import (DataQualityWarning, EconomicEvent, Evaluation, JobRun, NewsItem, Outlook,
                       OutlookChange, ProviderHealth, Report, ReportVersion, Screenshot, Setting, TechnicalLevel,
                       TerminologyTerm, now_utc)
 from ..reports import service
@@ -25,6 +26,34 @@ from ..services.registry import instruments, price_provider_name, session_def
 app = FastAPI(title="FX Analysis Desk", version="0.1.0",
               description="Evidence-based FX analysis and reporting. Analysis only; no trading advice or signals.")
 DB = Depends(get_session)
+
+OPEN_PATHS = {"/api/health", "/api/auth/check"}
+
+
+@app.middleware("http")
+async def admin_token_guard(request: Request, call_next):
+    """No token configured -> open (local use). Token configured -> writes always need it."""
+    token = env().admin_token
+    path = request.url.path
+    if token and path.startswith("/api/") and path not in OPEN_PATHS:
+        needs = request.method not in ("GET", "HEAD", "OPTIONS") or env().protect_reads
+        given = request.headers.get("x-admin-token") or request.query_params.get("token") or ""
+        if needs and not hmac.compare_digest(given.encode(), token.encode()):
+            return JSONResponse({"detail": "admin token required"}, status_code=401)
+    return await call_next(request)
+
+
+@app.get("/api/health")
+def health():
+    return {"ok": True}
+
+
+@app.get("/api/auth/check")
+def auth_check(request: Request):
+    token = env().admin_token
+    given = request.headers.get("x-admin-token") or ""
+    return {"token_required": bool(token), "protect_reads": env().protect_reads,
+            "valid": (not token) or hmac.compare_digest(given.encode(), token.encode())}
 
 
 def _tz():

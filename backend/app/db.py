@@ -39,14 +39,22 @@ _engine = None
 _Session: sessionmaker | None = None
 
 
+def normalize_url(url: str) -> str:
+    """Hosted Postgres (Neon, Render) hands out postgres:// URLs; use the psycopg 3 driver."""
+    for prefix in ("postgres://", "postgresql://"):
+        if url.startswith(prefix):
+            return "postgresql+psycopg://" + url[len(prefix):]
+    return url
+
+
 def engine():
     global _engine, _Session
     if _engine is None:
-        url = env().database_url
+        url = normalize_url(env().database_url)
         if url.startswith("sqlite:///"):
             from pathlib import Path
             Path(url.removeprefix("sqlite:///")).parent.mkdir(parents=True, exist_ok=True)
-        _engine = create_engine(url, future=True)
+        _engine = create_engine(url, future=True, pool_pre_ping=True)
         if url.startswith("sqlite"):
             @event.listens_for(_engine, "connect")
             def _fk(conn, _):

@@ -69,6 +69,30 @@ def claim(db, job: str, slot: str, instrument: str) -> JobRun | None:
     return run
 
 
+def refresh_inputs(db, instrument: str, now: datetime) -> list[str]:
+    """Fetch fresh prices and the calendar before drafting. Failures are recorded, never papered over:
+    the report's fact bundle will then show missing or stale data."""
+    from .models import ProviderHealth
+    from .services import ingest
+    from .services.registry import calendar_provider, price_provider
+    problems = []
+    try:
+        s = session_def()
+        ingest.ingest_prices(db, price_provider(), instruments()[instrument], s,
+                             (now - timedelta(days=21)).date(), now.date(), as_of=now)
+    except Exception as e:  # noqa: BLE001
+        problems.append(f"prices: {e}")
+        db.add(ProviderHealth(provider="prices", ok=False, message=str(e)[:500]))
+    try:
+        ingest.upsert_events(db, calendar_provider().week_events(), now=now)
+        ingest.mark_unavailable(db, now)
+    except Exception as e:  # noqa: BLE001
+        problems.append(f"calendar: {e}")
+        db.add(ProviderHealth(provider="calendar", ok=False, message=str(e)[:500]))
+    db.commit()
+    return problems
+
+
 def run_job(job: str, instrument: str, now: datetime | None = None, force: bool = False, writer: str | None = None) -> dict:
     from .reports import service
     now = now or datetime.now(timezone.utc)
@@ -85,6 +109,7 @@ def run_job(job: str, instrument: str, now: datetime | None = None, force: bool 
             run = db.scalar(select(JobRun).where(JobRun.job_name == job, JobRun.slot_key == period.isoformat(),
                                                  JobRun.instrument == instrument))
         db.commit()
+        problems = refresh_inputs(db, instrument, now)
         last_err = None
         for attempt in range(cfg.get("retries", 3) + 1):
             run.attempts += 1
@@ -97,7 +122,8 @@ def run_job(job: str, instrument: str, now: datetime | None = None, force: bool 
                     status = "published"
                 run.status, run.finished_at, run.error = "succeeded", now_utc(), None
                 db.commit()
-                return {"job": job, "instrument": instrument, "slot": period.isoformat(), "status": status, "version_id": v.id}
+                return {"job": job, "instrument": instrument, "slot": period.isoformat(), "status": status,
+                        "version_id": v.id, "input_problems": problems}
             except Exception as e:  # noqa: BLE001 - recorded and retried
                 db.rollback()
                 last_err = f"{type(e).__name__}: {e}"

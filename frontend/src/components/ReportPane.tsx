@@ -4,7 +4,7 @@ import { AlertOctagon, AlertTriangle, CheckCircle2, Copy, FileDown, FileText, Gi
 import { useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { ApiError, api, type Finding, type Kind, type ReportDetail, type VersionSummary } from "../api";
+import { ApiError, api, withToken, type Finding, type Kind, type ReportDetail, type VersionSummary } from "../api";
 import { TABS } from "../App";
 import { Badge, Button, DirectionTag, Empty, FadeIn, Field, Spinner, cx, inputCls } from "../ui";
 
@@ -160,8 +160,8 @@ export function ReportPane({ instrument, tab, onTab, period, versions, versionId
         )}
         {r && (
           <div className="ml-auto flex items-center gap-1.5">
-            <a href={`/api/reports/${r.id}/export.md`} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-line bg-surface-2 px-2.5 text-[13px] hover:bg-surface-3"><FileText className="size-4" aria-hidden />Markdown</a>
-            <a href={`/api/reports/${r.id}/export.pdf`} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-line bg-surface-2 px-2.5 text-[13px] hover:bg-surface-3"><FileDown className="size-4" aria-hidden />PDF</a>
+            <a href={withToken(`/api/reports/${r.id}/export.md`)} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-line bg-surface-2 px-2.5 text-[13px] hover:bg-surface-3"><FileText className="size-4" aria-hidden />Markdown</a>
+            <a href={withToken(`/api/reports/${r.id}/export.pdf`)} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-line bg-surface-2 px-2.5 text-[13px] hover:bg-surface-3"><FileDown className="size-4" aria-hidden />PDF</a>
             <Button size="sm" variant="ghost" onClick={() => navigator.clipboard?.writeText(r.body_md)} title="Copy Markdown"><Copy className="size-4" /><span className="sr-only">Copy Markdown</span></Button>
           </div>
         )}

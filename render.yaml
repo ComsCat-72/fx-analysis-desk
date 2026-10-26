@@ -1,0 +1,28 @@
+# Render Blueprint (free plan). Database: use a free Neon Postgres and paste its URL as DATABASE_URL.
+services:
+  - type: web
+    name: fx-analysis-desk
+    runtime: docker
+    plan: free
+    region: frankfurt
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false        # set in the Render dashboard (Neon connection string)
+      - key: ADMIN_TOKEN
+        generateValue: true
+      - key: PROTECT_READS
+        value: "false"
+      - key: OANDA_API_TOKEN
+        sync: false
+      - key: OANDA_ACCOUNT_ID
+        sync: false
+      - key: OANDA_ENVIRONMENT
+        value: practice
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: FRED_API_KEY
+        sync: false

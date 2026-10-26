@@ -23,7 +23,8 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 from app.config import env as app_env
 from app.db import Base
 import app.models  # noqa: F401
-config.set_main_option('sqlalchemy.url', app_env().database_url)
+from app.db import normalize_url
+config.set_main_option('sqlalchemy.url', normalize_url(app_env().database_url).replace('%', '%%'))
 target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,

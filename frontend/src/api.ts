@@ -51,8 +51,19 @@ export class ApiError extends Error {
   }
 }
 
+export function getToken(): string {
+  try { return localStorage.getItem("fx.adminToken") ?? ""; } catch { return ""; }
+}
+export function setToken(t: string) {
+  try { localStorage.setItem("fx.adminToken", t); } catch { /* storage unavailable */ }
+}
+/** Export links can't send headers, so the token rides as a query parameter. */
+export const withToken = (url: string) => (getToken() ? `${url}?token=${encodeURIComponent(getToken())}` : url);
+const authHeaders = (): Record<string, string> => (getToken() ? { "X-Admin-Token": getToken() } : {});
+
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
-  const r = await fetch(path, { headers: { "Content-Type": "application/json" }, ...init });
+  const r = await fetch(path, { ...init, headers: { "Content-Type": "application/json", ...authHeaders(), ...(init?.headers ?? {}) } });
+  if (r.status === 401) window.dispatchEvent(new Event("fx:auth-required"));
   if (!r.ok) {
     let detail: unknown = r.statusText;
     try { detail = (await r.json()).detail; } catch { /* non-JSON error */ }
@@ -64,6 +75,7 @@ async function req<T>(path: string, init?: RequestInit): Promise<T> {
 const q = (o: Record<string, string>) => new URLSearchParams(o).toString();
 
 export const api = {
+  authCheck: () => req<{ token_required: boolean; protect_reads: boolean; valid: boolean }>("/api/auth/check"),
   config: () => req<AppConfig>("/api/config"),
   week: (inst: string, wk: string) => req<Week>(`/api/weeks/${inst}/${wk}`),
   report: (id: number) => req<ReportDetail>(`/api/reports/${id}`),
@@ -97,7 +109,7 @@ export const api = {
   uploadScreenshot: async (instrument: string, file: File, extract: boolean) => {
     const fd = new FormData();
     fd.append("instrument", instrument); fd.append("file", file); fd.append("extract", String(extract));
-    const r = await fetch("/api/screenshots", { method: "POST", body: fd });
+    const r = await fetch("/api/screenshots", { method: "POST", body: fd, headers: authHeaders() });
     if (!r.ok) throw new ApiError(r.status, (await r.json()).detail);
     return r.json() as Promise<{ id: number; extracted: Record<string, unknown> }>;
   },

@@ -1,0 +1,47 @@
+# Free-tier scheduler: Render's free web service sleeps when idle, so GitHub Actions triggers the
+# report jobs. Times are UTC (EAT = UTC+3). GitHub may start scheduled runs a few minutes late.
+# Requires repository secrets APP_URL (e.g. https://fx-analysis-desk.onrender.com) and ADMIN_TOKEN,
+# and repository variable INSTRUMENTS (space-separated, default "GBP_USD").
+name: Report schedule
+on:
+  schedule:
+    - cron: "0 17 * * 0"     # Sun 20:00 EAT  weekly analysis
+    - cron: "30 5 * * 1-5"   # Mon-Fri 08:30 EAT daily analysis
+    - cron: "30 4 * * 2-6"   # Tue-Sat 07:30 EAT daily review
+    - cron: "0 7 * * 6"      # Sat 10:00 EAT  weekly review
+  workflow_dispatch:
+    inputs:
+      job:
+        description: weekly_analysis | daily_analysis | daily_review | weekly_review
+        required: true
+        default: daily_analysis
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pick job
+        id: pick
+        run: |
+          case "${{ github.event.schedule }}" in
+            "0 17 * * 0")   echo "job=weekly_analysis" >> "$GITHUB_OUTPUT" ;;
+            "30 5 * * 1-5") echo "job=daily_analysis" >> "$GITHUB_OUTPUT" ;;
+            "30 4 * * 2-6") echo "job=daily_review" >> "$GITHUB_OUTPUT" ;;
+            "0 7 * * 6")    echo "job=weekly_review" >> "$GITHUB_OUTPUT" ;;
+            *)              echo "job=${{ inputs.job }}" >> "$GITHUB_OUTPUT" ;;
+          esac
+      - name: Wake the service
+        run: |
+          for i in 1 2 3 4 5 6; do
+            curl -fsS --max-time 60 "${{ secrets.APP_URL }}/api/health" && break || sleep 20
+          done
+      - name: Run job for each instrument
+        env:
+          INSTRUMENTS: ${{ vars.INSTRUMENTS || 'GBP_USD' }}
+        run: |
+          for inst in $INSTRUMENTS; do
+            echo "== ${{ steps.pick.outputs.job }} $inst"
+            curl -fsS --max-time 300 -X POST "${{ secrets.APP_URL }}/api/jobs/run" \
+              -H "Content-Type: application/json" -H "X-Admin-Token: ${{ secrets.ADMIN_TOKEN }}" \
+              -d "{\"job\": \"${{ steps.pick.outputs.job }}\", \"instrument\": \"$inst\"}"
+            echo
+          done

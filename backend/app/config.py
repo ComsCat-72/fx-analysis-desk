@@ -30,6 +30,11 @@ class Env(BaseSettings):
 
     fred_api_key: str | None = None
 
+    # Access control for hosted deployments. When ADMIN_TOKEN is set, every write needs the
+    # X-Admin-Token header; PROTECT_READS=true also requires it for reading reports.
+    admin_token: str | None = None
+    protect_reads: bool = False
+
     @property
     def is_production(self) -> bool:
         return self.app_env == "production"

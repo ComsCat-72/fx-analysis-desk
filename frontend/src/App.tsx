@@ -1,7 +1,7 @@
-import { useQuery } from "@tanstack/react-query";
-import { CalendarDays, ChevronLeft, ChevronRight, FlaskConical, Moon, Settings2, Sun } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { CalendarDays, ChevronLeft, ChevronRight, FlaskConical, KeyRound, Lock, Moon, Settings2, Sun } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { api, type Kind, type VersionSummary, type Week } from "./api";
+import { api, getToken, setToken, type Kind, type VersionSummary, type Week } from "./api";
 import { ReportPane } from "./components/ReportPane";
 import { SettingsDrawer } from "./components/Settings";
 import { CalendarPanel, EvaluationPanel, EvidencePanel, FreshnessBar, LevelsPanel, ScreenshotPanel } from "./components/SidePanels";
@@ -39,7 +39,28 @@ export function slotVersions(week: Week | undefined, kind: Kind, day: string, re
   return { versions: week.days.find((d) => d.date === target)?.daily_review ?? [], period: target };
 }
 
+function TokenDialog({ onDone }: { onDone: () => void }) {
+  const [t, setT] = useState(getToken());
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4" role="dialog" aria-modal aria-label="Admin token">
+      <form className="panel w-full max-w-sm space-y-3 p-5" onSubmit={(e) => { e.preventDefault(); setToken(t.trim()); onDone(); }}>
+        <h2 className="flex items-center gap-2 font-semibold"><Lock className="size-4 text-accent" />Admin token required</h2>
+        <p className="text-[13px] text-muted">This deployment is protected. Enter the ADMIN_TOKEN configured on the server. It is kept in this browser only.</p>
+        <input autoFocus type="password" value={t} onChange={(e) => setT(e.target.value)} className={cx(inputCls, "w-full")} aria-label="Admin token" />
+        <div className="flex justify-end"><Button variant="primary" type="submit">Unlock</Button></div>
+      </form>
+    </div>
+  );
+}
+
 export default function App() {
+  const qc = useQueryClient();
+  const [needToken, setNeedToken] = useState(false);
+  useEffect(() => {
+    const h = () => setNeedToken(true);
+    window.addEventListener("fx:auth-required", h);
+    return () => window.removeEventListener("fx:auth-required", h);
+  }, []);
   const cfg = useQuery({ queryKey: ["config"], queryFn: api.config });
   const tz = cfg.data?.display.timezone ?? "Africa/Kampala";
   const [instrument, setInstrument] = useState<string>(() => localStorage.getItem("fx.instrument") ?? "GBP_USD");
@@ -67,7 +88,9 @@ export default function App() {
   };
   const shiftWeek = (n: number) => { const w = addDays(weekKey, 7 * n); setWeekKey(w); setDay(w); setReviewDay(null); setVersionId(null); };
 
-  if (cfg.isLoading) return <Spinner label="Loading configuration" />;
+  const tokenDialog = needToken && <TokenDialog onDone={() => { setNeedToken(false); qc.invalidateQueries(); }} />;
+  if (cfg.isLoading) return <>{tokenDialog}<Spinner label="Loading configuration" /></>;
+  if (cfg.error && needToken) return <>{tokenDialog}</>;
   if (cfg.error) return <div className="p-6 text-danger">Cannot reach the API: {String(cfg.error)}</div>;
 
   return (
@@ -109,6 +132,7 @@ export default function App() {
           <Button variant="ghost" size="sm" onClick={() => setTheme(theme === "dark" ? "light" : "dark")} title="Toggle theme">
             {theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}<span className="sr-only">Toggle theme</span>
           </Button>
+          <Button variant="ghost" size="sm" onClick={() => setNeedToken(true)} title="Admin token"><KeyRound className="size-4" /><span className="sr-only">Admin token</span></Button>
           <Button size="sm" onClick={() => setSettings(true)}><Settings2 className="size-4" aria-hidden />Configure</Button>
         </div>
       </header>
@@ -140,6 +164,7 @@ export default function App() {
           <ScreenshotPanel instrument={instrument} />
         </aside>
       </div>
+      {tokenDialog}
       <SettingsDrawer open={settings} onClose={() => setSettings(false)} config={cfg.data!} instrument={instrument} />
     </div>
   );
