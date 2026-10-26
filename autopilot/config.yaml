@@ -1,0 +1,24 @@
+# Autopilot: Claude writes the reports on a schedule; they are saved in reports/ and published as a static site.
+timezone: Africa/Kampala        # EAT; all times in reports are shown in this zone
+timezone_label: EAT
+
+model: claude-opus-5-5
+effort: medium                  # low | medium | high (higher = more thorough and more expensive)
+web_searches_per_report: 5      # Claude's own news/context searches per report (each search is billed)
+
+# Instruments: Yahoo Finance symbols (free, no key). Daily prices are used exactly as Yahoo publishes them.
+instruments:
+  GBP_USD: {name: GBP/USD, yahoo: GBPUSD=X, base: GBP, quote: USD, decimals: 5}
+  EUR_USD: {name: EUR/USD, yahoo: EURUSD=X, base: EUR, quote: USD, decimals: 5}
+  AUD_USD: {name: AUD/USD, yahoo: AUDUSD=X, base: AUD, quote: USD, decimals: 5}
+  NZD_USD: {name: NZD/USD, yahoo: NZDUSD=X, base: NZD, quote: USD, decimals: 5}
+  USD_CHF: {name: USD/CHF, yahoo: CHF=X, base: USD, quote: CHF, decimals: 5}
+  XAU_USD: {name: Gold (XAU/USD), yahoo: GC=F, base: XAU, quote: USD, decimals: 2,
+            note: "Price data is COMEX gold futures (GC=F), the closest free series; describe it as gold futures."}
+  DXY:     {name: DXY, yahoo: DX-Y.NYB, base: USD, quote: basket, decimals: 3}
+  NAS100:  {name: Nasdaq-100, yahoo: "^NDX", base: US equities, quote: USD, decimals: 2}
+
+# Which instruments the scheduled runs cover (space to reduce cost).
+scheduled_instruments: [GBP_USD, EUR_USD, AUD_USD, NZD_USD, USD_CHF, XAU_USD, DXY, NAS100]
+
+site_title: FX Analysis Desk

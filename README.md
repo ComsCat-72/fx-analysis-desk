@@ -1,5 +1,7 @@
 # FX Analysis Desk
 
+> **Simplest way to run it: [`autopilot/`](autopilot/README.md).** Claude writes the weekly and daily analyses and reviews on a schedule in GitHub Actions, and they are published as a website on GitHub Pages. No server or database is needed. The full application below (dashboard, database, deterministic evaluation) remains available for self-hosting.
+
 Automated, evidence-based FX analysis and reporting: weekly analysis, daily analysis, previous-day review and weekly review, connected to one another and to the data they were written from.
 
 **This is an analysis and reporting system. It does not give trading advice, generate signals, or recommend positions.** Every report states its conclusion, cites its evidence, separates facts from interpretation, and says what would strengthen or weaken the view.
