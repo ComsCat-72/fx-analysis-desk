@@ -9,8 +9,10 @@ export const LOT = { standard: 100_000, mini: 10_000, micro: 1_000 } as const;
 export const GOLD_LOT = 100; // troy ounces per standard lot
 
 export const split = (pair: string) => { const [base, quote] = pair.split("/"); return { base, quote }; };
-/** 0.01 for JPY-quoted pairs and gold, 0.0001 otherwise. */
-export const pipSize = (pair: string) => (split(pair).quote === "JPY" || split(pair).base === "XAU" ? 0.01 : 0.0001);
+/** Pip size, as BabyPips uses it: 0.1 for gold, 0.01 for JPY-quoted pairs, 0.0001 otherwise. */
+export const pipSize = (pair: string) => (split(pair).base === "XAU" ? 0.1 : split(pair).quote === "JPY" ? 0.01 : 0.0001);
+/** Decimal places prices are quoted to: 2 for gold, 3 for JPY-quoted pairs, 5 otherwise. */
+export const priceDigits = (pair: string) => (split(pair).base === "XAU" ? 2 : split(pair).quote === "JPY" ? 3 : 5);
 /** Units in one standard lot. */
 export const lotUnits = (pair: string) => (split(pair).base === "XAU" ? GOLD_LOT : LOT.standard);
 

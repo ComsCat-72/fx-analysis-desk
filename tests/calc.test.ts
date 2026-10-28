@@ -15,6 +15,10 @@ test("pip value converts like BabyPips: quote = as is, base = ÷ price, otherwis
   const v = C.pipValue({ pair: "EUR/USD", units: 30_000, pips: 25, price: 1.1, account: "USD" })!;
   near(v.perPip, 3); near(v.total, 75); near(v.standard, 10); near(v.mini, 1); near(v.micro, 0.1);
   assert.equal(C.pipSize("GBP/JPY"), 0.01);
+  assert.equal(C.pipSize("XAU/USD"), 0.1);
+  near(C.pipValue({ pair: "XAU/USD", units: 100, price: 4100, account: "USD" })!.perPip, 10); // 1 lot = 100 oz × 0.1
+  near(C.profit({ pair: "XAU/USD", direction: "buy", open: 4100, close: 4101, units: 100, account: "USD" })!.pips, 10);
+  assert.equal(C.priceDigits("XAU/USD"), 2); assert.equal(C.priceDigits("USD/JPY"), 3); assert.equal(C.priceDigits("EUR/USD"), 5);
   assert.equal(C.pipSize("EUR/GBP"), 0.0001);
 });
 

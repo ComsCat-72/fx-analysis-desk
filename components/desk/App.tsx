@@ -1,13 +1,14 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Calculator, CalendarDays, CalendarRange, ChevronLeft, ChevronRight, CircleHelp, LayoutDashboard, FlaskConical, Globe2, KeyRound, Lock, Moon, Settings2, Sun } from "lucide-react";
+import { Calculator, CalendarDays, CalendarRange, Clock3, ChevronLeft, ChevronRight, CircleHelp, LayoutDashboard, FlaskConical, Globe2, KeyRound, Lock, Moon, Settings2, Sun } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { api, getToken, setToken, type Kind, type SlotState, type VersionSummary, type Week } from "./api";
 import { Guide } from "./Guide";
 import { useNow } from "./api";
 import { CalendarView } from "./CalendarView";
 import { Calculators } from "../calc/Calculators";
+import { MarketHours } from "../hours/MarketHours";
 import { ReportPane } from "./ReportPane";
 import { SettingsDrawer } from "./Settings";
 import { ContextPanel, type ContextTab } from "./Context";
@@ -90,13 +91,14 @@ function useWide() {
   return wide;
 }
 
-type View = "desk" | "calendar" | "calculators";
+type View = "desk" | "calendar" | "calculators" | "hours";
 const VIEWS: { id: View; label: string; icon: typeof Calculator }[] = [
   { id: "desk", label: "Desk", icon: LayoutDashboard }, { id: "calendar", label: "Calendar", icon: CalendarRange }, { id: "calculators", label: "Calculators", icon: Calculator },
+  { id: "hours", label: "Market hours", icon: Clock3 },
 ];
 /** The current page lives in the URL hash so links and the back button work. */
 function useView(): [View, (v: View) => void] {
-  const read = (): View => { const h = typeof window === "undefined" ? "" : window.location.hash.slice(1); return h === "calendar" || h === "calculators" ? h : "desk"; };
+  const read = (): View => { const h = typeof window === "undefined" ? "" : window.location.hash.slice(1); return h === "calendar" || h === "calculators" || h === "hours" ? h : "desk"; };
   const [view, setView] = useState<View>("desk");
   useEffect(() => { setView(read()); const h = () => setView(read()); window.addEventListener("hashchange", h); return () => window.removeEventListener("hashchange", h); }, []);
   return [view, (v) => { window.location.hash = v === "desk" ? "" : v; setView(v); }];
@@ -182,7 +184,7 @@ export default function App() {
             </button>
           ))}
         </nav>
-        <div className={cx("w-full flex-wrap items-center gap-2 sm:w-auto", view === "calculators" ? "hidden" : "flex")}>
+        <div className={cx("w-full flex-wrap items-center gap-2 sm:w-auto", view === "calculators" || view === "hours" ? "hidden" : "flex")}>
           <label className="sr-only" htmlFor="inst">Instrument</label>
           <select id="inst" value={instrument} onChange={(e) => { setInstrument(e.target.value); setVersionId(null); setFocusCite(null); }}
             className={cx(inputCls, "num h-10 min-w-0 flex-1 cursor-pointer text-[14px] font-semibold sm:w-44 sm:flex-none")}>
@@ -218,6 +220,7 @@ export default function App() {
       <SystemAlerts />
       {view === "calendar" && <CalendarView today={todayIn(tz)} instrumentCurrencies={inst ? [inst.base, inst.quote].filter((c) => /^[A-Z]{3}$/.test(c) && !["XAU", "NAS", "BAS"].includes(c)) : []} />}
       {view === "calculators" && <Calculators />}
+      {view === "hours" && <MarketHours />}
       {view === "desk" && <>
       <Overview instrument={instrument} week={week.data} day={selDay} weekKey={weekKey} />
 

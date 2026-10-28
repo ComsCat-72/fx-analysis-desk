@@ -1,0 +1,68 @@
+// Actual results from biquote.io attached to the Forex Factory schedule: parsing, matching, formatting, throttling.
+import assert from "node:assert/strict";
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { test } from "node:test";
+
+delete process.env.BLOB_READ_WRITE_TOKEN;
+const { useLocalStore } = await import("../lib/store.ts");
+useLocalStore(mkdtempSync(path.join(tmpdir(), "fxdesk-act-")));
+const A = await import("../lib/data/actuals.ts");
+const { mergeEvents, eventsBetween, eventAsOf, eventId } = await import("../lib/data/calendar.ts");
+
+const T = Date.parse("2026-10-28T00:30:00Z");
+const ff = (currency: string, title: string, at: number, consensus: string | null, previous: string | null) =>
+  ({ id: eventId(currency, title, new Date(at).toISOString()), source: "Forex Factory weekly export", currency, title, impact: "High", scheduledAt: at, sourceTime: new Date(at).toISOString(), consensus, previous });
+
+test("parses array and wrapped responses with differing field names", () => {
+  const fields: Record<string, string> = {};
+  const a = A.parseReleases([{ title: "CPI m/m", country: "AU", date: "2026-10-28T00:30:00Z", actual: 0.8, forecast: 0.7, previous: 0.4 }], fields);
+  assert.equal(a[0].currency, "AUD"); assert.equal(a[0].at, T); assert.equal(a[0].actual, "0.8");
+  assert.equal(fields.title, "title"); assert.equal(fields.time, "date");
+  const b = A.parseReleases({ data: [{ event: "Unemployment Claims", currency: "usd", datetime: "2026-10-29 12:30:00", actual: "219K", consensus: "225K", prior: "231K" }] });
+  assert.equal(b[0].currency, "USD"); assert.equal(b[0].forecast, "225K"); assert.equal(b[0].previous, "231K"); assert.equal(b[0].at, Date.parse("2026-10-29T12:30:00Z"));
+  assert.deepEqual(A.parseReleases({ nothing: true }), []);
+});
+
+test("matches on currency, time and figures; ambiguous candidates are skipped", () => {
+  const evs = [ff("AUD", "CPI m/m", T, "0.7%", "0.4%"), ff("AUD", "CPI y/y", T, "4.2%", "4.0%"), ff("AUD", "Trimmed Mean CPI m/m", T, "0.3%", "0.2%")].map((e) => ({ ...e, history: [] }));
+  const m = A.matchEvent({ title: "Consumer Price Index (YoY)", currency: "AUD", at: T + 60_000, actual: "4.3", forecast: "4.2", previous: "4.0", revised: null, unit: "%" }, evs);
+  assert.equal(m?.title, "CPI y/y");
+  assert.equal(A.matchEvent({ title: "CPI", currency: "AUD", at: T, actual: "1", forecast: null, previous: null, revised: null, unit: null }, evs), null, "ambiguous");
+  assert.equal(A.matchEvent({ title: "CPI m/m", currency: "AUD", at: T + 3 * 3600_000, actual: "1", forecast: "0.7", previous: "0.4", revised: null, unit: null }, evs), null, "wrong time");
+  assert.equal(A.matchEvent({ title: "CPI m/m", currency: "NZD", at: T, actual: "1", forecast: "0.7", previous: "0.4", revised: null, unit: null }, evs), null, "wrong currency");
+});
+
+test("figures are written the way Forex Factory writes the event's own figures", () => {
+  assert.equal(A.formatLike("0.8", ["0.7%", "0.4%"]), "0.8%");
+  assert.equal(A.formatLike("4.25", ["4.2%"]), "4.3%"); // FF's precision
+  assert.equal(A.formatLike("219000", ["225K"]), "219K");
+  assert.equal(A.formatLike("219", ["225K"]), "219K");
+  assert.equal(A.formatLike("-134.9", ["-130.4B"]), "-134.9B");
+  assert.equal(A.formatLike("2.75%", ["3.00%"]), "2.75%");
+  assert.equal(A.formatLike("-30.8", ["-30.1"]), "-30.8");
+});
+
+test("sync records actuals once, fills missing figures, throttles, and never throws", async () => {
+  await mergeEvents([ff("AUD", "CPI m/m", T, "0.7%", "0.4%"), ff("USD", "FOMC Member Speaks", T, null, null), ff("NZD", "Official Cash Rate", T + 1800_000, null, "2.75%")], T - 86400_000);
+  const body = [{ title: "CPI MoM", country: "AU", date: new Date(T).toISOString(), actual: 0.8, forecast: 0.7, previous: 0.4 },
+    { title: "RBNZ Interest Rate Decision", country: "NZ", date: new Date(T + 1800_000).toISOString(), actual: "2.75%", forecast: "3.00%", previous: "2.75%" },
+    { title: "Retail Sales", country: "US", date: new Date(T).toISOString(), actual: 0.2, forecast: 0.3, previous: 0.1 }];
+  let calls = 0;
+  const fetcher = (async () => { calls++; return new Response(JSON.stringify(body), { status: 200 }); }) as typeof fetch;
+  const now = T + 3600_000;
+  const r = await A.syncActuals(T - 3600_000, T + 7200_000, { now, fetcher });
+  assert.equal(r.error, null); assert.equal(r.fetched, 3); assert.equal(r.matched, 2);
+  const evs = await eventsBetween(T - 3600_000, T + 7200_000);
+  const cpi = eventAsOf(evs.find((e) => e.title === "CPI m/m")!, now), ocr = eventAsOf(evs.find((e) => e.title === "Official Cash Rate")!, now);
+  assert.equal(cpi.actual, "0.8%"); assert.equal(cpi.state, "released"); assert.deepEqual(cpi.actualSources, [`${A.SOURCE} (${A.BIQUOTE_URL})`]);
+  assert.equal(ocr.actual, "2.75%"); assert.equal(ocr.consensus, "3.00%", "missing forecast filled");
+  assert.equal(eventAsOf(evs.find((e) => e.title === "FOMC Member Speaks")!, now).actual, null);
+  const again = await A.syncActuals(T - 3600_000, T + 7200_000, { now: now + 60_000, fetcher });
+  assert.equal(again.skipped, "synced recently"); assert.equal(calls, 1);
+  const third = await A.syncActuals(T - 3600_000, T + 7200_000, { now: now + 300_000, fetcher });
+  assert.equal(third.recorded, 0, "nothing recorded twice");
+  const fail = await A.syncActuals(T, T, { now: now + 900_000, fetcher: (async () => { throw new Error("getaddrinfo ENOTFOUND"); }) as typeof fetch });
+  assert.match(fail.error ?? "", /biquote.io unavailable/);
+});

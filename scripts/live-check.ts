@@ -68,5 +68,30 @@ for (const code of Object.keys(CONFIG.instruments)) {
     s.error = `${(e as Error).name}: ${(e as Error).message}`;
   }
 }
+// biquote.io (actual results): the raw shape of a few events, which fields the adapter matched, and a real sync run.
+{
+  const A = await import("../lib/data/actuals.ts");
+  const q = new URLSearchParams({ from: addDays(todayLocal(), -2), to: todayLocal() });
+  const out: Record<string, unknown> = { url: `${A.BIQUOTE_URL}?${q}` };
+  try {
+    const r = await fetch(`${A.BIQUOTE_URL}?${q}`, { headers: { Accept: "application/json" } });
+    out.status = r.status;
+    const text = await r.text();
+    let body: unknown = null;
+    try { body = JSON.parse(text); } catch { out.raw_start = text.slice(0, 1500); }
+    if (body != null) {
+      const list = Array.isArray(body) ? body : Object.values(body as object).find(Array.isArray);
+      out.top_level = Array.isArray(body) ? "array" : Object.keys(body as object);
+      out.count = Array.isArray(list) ? list.length : null;
+      out.sample = Array.isArray(list) ? list.slice(0, 4) : body;
+      const fields: Record<string, string> = {};
+      const parsed = A.parseReleases(body, fields);
+      out.parsed_count = parsed.length; out.fields = fields; out.parsed_sample = parsed.slice(0, 4);
+    }
+  } catch (e) { out.error = (e as Error).message; }
+  out.sync = await A.syncActuals(Date.now() - 3 * 86400_000, Date.now() + 86400_000, { minGapMs: 0 }).catch((e) => ({ error: String(e) }));
+  write("biquote.json", JSON.stringify(out, null, 1));
+  summary.biquote = { status: out.status, count: out.count, parsed: out.parsed_count, fields: out.fields, sync: out.sync, error: out.error };
+}
 write("summary.json", JSON.stringify(summary, null, 1));
 console.log(JSON.stringify(summary, null, 1).slice(0, 4000));

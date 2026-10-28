@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { Calculator, Clock, Coins, Divide, Gauge, Globe2, Percent, Ruler, Scale, Sigma, TrendingDown, TrendingUp } from "lucide-react";
+import { Calculator, Coins, Divide, Gauge, Globe2, Percent, Ruler, Scale, Sigma, TrendingDown, TrendingUp } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import * as C from "@/lib/calc/forex";
 import { api, friendlyError } from "../desk/api";
@@ -12,7 +12,6 @@ import { Badge, cx, inputCls } from "../desk/ui";
 const n = (s: string) => (s.trim() === "" ? NaN : Number(s.replace(/,/g, "")));
 const money = (x: number, cur: string, d = 2) => `${x.toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d })} ${cur}`;
 const num = (x: number, d = 2) => x.toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
-const priceDigits = (pair: string) => (C.pipSize(pair) === 0.01 ? 3 : 5);
 
 function NumberInput({ label, value, onChange, hint, suffix }: { label: string; value: string; onChange: (v: string) => void; hint?: string; suffix?: string }) {
   const bad = value.trim() !== "" && !Number.isFinite(n(value));
@@ -234,7 +233,7 @@ function Pivots() {
     setBusy(true); setErr(null);
     try {
       const b = await api.ohlc(pair, period);
-      const d = C.pipSize(pair) === 0.01 ? 3 : 5;
+      const d = C.priceDigits(pair);
       setH(b.high.toFixed(d)); setL(b.low.toFixed(d)); setC(b.close.toFixed(d)); setO(b.open.toFixed(d));
       setLoaded(`${pair}, previous ${({ daily: "day", weekly: "week", monthly: "month" } as Record<string, string>)[period]}${b.start ? ` (from ${new Date(b.start).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" })})` : ""} · ${b.source}`);
     } catch (e) { setErr(friendlyError(e)); } finally { setBusy(false); }
@@ -344,48 +343,6 @@ function Converter() {
   );
 }
 
-function MarketHours() {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => { const t = setInterval(() => setNow(Date.now()), 30_000); return () => clearInterval(t); }, []);
-  const sessions = C.sessionsAt(now);
-  const open = C.fxMarketOpen(now);
-  const dayStart = new Date(now); dayStart.setHours(0, 0, 0, 0);
-  const pct = (t: number) => Math.max(0, Math.min(100, ((t - dayStart.getTime()) / 86400_000) * 100));
-  const t = (x: number) => new Date(x).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
-  const until = (x: number) => { const m = Math.round((x - now) / 60000); return m >= 60 * 24 ? `${Math.floor(m / 1440)}d ${Math.floor((m % 1440) / 60)}h` : `${Math.floor(m / 60)}h ${m % 60}m`; };
-  return (
-    <div className="space-y-4">
-      <p className="text-[13px] text-muted">Times in your browser's timezone. The FX market is <strong className={open ? "text-ok" : "text-warn"}>{open ? "open" : "closed for the weekend"}</strong>. It trades from Sunday 17:00 to Friday 17:00 New York time.</p>
-      <div className="relative rounded-xl border border-line bg-surface-2 p-3">
-        <div className="relative mb-2 h-4 text-[10.5px] text-faint">{[0, 6, 12, 18].map((h) => <span key={h} className="num absolute" style={{ left: `${(h / 24) * 100}%` }}>{String(h).padStart(2, "0")}:00</span>)}</div>
-        {sessions.map((s) => {
-          const w = s.current ?? s.next;
-          return (
-            <div key={s.name} className="mb-2 flex items-center gap-3">
-              <span className="w-20 text-[13px] font-medium">{s.name}</span>
-              <div className="relative h-6 flex-1 rounded bg-surface-3">
-                {s.windows.map((x, i) => {
-                  const a = pct(x.start), b = pct(x.end);
-                  return b > a && <span key={i} className={cx("absolute inset-y-0 rounded", s.open_now && x.start === s.current?.start ? "bg-accent" : "bg-accent/35")} style={{ left: `${a}%`, width: `${b - a}%` }} />;
-                })}
-                <span className="absolute inset-y-[-4px] w-0.5 bg-fg" style={{ left: `${pct(now)}%` }} aria-hidden />
-              </div>
-              <span className="num w-44 text-right text-[12px] text-muted">
-                {s.open_now && s.current ? <>Open · closes in {until(s.current.end)}</> : w ? <>Opens {t(w.start)} · in {until(w.start)}</> : "Closed"}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-      <Table head={["Session", "Local hours", "Your time", "Status"]} rows={sessions.map((s) => {
-        const w = s.current ?? s.next;
-        return [s.name, `${s.open}–${s.close} (${s.tz.split("/")[1].replace("_", " ")})`, w ? `${t(w.start)}–${t(w.end)}` : "—", s.open_now ? "Open" : "Closed"];
-      })} />
-      <p className="text-[12px] text-faint">Overlaps, such as London with New York, are when two sessions are open together. Session hours are each centre's usual business hours and follow its own daylight-saving rules.</p>
-    </div>
-  );
-}
-
 function Table({ head, rows }: { head: string[]; rows: (string | number)[][] }) {
   return (
     <div className="max-h-[420px] overflow-auto rounded-xl border border-line">
@@ -413,7 +370,6 @@ const LIST: { id: string; title: string; icon: ReactNode; about: string; el: () 
   { id: "compound", title: "Compounding", icon: <Coins className="size-4" />, about: "How a balance grows at a fixed percentage per period, with optional deposits and withdrawals.", el: () => <Compounding /> },
   { id: "drawdown", title: "Drawdown", icon: <TrendingDown className="size-4" />, about: "The balance after a run of losses and the gain needed to get back to the start.", el: () => <Drawdown /> },
   { id: "convert", title: "Currency converter", icon: <Globe2 className="size-4" />, about: "Convert an amount between currencies at the latest rate.", el: () => <Converter /> },
-  { id: "hours", title: "Market hours", icon: <Clock className="size-4" />, about: "Which trading sessions are open now and when the others open.", el: () => <MarketHours /> },
 ];
 
 export function Calculators() {

@@ -79,7 +79,7 @@ export async function mergeEvents(rows: Omit<CalendarEvent, "history">[], now = 
   return { stored, week };
 }
 
-export async function recordValue(week: string, id: string, field: "actual" | "revised_previous", value: string, source: string, url?: string | null, now = Date.now()) {
+export async function recordValue(week: string, id: string, field: "actual" | "revised_previous" | "consensus" | "previous", value: string, source: string, url?: string | null, now = Date.now()) {
   let found = false;
   await update<CalendarDoc>(calendarPath(week), () => emptyDoc(week), (doc) => {
     const e = doc.events[id];

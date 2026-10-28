@@ -5,6 +5,7 @@ import { authorized } from "@/lib/auth.ts";
 import { CONFIG } from "@/lib/config.ts";
 import { refreshCalendar } from "@/lib/data/calendar.ts";
 import { refreshHeadlines } from "@/lib/data/headlines.ts";
+import { syncActuals } from "@/lib/data/actuals.ts";
 import { refreshPolicy } from "@/lib/data/policy.ts";
 import { getSettings } from "@/lib/settings.ts";
 import { json, type Ctx } from "@/lib/http.ts";
@@ -20,7 +21,8 @@ export async function GET(req: Request, { params }: Ctx<{ run: string }>) {
   await getSettings(); // display timezone decides which weekday it is
   const jobs = dueJobs(run);
   if (!jobs.length) return json({ run, jobs, results: [] });
-  const inputs = await Promise.allSettled([refreshCalendar(), refreshPolicy(), refreshHeadlines()]);
+  const inputs: PromiseSettledResult<unknown>[] = await Promise.allSettled([refreshCalendar(), refreshPolicy(), refreshHeadlines()]);
+  inputs.push(...await Promise.allSettled([syncActuals(Date.now() - 3 * 86400_000, Date.now() + 86400_000, { minGapMs: 0 })])); // actuals before the reports read them
   const origin = new URL(req.url).origin;
   const headers: Record<string, string> = { "content-type": "application/json" };
   if (process.env.CRON_SECRET) headers.authorization = `Bearer ${process.env.CRON_SECRET}`;

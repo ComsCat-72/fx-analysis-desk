@@ -3,6 +3,7 @@ import { HttpError, json, param, read } from "@/lib/http.ts";
 import { loadIndex } from "@/lib/reports/service.ts";
 import { CONFIG } from "@/lib/config.ts";
 import { headlinesDoc } from "@/lib/data/headlines.ts";
+import { lastSync } from "@/lib/data/actuals.ts";
 import { getJSON } from "@/lib/store.ts";
 import type { PolicyDoc } from "@/lib/data/policy.ts";
 
@@ -20,5 +21,7 @@ export const GET = read(async (req) => {
   const feeds = [["Central-bank feed", policy], ["Headline feed", heads]] as const;
   const provider = feeds.flatMap(([what, doc], k) => (doc?.errors ?? []).slice(0, 4).map((e, i) => ({ id: 2000 + k * 100 + i, code: "provider_error", severity: "info",
     message: `${what} unavailable at the last refresh: ${e}`, created_display: doc?.refreshedAt ? stamp(doc.refreshedAt) : "" })));
+  const sync = await lastSync();
+  if (sync?.result.error) provider.push({ id: 2999, code: "provider_error", severity: "info", message: `Actual results: ${sync.result.error}`, created_display: stamp(sync.at) });
   return json([...failed, ...ws, ...provider]);
 });

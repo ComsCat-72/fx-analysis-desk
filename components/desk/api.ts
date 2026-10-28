@@ -69,7 +69,8 @@ export interface CalRow {
   history: { field: string; value: string | null; source: string; url: string | null; at_display: string }[]; source: string; is_fixture: boolean; is_next: boolean;
 }
 export interface CalRange { from: string; to: string; timezone: string; timezone_label: string; now: string; currencies: string[];
-  coverage: { week: string; stored: boolean; refreshed_display: string | null }[]; rows: CalRow[] }
+  coverage: { week: string; stored: boolean; refreshed_display: string | null }[]; rows: CalRow[];
+  actuals_sync?: { fetched: number; matched: number; recorded: number; error: string | null; skipped?: string } }
 export interface RateRow { pair: string; rate: number | null; time?: string | null; sources?: string[]; fixture?: boolean; error: string | null }
 
 export class ApiError extends Error {

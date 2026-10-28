@@ -90,14 +90,14 @@ function Detail({ r, onDone }: { r: CalRow; onDone: () => void }) {
   );
 }
 
-const COLS = "md:grid md:grid-cols-[92px_64px_52px_56px_minmax(0,1fr)_44px_92px_92px_92px] md:items-center";
+const COLS = "md:grid md:grid-cols-[76px_58px_46px_48px_minmax(0,1fr)_36px_84px_84px_84px] md:items-center";
 
 function Row({ r, firstOfDay, firstOfTime, open, onToggle, rowRef, isNext, now }: { r: CalRow; firstOfDay: boolean; firstOfTime: boolean; open: boolean; onToggle: () => void; rowRef?: (el: HTMLDivElement | null) => void; isNext: boolean; now: number }) {
   const past = Date.parse(r.at) <= now;
   return (
     <div ref={rowRef} className={cx("cal-row", firstOfTime && "border-t border-line", isNext && "bg-accent-soft")}>
       {firstOfDay && <div className="border-b border-line bg-surface-2 px-3 py-1.5 text-[12px] font-semibold md:hidden">{fmt(r.date, { weekday: "long", day: "numeric", month: "short" })}</div>}
-      <div className={cx(COLS, "hidden px-3 py-2 text-[13px]")}>
+      <div className={cx(COLS, "hidden min-h-[30px] px-3 py-1 text-[12.5px]", past && !isNext && "opacity-75")}>
         <div className="text-[12px] leading-tight">{firstOfDay && <><div className="font-semibold">{fmt(r.date, { weekday: "short" })}</div><div className="text-muted">{fmt(r.date, { day: "numeric", month: "short" })}</div></>}</div>
         <div className={cx("num text-[12.5px]", past ? "text-faint" : "text-muted")}>
           {firstOfTime && (r.all_day ? "All day" : <span className="inline-flex items-center gap-1">{isNext && <Play className="size-3 fill-current text-accent" aria-label="Up next" />}{r.time}</span>)}
@@ -164,7 +164,7 @@ function MiniMonth({ month, selected, today, mode, onPick, marked }: { month: st
 
 export function CalendarView({ today, instrumentCurrencies }: { today: string; instrumentCurrencies: string[] }) {
   const qc = useQueryClient();
-  const [mode, setMode] = useState<Mode>("week");
+  const [mode, setMode] = useState<Mode>("day"); // opens on today, like Forex Factory
   const [anchor, setAnchor] = useState(today);
   const [month, setMonth] = useState(today);
   const [open, setOpen] = useState<string | null>(null);
@@ -200,7 +200,7 @@ export function CalendarView({ today, instrumentCurrencies }: { today: string; i
   ];
 
   return (
-    <div className="grid gap-3 lg:grid-cols-[250px_minmax(0,1fr)]">
+    <div className="grid gap-3 lg:h-[calc(100dvh-7.5rem)] lg:grid-cols-[250px_minmax(0,1fr)]">
       <aside className="panel order-2 h-fit space-y-3 p-3 lg:order-none lg:sticky lg:top-24">
         <div className="flex items-center justify-between">
           <button className="grid size-7 cursor-pointer place-items-center rounded text-muted hover:bg-surface-3" onClick={() => setMonth(addDays(monthStart(month), -1))} aria-label="Previous month"><ChevronsLeft className="size-4" /></button>
@@ -213,7 +213,7 @@ export function CalendarView({ today, instrumentCurrencies }: { today: string; i
         </div>
       </aside>
 
-      <section className="panel min-w-0 overflow-hidden">
+      <section className="panel flex min-w-0 flex-col overflow-hidden lg:h-full">
         <div className="flex flex-wrap items-center gap-2 border-b border-line px-3 py-2">
           <div className="flex items-center rounded-lg border border-line bg-surface-2">
             <button className="grid size-9 cursor-pointer place-items-center rounded-l-lg text-muted hover:bg-surface-3 hover:text-fg" onClick={() => step(-1)} aria-label="Previous"><ChevronLeft className="size-4" /></button>
@@ -278,7 +278,7 @@ export function CalendarView({ today, instrumentCurrencies }: { today: string; i
             <p className="text-[12.5px] text-faint">Forex Factory's free feed covers the current week. Earlier weeks are kept as they were fetched, and next week appears once Forex Factory publishes it. Use the refresh button to fetch the latest.</p>
           </div>
         ) : (
-          <div role="table" aria-label="Economic calendar">
+          <div role="table" aria-label="Economic calendar" className="min-h-0 flex-1 overflow-y-auto">
             {rows.map((r, i) => (
               <div key={r.id}>
                 {i === nowIdx && i > 0 && <div className="relative h-0 border-t-2 border-accent" aria-label="Now"><span className="absolute -top-2.5 left-3 rounded bg-accent px-1.5 text-[10px] font-semibold uppercase text-white">now</span></div>}
@@ -289,7 +289,8 @@ export function CalendarView({ today, instrumentCurrencies }: { today: string; i
           </div>
         )}
         <p className="border-t border-line px-4 py-2 text-[11.5px] text-faint">
-          Schedule, forecast and previous: Forex Factory weekly export. Actual results are added from official releases in each row's details.
+          Schedule, forecast and previous: Forex Factory weekly export. Actual results: biquote.io free economic calendar, refreshed every two minutes while the calendar is open (and editable in each row's details).
+          {data.data?.actuals_sync?.error && <span className="text-warn"> {data.data.actuals_sync.error}.</span>}
           Green and red show whether the actual was better or worse than the forecast for that currency; it is not a market call.
           {data.data && <> Times in {data.data.timezone_label} ({data.data.timezone}).</>}
         </p>
