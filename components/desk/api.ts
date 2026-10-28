@@ -36,8 +36,11 @@ export interface ReportDetail extends VersionSummary {
   versions: VersionSummary[];
 }
 
-export interface WeekDay { date: string; day: string; daily_analysis: VersionSummary[]; daily_review: VersionSummary[] }
-export interface Week { week_key: string; instrument: string; days: WeekDay[]; weekly_analysis: VersionSummary[]; weekly_review: VersionSummary[]; change_log: { at: string; from: string; to: string; evidence: string }[] }
+/** Whether a report can be written now (analyses before or during their period, reviews after it closes). */
+export interface SlotState { ok: boolean; state: "open" | "not_yet" | "closed"; reason: string; opens_display: string | null }
+export interface WeekDay { date: string; day: string; daily_analysis: VersionSummary[]; daily_review: VersionSummary[]; slots: { daily_analysis: SlotState; daily_review: SlotState } }
+export interface Week { week_key: string; instrument: string; days: WeekDay[]; weekly_analysis: VersionSummary[]; weekly_review: VersionSummary[];
+  slots: { weekly_analysis: SlotState; weekly_review: SlotState }; change_log: { at: string; from: string; to: string; evidence: string }[] }
 
 export interface CalendarRow { id: string; currency: string; title: string; impact: string; time_eat: string; time_label: string; source_time: string; consensus: string | null; previous: string | null; revised_previous: string | null; actual: string | null; state: string; actual_sources: string[]; source: string; is_fixture: boolean }
 export interface Level { id: string; lower: number; upper: number; timeframe: string; role: string; origin: string; reason: string; status: string; approximate: boolean; created_display: string; is_fixture: boolean }
@@ -45,6 +48,17 @@ export interface EvaluationRow { period_key: string; kind: string; direction: st
 export interface Freshness { status: "ok" | "stale" | "missing"; message: string; market_open: boolean; last_h1_close: string | null; provider: string | null; is_fixture: boolean; age_hours?: number }
 export interface DQWarning { id: number; code: string; severity: string; message: string; created_display: string }
 export interface Job { job: string; slot: string; instrument: string; status: string; attempts: number; error: string | null; started_display: string; version_id: string | null; detail?: string | null }
+
+/** Plain-language versions of the technical errors a reader might meet; anything else is shown as the server wrote it. */
+export function friendlyError(e: unknown): string {
+  const m = e instanceof Error ? e.message : String(e ?? "");
+  if (/Failed to fetch|NetworkError|load failed/i.test(m)) return "The server could not be reached. Check your connection and try again.";
+  if (/no such (report )?version/i.test(m)) return "That report version could not be found. It may still be saving: wait a moment and reload the page.";
+  if (/admin token required|not authorised/i.test(m)) return "This action needs the admin password: click the key icon in the top bar and enter your ADMIN_TOKEN.";
+  if (/could not save .*kept rejecting/i.test(m)) return "The report could not be saved because another save happened at the same moment. Please try again.";
+  if (/HTTP 50[24]|timed out|FUNCTION_INVOCATION_TIMEOUT/i.test(m)) return "The server took too long to answer. Please try again in a minute.";
+  return m;
+}
 
 export class ApiError extends Error {
   constructor(public status: number, public detail: unknown) {

@@ -5,7 +5,7 @@ import { lastClosedSession, marketOpen, weekWindow } from "./core/sessions.ts";
 import { eventAsOf, eventCurrencies, eventsBetween } from "./data/calendar.ts";
 import { fetchSeries } from "./data/yahoo.ts";
 import { HttpError } from "./http.ts";
-import { getVersion, loadIndex, parseId } from "./reports/service.ts";
+import { getVersion, loadIndex, parseId, slotAvailability } from "./reports/service.ts";
 
 /** Index entries carry the stored outlook for continuity; the dashboard lists only the summary fields. */
 const strip = ({ outlook: _o, conclusion: _c, lesson: _l, ...s }: Record<string, unknown>) => s;
@@ -30,7 +30,9 @@ export async function weekView(inst: string, week: string) {
   return {
     week_key: mon, instrument: inst,
     weekly_analysis: pick("weekly_analysis", mon), weekly_review: pick("weekly_review", mon),
-    days: weekDays(mon).map((d) => ({ date: d, day: dayName(d), daily_analysis: pick("daily_analysis", d), daily_review: pick("daily_review", d) })),
+    slots: { weekly_analysis: slotAvailability("weekly_analysis", inst, mon), weekly_review: slotAvailability("weekly_review", inst, mon) },
+    days: weekDays(mon).map((d) => ({ date: d, day: dayName(d), daily_analysis: pick("daily_analysis", d), daily_review: pick("daily_review", d),
+      slots: { daily_analysis: slotAvailability("daily_analysis", inst, d), daily_review: slotAvailability("daily_review", inst, d) } })),
     change_log: ix.changes.filter((c) => c.week_key === mon).map((c) => ({ at: c.at_display, from: c.from, to: c.to, evidence: c.evidence })),
   };
 }

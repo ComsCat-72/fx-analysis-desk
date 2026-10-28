@@ -6,7 +6,7 @@ import { AlertOctagon, AlertTriangle, CheckCircle2, Copy, FileDown, FileText, Gi
 import { useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { ApiError, api, withToken, type Finding, type Kind, type ReportDetail, type VersionSummary } from "./api";
+import { ApiError, api, friendlyError, withToken, type Finding, type Kind, type ReportDetail, type SlotState, type VersionSummary } from "./api";
 import { TABS } from "./App";
 import { Badge, Button, DirectionTag, Empty, FadeIn, Field, Spinner, cx, inputCls } from "./ui";
 
@@ -102,9 +102,52 @@ function Editor({ report, onClose }: { report: ReportDetail; onClose: () => void
   );
 }
 
-export function ReportPane({ instrument, tab, onTab, period, versions, versionId, onVersion, onCite, credentials, defaultWriter, weekKey }: {
+const ABOUT: Record<Kind, { title: string; what: string; next: string }> = {
+  weekly_analysis: { title: "Weekly analysis", what: "Sets the working view for the week: the bias, both economies, the key releases and the price areas that would change the picture.",
+    next: "Every daily analysis this week builds on it, and the weekly review on Saturday assesses it." },
+  daily_analysis: { title: "Daily analysis", what: "Explains this day's context inside the weekly view, and what would strengthen or weaken it.",
+    next: "The review the next morning compares it with what the market actually did." },
+  daily_review: { title: "Session review", what: "Compares the published daily analysis for this session with what the market actually did.",
+    next: "Its conclusion feeds the next daily analysis and the weekly review." },
+  weekly_review: { title: "Weekly review", what: "Assesses the whole week: the weekly view against the actual week, day by day, plus one lesson from the evidence.",
+    next: "Next week's weekly analysis starts from it." },
+};
+
+/** What this slot is, whether it can be written now, and where to go instead. */
+function SlotCard({ tab, period, dayName, slot, hasWeekly, onGo }: {
+  tab: Kind; period: string; dayName: string | null; slot?: SlotState; hasWeekly: boolean; onGo: (k: Kind, d?: string, review?: string) => void;
+}) {
+  const a = ABOUT[tab];
+  const when = tab.startsWith("weekly") ? `week of ${period}` : `${dayName ?? ""} ${period}`.trim();
+  const alt: { label: string; go: () => void } | null = slot?.state !== "closed" ? null
+    : tab === "daily_analysis" ? { label: `Open the review of ${dayName ?? period}`, go: () => onGo("daily_review", undefined, period) }
+    : tab === "weekly_analysis" ? { label: "Open the weekly review", go: () => onGo("weekly_review") } : null;
+  const tone = !slot ? "border-line" : slot.state === "open" ? "border-[color-mix(in_srgb,var(--ok)_40%,transparent)]" : slot.state === "not_yet" ? "border-line" : "border-[color-mix(in_srgb,var(--warn)_40%,transparent)]";
+  return (
+    <div className={cx("max-w-2xl space-y-3 rounded-xl border bg-surface-2 p-5", tone)}>
+      <div>
+        <h3 className="text-[16px] font-semibold">{a.title} <span className="font-normal text-muted">· {when}</span></h3>
+        <p className="mt-1 text-[13.5px] text-muted">{a.what} {a.next}</p>
+      </div>
+      {slot && (
+        <div className={cx("flex items-start gap-2 text-[13.5px]", slot.state === "open" ? "text-ok" : slot.state === "closed" ? "text-warn" : "text-muted")}>
+          {slot.state === "open" ? <CheckCircle2 className="mt-0.5 size-4 shrink-0" aria-hidden /> : slot.state === "closed" ? <Lock className="mt-0.5 size-4 shrink-0" aria-hidden /> : <Info className="mt-0.5 size-4 shrink-0" aria-hidden />}
+          <span>{slot.state === "closed" ? <><strong>Closed.</strong> {slot.reason}</> : slot.state === "not_yet" ? <><strong>Not yet.</strong> {slot.reason}</> : <><strong>Ready.</strong> {slot.reason.replace(/^Ready: /, "")} Click <em>Generate draft</em> above.</>}</span>
+        </div>
+      )}
+      {slot?.state === "open" && tab === "daily_analysis" && !hasWeekly && (
+        <p className="text-[12.5px] text-faint">No weekly analysis is published for this week yet. The daily analysis will say so; publishing the weekly analysis first gives it a reference.
+          {" "}<button className="cursor-pointer text-accent underline" onClick={() => onGo("weekly_analysis")}>Open the weekly analysis</button></p>
+      )}
+      {alt && <Button size="sm" onClick={alt.go}>{alt.label}</Button>}
+    </div>
+  );
+}
+
+export function ReportPane({ instrument, tab, onTab, period, versions, versionId, onVersion, onCite, credentials, defaultWriter, weekKey, slot, onGo, hasWeekly, dayName }: {
   instrument: string; tab: Kind; onTab: (k: Kind) => void; period: string; versions: VersionSummary[]; versionId: string | null;
   onVersion: (id: string) => void; onCite: (id: string) => void; credentials: Record<string, boolean>; defaultWriter: string; weekKey: string;
+  slot?: SlotState; onGo: (k: Kind, d?: string, review?: string) => void; hasWeekly: boolean; dayName: string | null;
 }) {
   const qc = useQueryClient();
   const report = useQuery({ queryKey: ["report", versionId], queryFn: () => api.report(versionId!), enabled: versionId != null });
@@ -148,7 +191,8 @@ export function ReportPane({ instrument, tab, onTab, period, versions, versionId
             <option value="template">Rule-based (free)</option>
           </select>
         </label>
-        <Button size="sm" variant={versions.length ? "secondary" : "primary"} busy={draft.isPending} onClick={() => draft.mutate()}>
+        <Button size="sm" variant={versions.length ? "secondary" : "primary"} busy={draft.isPending} onClick={() => draft.mutate()}
+          disabled={slot ? !slot.ok : false} title={slot && !slot.ok ? slot.reason : "Build a new draft from the latest data"}>
           <Sparkles className="size-4" aria-hidden />{draft.isPending ? (writer === "claude" ? "Researching and drafting (1–3 min)…" : "Drafting…") : "Generate draft"}
         </Button>
         {r && r.status === "published" && (
@@ -185,15 +229,15 @@ export function ReportPane({ instrument, tab, onTab, period, versions, versionId
         </div>
       )}
 
-      {err && <div className="mx-4 mt-3 rounded-lg border border-[color-mix(in_srgb,var(--danger)_35%,transparent)] bg-danger-soft px-3 py-2 text-sm text-danger">{String(err.message ?? err)}</div>}
+      {err && <div className="mx-4 mt-3 rounded-lg border border-[color-mix(in_srgb,var(--danger)_35%,transparent)] bg-danger-soft px-3 py-2 text-sm text-danger">{friendlyError(err)}</div>}
 
       <div className="grid min-h-[420px] flex-1 grid-cols-1 min-[1900px]:grid-cols-[minmax(0,1fr)_320px] lg:max-[1535px]:grid-cols-[minmax(0,1fr)_300px]">
         <div className="min-w-0 overflow-x-hidden p-5">
           {versionId == null ? (
-            <Empty>No report for this slot yet. Generate a draft to preview it before publishing.</Empty>
+            <SlotCard tab={tab} period={period} dayName={dayName} slot={slot} hasWeekly={hasWeekly} onGo={onGo} />
           ) : report.error ? (
             <div className="rounded-lg border border-[color-mix(in_srgb,var(--danger)_35%,transparent)] bg-danger-soft p-3 text-sm text-danger" role="alert">
-              Could not load this report: {String((report.error as Error).message ?? report.error)}.
+              Could not load this report: {friendlyError(report.error)}
               {" "}If this keeps happening, check that a Vercel Blob store is connected to the project (see the warning above).
             </div>
           ) : report.isLoading || !r ? <Spinner label="Loading report" /> : (

@@ -334,3 +334,39 @@ export function dueJobs(run: "reviews" | "analyses", now = Date.now()): Kind[] {
   if (run === "reviews") return wd >= 2 && wd <= 6 ? ["daily_review"] : [];
   return wd >= 1 && wd <= 5 ? ["daily_analysis"] : wd === 6 ? ["weekly_review"] : ["weekly_analysis"];
 }
+
+// ---------------------------------------------------------------- when a report can be written
+
+export interface SlotState { ok: boolean; state: "open" | "not_yet" | "closed"; reason: string; opens_display: string | null }
+
+/** Analyses are written before or during their period (never with hindsight); reviews after the period has closed. */
+export function slotAvailability(kind: Kind, inst: string, periodIn: string, now = Date.now()): SlotState {
+  const rule = instrument(inst).session;
+  const period = periodKey(kind, periodIn);
+  const open = (reason: string): SlotState => ({ ok: true, state: "open", reason, opens_display: null });
+  const notYet = (at: number, reason: string): SlotState => ({ ok: false, state: "not_yet", reason, opens_display: stamp(at) });
+  const closed = (reason: string): SlotState => ({ ok: false, state: "closed", reason, opens_display: null });
+  if (kind === "weekly_analysis") {
+    const w = weekWindow(rule, period), opens = w.start - 3 * 86400_000;
+    if (now >= w.end) return closed("This week is over. An analysis written now would use hindsight, so it can only be reviewed: open the weekly review.");
+    if (now < opens) return notYet(opens, `Opens ${stamp(opens)}, a few days before the week starts.`);
+    return open(now < w.start ? "Ready: written before the week starts." : "Ready: the week has started, so the analysis uses data up to now.");
+  }
+  if (kind === "daily_analysis") {
+    if (!isWeekday(period)) return closed("There is no session on this day.");
+    const d = dayWindow(rule, period);
+    let prev = addDays(period, -1);
+    while (!isWeekday(prev)) prev = addDays(prev, -1);
+    const opens = dayWindow(rule, prev).end;
+    if (now >= d.end) return closed(`This session has closed. An analysis written now would use hindsight; open the review of ${dayName(period)} instead.`);
+    if (now < opens) return notYet(opens, `Opens ${stamp(opens)}, when the previous session closes.`);
+    return open("Ready: uses data up to now and this week's published reports.");
+  }
+  if (kind === "daily_review") {
+    if (!isWeekday(period)) return closed("There is no session on this day.");
+    const end = dayWindow(rule, period).end;
+    return now < end ? notYet(end, `Opens ${stamp(end)}, when the session closes.`) : open("Ready: the session has closed.");
+  }
+  const end = weekWindow(rule, period).end;
+  return now < end ? notYet(end, `Opens ${stamp(end)}, when the week's last session closes.`) : open("Ready: the week has closed.");
+}

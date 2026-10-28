@@ -71,3 +71,19 @@ test("schedule slots", () => {
   assert.equal(svc.slotFor("weekly_analysis", "GBP_USD", sun), "2026-11-02");
   assert.equal(svc.slotFor("daily_analysis", "GBP_USD", sun), null);
 });
+
+test("when a report can be written: analyses never with hindsight, reviews only after the close", () => {
+  const wed = Date.parse("2026-10-28T09:00:00Z"); // Wednesday 12:00 EAT, London session open
+  const at = (kind: Parameters<typeof svc.slotAvailability>[0], period: string, now = wed) => svc.slotAvailability(kind, "GBP_USD", period, now);
+  assert.equal(at("daily_analysis", "2026-10-28").state, "open");
+  assert.equal(at("daily_analysis", "2026-10-27").state, "closed", "a past day cannot get an analysis");
+  assert.equal(at("daily_analysis", "2026-09-28").state, "closed");
+  assert.equal(at("daily_analysis", "2026-10-30").state, "not_yet");
+  assert.equal(at("daily_review", "2026-10-28").state, "not_yet", "the session has not closed");
+  assert.equal(at("daily_review", "2026-10-27").state, "open");
+  assert.equal(at("weekly_analysis", "2026-10-26").state, "open");
+  assert.equal(at("weekly_analysis", "2026-10-19").state, "closed");
+  assert.equal(at("weekly_review", "2026-10-26").state, "not_yet");
+  assert.equal(at("weekly_review", "2026-10-19").state, "open");
+  assert.match(at("daily_analysis", "2026-10-27").reason, /hindsight/);
+});

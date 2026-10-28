@@ -25,30 +25,64 @@ interface Backend {
   url(p: string): Promise<string | null>;
 }
 
-const blobAccess = () => (process.env.BLOB_ACCESS === "private" ? "private" : "public") as "public" | "private";
+// A store's access mode is fixed when it is created. BLOB_ACCESS states it; if it is unset or wrong, the first
+// access-mismatch error from the Blob API flips it for the rest of the process.
+let accessMode: "public" | "private" = process.env.BLOB_ACCESS === "private" ? "private" : "public";
+const blobAccess = () => accessMode;
+const accessMismatch = (e: unknown) => /\b(?:private|public)\b/i.test(String((e as Error)?.message ?? "")) && /access|store/i.test(String((e as Error)?.message ?? ""));
+async function withAccess<T>(fn: () => Promise<T>): Promise<T> {
+  try { return await fn(); } catch (e) {
+    if (!accessMismatch(e)) throw e;
+    accessMode = accessMode === "public" ? "private" : "public";
+    return fn();
+  }
+}
+const sameTag = (a: string, b: string) => a.replace(/^W\//, "").replace(/"/g, "") === b.replace(/^W\//, "").replace(/"/g, "");
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const notFound = (e: unknown) => (e as Error)?.constructor?.name === "BlobNotFoundError" || /does not exist/i.test(String((e as Error)?.message ?? ""));
+
+/** Current content and ETag. Public blobs are served through a CDN that may hold a copy for up to a minute, and the
+ *  SDK only bypasses that cache for private stores, so public reads ask the API for the current ETag (head) and fetch
+ *  that exact version with a version-specific URL. */
+async function readBlob(p: string): Promise<{ body: Response; etag: string } | null> {
+  const { get, head } = await import("@vercel/blob");
+  const token = blobToken();
+  if (blobAccess() === "private") {
+    const r = await withAccess(() => get(p, { access: blobAccess(), useCache: false, token }));
+    return r?.stream ? { body: new Response(r.stream), etag: r.blob.etag } : null;
+  }
+  let meta;
+  try { meta = await head(p, { token }); } catch (e) { if (notFound(e)) return null; throw e; }
+  for (let i = 0; i < 3; i++) {
+    const r = await fetch(`${meta.url}?v=${encodeURIComponent(meta.etag)}${i ? `-${i}` : ""}`, { cache: "no-store" });
+    if (r.ok && sameTag(r.headers.get("etag") ?? meta.etag, meta.etag)) return { body: r, etag: meta.etag };
+    await r.body?.cancel();
+    await sleep(150 * (i + 1));
+  }
+  const r = await withAccess(() => get(p, { access: blobAccess(), useCache: false, token }));
+  return r?.stream ? { body: new Response(r.stream), etag: r.blob.etag } : null;
+}
 
 function blobBackend(): Backend {
   // Imported lazily so local development and tests never need the SDK configured.
   const sdk = import("@vercel/blob");
   return {
     async read(p) {
-      const { get } = await sdk;
-      const r = await get(p, { access: blobAccess(), useCache: false, token: blobToken() });
-      if (!r || !r.stream) return null;
-      return { text: await new Response(r.stream).text(), etag: r.blob.etag };
+      const r = await readBlob(p);
+      return r ? { text: await r.body.text(), etag: r.etag } : null;
     },
     async write(p, body, o) {
       const { put } = await sdk;
       try {
-        const r = await put(p, body, {
+        const r = await withAccess(() => put(p, body, {
           access: blobAccess(), token: blobToken(), addRandomSuffix: false, contentType: o.contentType ?? "application/json",
           cacheControlMaxAge: 60, ...(o.create ? { allowOverwrite: false } : o.etag ? { ifMatch: o.etag } : { allowOverwrite: true }),
-        });
+        }));
         return { url: r.url };
       } catch (e) {
         const msg = String((e as Error)?.message ?? e);
         if (o.create && /exist/i.test(msg)) throw new ImmutableError(`${p} already exists and cannot be overwritten`);
-        if (o.etag && /precondition|etag|412/i.test(msg)) throw new PreconditionFailed(p);
+        if (o.etag && ((e as Error)?.constructor?.name === "BlobPreconditionFailedError" || /precondition failed|\b412\b/i.test(msg))) throw new PreconditionFailed(p);
         throw e;
       }
     },
@@ -154,6 +188,7 @@ export async function putImmutable(p: string, data: unknown): Promise<void> {
 
 /** Read-modify-write with optimistic concurrency. `fn` may mutate and/or return the new value. */
 export async function update<T>(p: string, init: () => T, fn: (cur: T) => T | void): Promise<T> {
+  let last = "";
   for (let attempt = 0; attempt < 6; attempt++) {
     const r = await store().read(p);
     const cur = r ? (JSON.parse(r.text) as T) : init();
@@ -163,10 +198,11 @@ export async function update<T>(p: string, init: () => T, fn: (cur: T) => T | vo
       return next;
     } catch (e) {
       if (!(e instanceof PreconditionFailed)) throw e;
+      last = "the stored copy changed between reading and writing";
       await new Promise((res) => setTimeout(res, 150 * (attempt + 1) + Math.random() * 200));
     }
   }
-  throw new Error(`could not update ${p}: too many concurrent writers`);
+  throw new Error(`could not save ${p}: the store kept rejecting the update (${last}); please try again`);
 }
 
 export async function putFile(p: string, body: Buffer, contentType: string): Promise<string> {
@@ -174,9 +210,8 @@ export async function putFile(p: string, body: Buffer, contentType: string): Pro
 }
 export async function readFile(p: string): Promise<Buffer | null> {
   if (blobToken()) {
-    const { get } = await import("@vercel/blob");
-    const r = await get(p, { access: blobAccess(), useCache: false, token: blobToken() });
-    return r?.stream ? Buffer.from(await new Response(r.stream).arrayBuffer()) : null;
+    const r = await readBlob(p);
+    return r ? Buffer.from(await r.body.arrayBuffer()) : null;
   }
   try { return await fs.readFile(/*turbopackIgnore: true*/ path.join(localRoot(), p)); } catch { return null; }
 }

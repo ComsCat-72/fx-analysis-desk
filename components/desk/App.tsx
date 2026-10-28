@@ -1,9 +1,10 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { CalendarDays, ChevronLeft, ChevronRight, FlaskConical, Globe2, KeyRound, Lock, Moon, Settings2, Sun } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, CircleHelp, FlaskConical, Globe2, KeyRound, Lock, Moon, Settings2, Sun } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { api, getToken, setToken, type Kind, type VersionSummary, type Week } from "./api";
+import { api, getToken, setToken, type Kind, type SlotState, type VersionSummary, type Week } from "./api";
+import { Guide } from "./Guide";
 import { ReportPane } from "./ReportPane";
 import { SettingsDrawer } from "./Settings";
 import { ContextPanel, type ContextTab } from "./Context";
@@ -36,15 +37,16 @@ export function pickVersion(vs: VersionSummary[] | undefined): VersionSummary | 
     ? drafts[drafts.length - 1] : pub[pub.length - 1] ?? vs[vs.length - 1];
 }
 
-export function slotVersions(week: Week | undefined, kind: Kind, day: string, reviewDay: string | null): { versions: VersionSummary[]; period: string } {
+export function slotVersions(week: Week | undefined, kind: Kind, day: string, reviewDay: string | null): { versions: VersionSummary[]; period: string; slot?: SlotState } {
   if (!week) return { versions: [], period: day };
-  if (kind === "weekly_analysis") return { versions: week.weekly_analysis, period: week.week_key };
-  if (kind === "weekly_review") return { versions: week.weekly_review, period: week.week_key };
-  if (kind === "daily_analysis") return { versions: week.days.find((d) => d.date === day)?.daily_analysis ?? [], period: day };
+  if (kind === "weekly_analysis") return { versions: week.weekly_analysis, period: week.week_key, slot: week.slots?.weekly_analysis };
+  if (kind === "weekly_review") return { versions: week.weekly_review, period: week.week_key, slot: week.slots?.weekly_review };
+  if (kind === "daily_analysis") { const d = week.days.find((x) => x.date === day); return { versions: d?.daily_analysis ?? [], period: day, slot: d?.slots?.daily_analysis }; }
   // Previous-day review: an explicitly chosen session, else the trading day before the selected day.
   const idx = week.days.findIndex((d) => d.date === day);
   const target = reviewDay ?? (idx > 0 ? week.days[idx - 1].date : week.days[0]?.date ?? day);
-  return { versions: week.days.find((d) => d.date === target)?.daily_review ?? [], period: target };
+  const d = week.days.find((x) => x.date === target);
+  return { versions: d?.daily_review ?? [], period: target, slot: d?.slots?.daily_review };
 }
 
 function TokenDialog({ onDone }: { onDone: () => void }) {
@@ -94,6 +96,9 @@ export default function App() {
   const [ctxTab, setCtxTab] = useState<ContextTab>("evidence");
   const cite = (id: string) => { setFocusCite(id); setCtxTab("evidence"); };
   const [settings, setSettings] = useState(false);
+  const [guide, setGuide] = useState(false);
+  useEffect(() => { try { if (!localStorage.getItem("fx.guideSeen")) setGuide(true); } catch { /* storage unavailable */ } }, []);
+  const closeGuide = () => { setGuide(false); try { localStorage.setItem("fx.guideSeen", "1"); } catch { /* storage unavailable */ } };
   const [theme, setTheme] = useState<"dark" | "light">(() => { try { return (localStorage.getItem("fx.theme") as "dark" | "light") ?? "dark"; } catch { return "dark"; } });
 
   useEffect(() => { document.documentElement.dataset.theme = theme; try { localStorage.setItem("fx.theme", theme); } catch { /* storage unavailable */ } }, [theme]);
@@ -163,6 +168,7 @@ export default function App() {
             {cfg.data!.publication_mode === "automatic" ? "Auto-publish on" : "Manual publication"}
           </Badge>
           <Badge title={`Times are shown in ${tz}; change in Configure`}><Globe2 className="size-3" />{cfg.data!.display.timezone_label} · {tz.split("/").pop()?.replace("_", " ")}</Badge>
+          <Button variant="ghost" size="sm" onClick={() => setGuide(true)} title="How the desk works"><CircleHelp className="size-4" aria-hidden /><span className="hidden md:inline">How it works</span></Button>
           <Button variant="ghost" size="sm" onClick={() => setTheme(theme === "dark" ? "light" : "dark")} title="Toggle theme">
             {theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}<span className="sr-only">Toggle theme</span>
           </Button>
@@ -181,7 +187,8 @@ export default function App() {
         </div>
         <div className="order-1 flex min-w-0 flex-col gap-3 lg:order-none">
           <ReportPane key={`${instrument}-${tab}-${slot.period}`} instrument={instrument} tab={tab} onTab={(k) => select(k)}
-            period={slot.period} versions={slot.versions} versionId={current} onVersion={setVersionId}
+            period={slot.period} versions={slot.versions} versionId={current} onVersion={setVersionId} slot={slot.slot} onGo={select}
+            hasWeekly={!!week.data?.weekly_analysis.some((v) => v.status === "published")} dayName={week.data?.days.find((d) => d.date === slot.period)?.day ?? null}
             onCite={cite} credentials={cfg.data!.credentials} defaultWriter={cfg.data!.writer} weekKey={weekKey} />
           {!wide && context}
         </div>
@@ -191,6 +198,7 @@ export default function App() {
         Reports explain market behaviour from sourced evidence. They do not recommend buying, selling or positioning in any market.
       </footer>
       {tokenDialog}
+      <Guide open={guide} onClose={closeGuide} schedules={Object.values(cfg.data!.schedules).map(String)} autoPublish={cfg.data!.publication_mode === "automatic"} />
       <SettingsDrawer open={settings} onClose={() => setSettings(false)} config={cfg.data!} instrument={instrument} />
     </div>
   );
