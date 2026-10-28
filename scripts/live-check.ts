@@ -43,7 +43,7 @@ summary.actuals = { released: actuals.length, with_actual: actuals.filter((a) =>
   by_source: actuals.reduce<Record<string, number>>((m, a) => { for (const s of a.sources) { const k = s.replace(/ \(.*/, ""); m[k] = (m[k] ?? 0) + 1; } return m; }, {}),
   missing: actuals.filter((a) => !a.actual).map((a) => `${a.at} ${a.currency} ${a.title}`).slice(0, 30) };
 
-// For each released event still without an actual: its figures and every candidate release (same currency, ±10 min).
+// For each released event: the actual chosen, its figures and every candidate release (same currency, ±10 min).
 {
   const A = await import("../lib/data/actuals.ts"), F = await import("../lib/data/fxstreet.ts");
   const from = Date.now() - 3 * 86400_000, to = Date.now();
@@ -53,9 +53,9 @@ summary.actuals = { released: actuals.length, with_actual: actuals.filter((a) =>
     .flatMap((x) => (Array.isArray(x) ? x : []));
   const all = [...(Array.isArray(fx) ? fx : []), ...bq];
   const evs = await eventsBetween(from, to);
-  write("actuals_debug.json", actuals.filter((a) => !a.actual).map((a) => {
+  write("actuals_debug.json", actuals.map((a) => {
     const e = evs.find((x) => x.title === a.title && new Date(x.scheduledAt).toISOString() === a.at)!;
-    return { event: { title: e.title, currency: e.currency, at: a.at, consensus: e.consensus, previous: e.previous, history: e.history.filter((h) => h.field === "actual") },
+    return { actual: a.actual, event: { title: e.title, currency: e.currency, at: a.at, consensus: e.consensus, previous: e.previous, history: e.history.filter((h) => h.field === "actual") },
       candidates: all.filter((r) => r.currency === e.currency && Math.abs(r.at - e.scheduledAt) <= 10 * 60_000)
         .map((r) => ({ title: r.title, source: r.source ?? "biquote", actual: r.actual, forecast: r.forecast, previous: r.previous, unit: r.unit, match: A.matchScored(r, [e])?.s ?? null })) };
   }));
