@@ -9,7 +9,7 @@
 import { parseValue } from "../core/events.ts";
 import { getJSON, putJSON } from "../store.ts";
 import { eventsBetween, recordValues, type CalendarEvent } from "./calendar.ts";
-import { dateIn, monday } from "../dates.ts";
+import { addDays, dateIn, monday } from "../dates.ts";
 
 export const BIQUOTE_URL = process.env.BIQUOTE_URL || "https://biquote.io/api/calendar"; // overridable for local testing
 export const SOURCE = "biquote.io economic calendar";
@@ -97,6 +97,14 @@ export function formatLike(value: string, like: (string | null)[], unit: string 
   return `${v.toFixed(ref.decimals)}${ref.unit === "bp" ? "bp" : ref.unit}`;
 }
 
+export const HOT_GAP_MS = 20_000;
+
+/** A release in the last 30 minutes that has figures but no actual yet. */
+export async function releaseAwaiting(now: number): Promise<boolean> {
+  const evs = await eventsBetween(now - 30 * 60_000, now + 1);
+  return evs.some((e) => (e.consensus || e.previous) && e.impact !== "Holiday" && !e.history.some((h) => h.field === "actual" && h.value));
+}
+
 export interface SyncResult { fetched: number; matched: number; recorded: number; fields: Record<string, string>; error: string | null; skipped?: string }
 interface SyncDoc { at: number; result: SyncResult; running?: number | null }
 
@@ -107,16 +115,26 @@ export async function syncActuals(from: number, to: number, o: { now?: number; m
   const now = o.now ?? Date.now(), gap = o.minGapMs ?? 120_000;
   const last = await getJSON<SyncDoc>("actuals-sync.json");
   if (last?.running && now - last.running < 90_000) return { ...last.result, skipped: "sync already running" };
-  if (last && !last.running && now - last.at < gap) return { ...last.result, skipped: "synced recently" };
+  if (last && !last.running && now - last.at < gap) {
+    // Right after a release (within 30 minutes, with figures but no actual yet) sync every 20 s instead.
+    if (now - last.at < HOT_GAP_MS || !(await releaseAwaiting(now))) return { ...last.result, skipped: "synced recently" };
+  }
   const empty: SyncResult = { fetched: 0, matched: 0, recorded: 0, fields: {}, error: null };
   await putJSON("actuals-sync.json", { at: last?.at ?? 0, result: last?.result ?? empty, running: now } satisfies SyncDoc).catch(() => undefined);
   const fields: Record<string, string> = {};
   let result: SyncResult;
   try {
-    const q = new URLSearchParams({ from: dateIn(from, "UTC"), to: dateIn(to, "UTC"), countries: COUNTRIES.join(",") });
-    const r = await (o.fetcher ?? fetch)(`${BIQUOTE_URL}?${q}`, { headers: { Accept: "application/json", "User-Agent": "fx-analysis-desk/1.0" }, cache: "no-store", signal: AbortSignal.timeout(8000) });
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    const releases = parseReleases(await r.json(), fields);
+    // One request per UTC day: a multi-day query is capped (it returned exactly 100 rows), which cut off today's releases.
+    const days: string[] = [];
+    for (let d = dateIn(from, "UTC"), end = dateIn(to, "UTC"); d <= end && days.length < 7; d = addDays(d, 1)) days.push(d);
+    const lists = await Promise.all(days.map(async (d) => {
+      const q = new URLSearchParams({ from: d, to: addDays(d, 1), countries: COUNTRIES.join(",") }); // biquote needs to > from
+      const r = await (o.fetcher ?? fetch)(`${BIQUOTE_URL}?${q}`, { headers: { Accept: "application/json", "User-Agent": "fx-analysis-desk/1.0" }, cache: "no-store", signal: AbortSignal.timeout(8000) });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      return parseReleases(await r.json(), fields);
+    }));
+    const seen = new Set<string>();
+    const releases = lists.flat().filter((x) => { const k = `${x.currency}|${x.at}|${x.title}`; return !seen.has(k) && (seen.add(k), true); });
     const events = await eventsBetween(from - 86400_000, to + 86400_000);
     const byWeek = new Map<string, Parameters<typeof recordValues>[1]>();
     let matched = 0;

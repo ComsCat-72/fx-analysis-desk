@@ -1,5 +1,6 @@
 // Calendar and timezone helpers. Calendar dates are "YYYY-MM-DD" strings; instants are epoch ms (UTC).
 import { CONFIG } from "./config.ts";
+import { dtf, partsOf } from "./fmt.ts";
 
 const DOW = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -7,13 +8,13 @@ const DOW = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "
 // Only the display changes; stored instants and source timestamps are untouched.
 let DEFAULT_TZ = CONFIG.display.timezone, DEFAULT_LABEL = CONFIG.display.timezone_label;
 
-export const isTimeZone = (tz: string) => { try { new Intl.DateTimeFormat("en-US", { timeZone: tz }); return true; } catch { return false; } };
+export const isTimeZone = (tz: string) => { try { dtf("en-US", { timeZone: tz }); return true; } catch { return false; } };
 
 /** Short label for a zone: the configured names (EAT, CAT, ...) first, else Intl's short name (e.g. "GMT+3"). */
 export function zoneLabel(tz: string, t = Date.now()): string {
   const known = (CONFIG.display.labels as Record<string, string>)[tz];
   if (known) return known;
-  return new Intl.DateTimeFormat("en-US", { timeZone: tz, timeZoneName: "short" }).formatToParts(new Date(t)).find((x) => x.type === "timeZoneName")?.value ?? tz;
+  return dtf("en-US", { timeZone: tz, timeZoneName: "short" }).formatToParts(new Date(t)).find((x) => x.type === "timeZoneName")?.value ?? tz;
 }
 
 export function setDisplayZone(tz: string | null | undefined) {
@@ -32,8 +33,7 @@ export const displayZone = () => scoped() ?? { timezone: DEFAULT_TZ, timezone_la
 
 /** Calendar date of an instant in a timezone (default: the display timezone). */
 export function dateIn(t: number | Date = Date.now(), tz = displayZone().timezone): string {
-  const p = Object.fromEntries(new Intl.DateTimeFormat("en-US", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" })
-    .formatToParts(new Date(t)).map((x) => [x.type, x.value]));
+  const p = partsOf("en-US", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }, t);
   return `${p.year}-${p.month}-${p.day}`;
 }
 export const todayLocal = (now = Date.now()) => dateIn(now);
@@ -57,9 +57,9 @@ export const weekDays = (mon: string) => [0, 1, 2, 3, 4].map((i) => addDays(mon,
 export const dayName = (d: string) => DOW[weekday(d)];
 
 function offsetMs(t: number, tz: string): number {
-  const p = Object.fromEntries(new Intl.DateTimeFormat("en-US", {
+  const p = partsOf("en-US", {
     timeZone: tz, hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit",
-  }).formatToParts(new Date(t)).map((x) => [x.type, x.value]));
+  }, t);
   return Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute, +p.second) - Math.floor(t / 1000) * 1000;
 }
 
@@ -75,7 +75,7 @@ export function zoned(d: string, hhmm: string, tz: string): number {
 
 /** "HH:MM" of an instant in a timezone. */
 export function hhmm(t: number, tz = displayZone().timezone): string {
-  return new Date(t).toLocaleTimeString("en-GB", { timeZone: tz, hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+  return dtf("en-GB", { timeZone: tz, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date(t));
 }
 
 /** "Mon 16 Nov 2026 07:31 EAT" (label of the display timezone) */
@@ -83,20 +83,20 @@ export function stamp(t: number | string | Date, opts: { date?: boolean } = {}):
   const d = new Date(t);
   const z = displayZone();
   if (opts.date === false) return `${hhmm(d.getTime())} ${z.timezone_label}`;
-  const s = d.toLocaleString("en-GB", {
+  const s = dtf("en-GB", {
     timeZone: z.timezone, weekday: "short", day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hourCycle: "h23",
-  });
+  }).format(d);
   return `${s.replace(/,/g, "")} ${z.timezone_label}`;
 }
 
 /** "Tue 27 Oct 14:30" in the display timezone (calendar tables). */
 export function shortStamp(t: number): string {
-  return new Date(t).toLocaleString("en-GB", {
+  return dtf("en-GB", {
     timeZone: displayZone().timezone, weekday: "short", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23",
-  }).replace(/,/g, "");
+  }).format(new Date(t)).replace(/,/g, "");
 }
 
-const fmtDate = (d: string, o: Intl.DateTimeFormatOptions) => new Date(`${d}T12:00:00Z`).toLocaleDateString("en-GB", { ...o, timeZone: "UTC" });
+const fmtDate = (d: string, o: Intl.DateTimeFormatOptions) => dtf("en-GB", { ...o, timeZone: "UTC" }).format(new Date(`${d}T12:00:00Z`));
 export const longDate = (d: string) => fmtDate(d, { weekday: "long", day: "2-digit", month: "long", year: "numeric" }).replace(",", "");
 export const shortDate = (d: string) => fmtDate(d, { weekday: "short", day: "2-digit", month: "short", year: "numeric" }).replace(",", "");
 export const dayMonth = (d: string) => fmtDate(d, { day: "2-digit", month: "short" });

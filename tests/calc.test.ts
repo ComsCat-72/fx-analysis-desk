@@ -98,3 +98,12 @@ test("market hours follow each centre's daylight saving; FX is closed at the wee
 test("the analysis reports never use the calculators", () => {
   for (const f of readdirSync("lib/reports")) assert.doesNotMatch(readFileSync(`lib/reports/${f}`, "utf8"), /calc\//, f);
 });
+
+test("next weekly open/close matches a minute-by-minute search, across the US clock change", () => {
+  const slow = (t: number) => { const o = C.fxMarketOpen(t); for (let x = t + 60_000; ; x += 60_000) if (C.fxMarketOpen(x) !== o) return x - (x % 60_000); };
+  for (const iso of ["2026-10-28T17:00:00Z", "2026-10-30T20:59:00Z", "2026-10-31T12:00:00Z", "2026-11-01T21:30:00Z", "2026-11-01T22:30:00Z", "2026-11-06T21:00:00Z"]) {
+    const t = Date.parse(iso), fast = C.nextMarketChange(t);
+    assert.equal(new Date(fast.at).toISOString(), new Date(slow(t)).toISOString(), iso);
+    assert.equal(fast.opens, !C.fxMarketOpen(t));
+  }
+});

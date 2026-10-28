@@ -80,6 +80,14 @@ export const instOf = (id: string) => parseId(id).inst;
 export const recentWeeks = (n = 4) => Array.from({ length: n }, (_, i) => addDays(monday(dateIn(Date.now())), -7 * i));
 
 /** The full economic calendar for a date range in the display timezone (Forex Factory layout). Values as known now. */
+/** One event's value history (shown when a calendar row is opened). Id as in calendar rows: "{week}:{event}". */
+export async function eventDetail(id: string) {
+  const [week, eid] = id.split(":");
+  const e = Object.values((await getJSON<CalendarDoc>(calendarPath(week)))?.events ?? {}).find((x) => x.id === eid);
+  if (!e) throw new HttpError(404, "no such event");
+  return { id, history: e.history.map((h) => ({ field: h.field, value: h.value, source: h.source, url: h.url ?? null, at_display: stamp(h.at) })) };
+}
+
 export async function calendarRange(from: string, to: string, o: { currencies?: string[]; impacts?: string[] } = {}) {
   const tz = displayZone().timezone, now = Date.now();
   const start = zoned(from, "00:00", tz), end = zoned(addDays(to, 1), "00:00", tz);
@@ -93,7 +101,6 @@ export async function calendarRange(from: string, to: string, o: { currencies?: 
         actual: st.actual, forecast: st.consensus, previous: st.previous, revised_previous: st.revisedPrevious,
         revision: ({ "revised up": "up", "revised down": "down" } as Record<string, string>)[revisionDirection(st.previous, st.revisedPrevious) ?? ""] ?? null,
         state: st.state, tone: st.actual ? resultTone(e.title, st.actual, st.consensus) : null, actual_sources: st.actualSources, conflicting: st.conflicting,
-        history: e.history.map((h) => ({ field: h.field, value: h.value, source: h.source, url: h.url ?? null, at_display: stamp(h.at) })),
         source: e.source, is_fixture: !!e.fixture, is_next: false,
       };
     });

@@ -151,7 +151,7 @@ export function Tabs<T extends string>({ tabs, value, onChange, label, className
           className={cx("relative inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-t-lg px-2.5 py-2.5 text-[13px] font-medium transition-colors",
             value === t.id ? "text-fg" : "text-muted hover:text-fg")}>
           {t.label}{t.badge}
-          {value === t.id && <motion.span layoutId={`ink-${label}`} className="absolute inset-x-2 -bottom-px h-0.5 rounded bg-accent" />}
+          {value === t.id && <span className="absolute inset-x-2 -bottom-px h-0.5 rounded bg-accent" />}
         </button>
       ))}
     </div>

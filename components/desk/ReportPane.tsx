@@ -178,7 +178,7 @@ export function ReportPane({ instrument, tab, onTab, period, versions, versionId
             className={cx("relative cursor-pointer rounded-t-lg px-3 py-2 text-[13.5px] font-medium transition-colors",
               tab === t.kind ? "text-fg" : "text-muted hover:text-fg")}>
             {t.label}
-            {tab === t.kind && <motion.span layoutId="tab-ink" className="absolute inset-x-2 -bottom-px h-0.5 rounded bg-accent" />}
+            {tab === t.kind && <span className="absolute inset-x-2 -bottom-px h-0.5 rounded bg-accent" />}
           </button>
         ))}
         <span className="num ml-auto px-3 text-[12px] text-faint">{tab.includes("weekly") ? `Week of ${period}` : period}</span>

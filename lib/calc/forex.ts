@@ -1,6 +1,7 @@
 // General forex arithmetic for the Calculators page. Pure functions, no data access.
 // These tools are separate from the analysis reports: nothing under lib/reports imports this module.
 import { addDays, zoned } from "../dates.ts";
+import { dtf, partsOf } from "../fmt.ts";
 
 export const PAIRS = ["EUR/USD", "GBP/USD", "AUD/USD", "NZD/USD", "USD/JPY", "USD/CHF", "USD/CAD", "EUR/GBP", "EUR/JPY", "GBP/JPY", "AUD/JPY",
   "EUR/CHF", "EUR/AUD", "EUR/CAD", "GBP/CHF", "GBP/AUD", "AUD/NZD", "CAD/JPY", "CHF/JPY", "NZD/JPY", "XAU/USD"] as const;
@@ -181,7 +182,7 @@ export const SESSIONS = [
 
 /** Spot FX trades from Sunday 17:00 to Friday 17:00 New York time. */
 export function fxMarketOpen(t: number): boolean {
-  const ny = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", weekday: "short", hour: "2-digit", hourCycle: "h23" }).formatToParts(new Date(t));
+  const ny = dtf("en-US", { timeZone: "America/New_York", weekday: "short", hour: "2-digit", hourCycle: "h23" }).formatToParts(new Date(t));
   const wd = ny.find((x) => x.type === "weekday")!.value, h = Number(ny.find((x) => x.type === "hour")!.value);
   if (wd === "Sat") return false;
   if (wd === "Sun") return h >= 17;
@@ -193,14 +194,14 @@ export function fxMarketOpen(t: number): boolean {
  *  Local business hours in each centre; daylight saving follows each centre's own rules. */
 export function sessionsAt(t: number) {
   const day = (tz: string) => {
-    const p = Object.fromEntries(new Intl.DateTimeFormat("en-US", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date(t)).map((x) => [x.type, x.value]));
+    const p = partsOf("en-US", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }, t);
     return `${p.year}-${p.month}-${p.day}`;
   };
   const marketOpen = fxMarketOpen(t);
   return SESSIONS.map((s) => {
     const today = day(s.tz);
     const windows = [-1, 0, 1, 2, 3].map((k) => { const d = addDays(today, k); return { start: zoned(d, s.open, s.tz), end: zoned(d, s.close, s.tz) }; });
-    const isWeekday = (x: number) => { const w = new Intl.DateTimeFormat("en-US", { timeZone: s.tz, weekday: "short" }).format(new Date(x)); return w !== "Sat" && w !== "Sun"; };
+    const isWeekday = (x: number) => { const w = dtf("en-US", { timeZone: s.tz, weekday: "short" }).format(new Date(x)); return w !== "Sat" && w !== "Sun"; };
     const valid = windows.filter((w) => isWeekday(w.start));
     const current = valid.find((w) => t >= w.start && t < w.end) ?? null;
     const upcoming = valid.find((w) => w.start > t) ?? null;
@@ -220,7 +221,7 @@ export function activityAt(t: number): { score: number; level: "High" | "Medium"
 
 /** The calendar day containing `t` in `tz`: its start and end instants (23 or 25 hours on daylight-saving days). */
 export function dayIn(t: number, tz: string) {
-  const p = Object.fromEntries(new Intl.DateTimeFormat("en-US", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date(t)).map((x) => [x.type, x.value]));
+  const p = partsOf("en-US", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }, t);
   const d = `${p.year}-${p.month}-${p.day}`;
   return { date: d, start: zoned(d, "00:00", tz), end: zoned(addDays(d, 1), "00:00", tz) };
 }
@@ -237,4 +238,18 @@ export function sessionsInDay(start: number, end: number) {
     }
   }
   return SESSIONS.map((s) => ({ ...s, windows: (seen.get(s.name) ?? []).map((w) => ({ start: Math.max(w.start, start), end: Math.min(w.end, end) })).sort((a, b) => a.start - b.start) }));
+}
+
+/** When the forex market next opens or closes: Sunday 17:00 or Friday 17:00 New York, whichever comes first. */
+export function nextMarketChange(t: number): { at: number; opens: boolean } {
+  const open = fxMarketOpen(t);
+  const d0 = partsOf("en-US", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit" }, t);
+  const today = `${d0.year}-${d0.month}-${d0.day}`;
+  for (let i = 0; i < 9; i++) {
+    const d = addDays(today, i), wd = new Date(`${d}T12:00:00Z`).getUTCDay();
+    if (wd !== (open ? 5 : 0)) continue;
+    const at = zoned(d, "17:00", "America/New_York");
+    if (at > t) return { at, opens: !open };
+  }
+  return { at: t, opens: !open };
 }

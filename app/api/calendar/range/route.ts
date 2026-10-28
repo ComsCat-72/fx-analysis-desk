@@ -17,6 +17,10 @@ export const GET = read(async (req) => {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to) || to < from) throw new HttpError(400, "from and to (YYYY-MM-DD) are required");
   if ((Date.parse(to) - Date.parse(from)) / 86400_000 > 45) throw new HttpError(400, "ranges are limited to 45 days");
   after(() => syncActuals(Date.now() - 3 * 86400_000, Date.now() + 86400_000).then(() => undefined, () => undefined));
+  if (param(req, "shape") === "dates") { // the month grid only needs which days have events
+    const cal = await calendarRange(from, to, { currencies: list(param(req, "currencies")).map((c) => c.toUpperCase()), impacts: list(param(req, "impacts")) });
+    return json({ dates: [...new Set(cal.rows.map((r) => r.date))], currencies: cal.currencies });
+  }
   const [cal, sync] = await Promise.all([
     calendarRange(from, to, { currencies: list(param(req, "currencies")).map((c) => c.toUpperCase()), impacts: list(param(req, "impacts")) }),
     lastSync(),

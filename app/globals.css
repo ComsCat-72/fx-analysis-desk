@@ -82,11 +82,11 @@ body {
   background-image:
     radial-gradient(1100px 520px at 8% -10%, color-mix(in srgb, var(--accent) 13%, transparent), transparent 60%),
     radial-gradient(900px 480px at 100% 0%, color-mix(in srgb, var(--ok) 7%, transparent), transparent 55%);
-  background-attachment: fixed;
 }
 body { font-family: var(--font-sans); font-size: 15px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
 .num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
-.panel { background: color-mix(in srgb, var(--surface) 92%, transparent); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); backdrop-filter: blur(8px); }
+/* Solid panels: a backdrop blur on every panel forces full repaints on scroll and on every live tick. */
+.panel { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); }
 .topbar { z-index: 20; background: color-mix(in srgb, var(--surface) 86%, transparent); backdrop-filter: blur(14px) saturate(140%); }
 .brand-mark { background: linear-gradient(135deg, var(--accent-strong), color-mix(in srgb, var(--accent) 55%, var(--ok))); box-shadow: 0 6px 18px -8px var(--accent-strong); }
 .stat::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 3px; background: var(--accent); opacity: .55; }
@@ -137,3 +137,7 @@ body { font-family: var(--font-sans); font-size: 15px; line-height: 1.5; -webkit
 .tabs-scroll { scrollbar-width: none; }
 .tabs-scroll::-webkit-scrollbar { display: none; }
 @media (min-width: 1536px) and (max-width: 1799px) { .ctx-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); } }
+
+/* A newly arrived actual flashes once. */
+@keyframes cal-arrive { from { background: color-mix(in srgb, var(--accent) 35%, transparent); } to { background: transparent; } }
+.cal-actual { animation: cal-arrive 2.4s ease-out; border-radius: 4px; padding: 0 3px; }

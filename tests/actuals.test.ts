@@ -53,6 +53,7 @@ test("sync records actuals once, fills missing figures, throttles, and never thr
   const fetcher = (async () => { calls++; return new Response(JSON.stringify(body), { status: 200 }); }) as typeof fetch;
   const now = T + 3600_000;
   const r = await A.syncActuals(T - 3600_000, T + 7200_000, { now, fetcher });
+  const firstRun = calls; // one request per UTC day in the window
   assert.equal(r.error, null); assert.equal(r.fetched, 3); assert.equal(r.matched, 2);
   const evs = await eventsBetween(T - 3600_000, T + 7200_000);
   const cpi = eventAsOf(evs.find((e) => e.title === "CPI m/m")!, now), ocr = eventAsOf(evs.find((e) => e.title === "Official Cash Rate")!, now);
@@ -60,7 +61,7 @@ test("sync records actuals once, fills missing figures, throttles, and never thr
   assert.equal(ocr.actual, "2.75%"); assert.equal(ocr.consensus, "3.00%", "missing forecast filled");
   assert.equal(eventAsOf(evs.find((e) => e.title === "FOMC Member Speaks")!, now).actual, null);
   const again = await A.syncActuals(T - 3600_000, T + 7200_000, { now: now + 60_000, fetcher });
-  assert.equal(again.skipped, "synced recently"); assert.equal(calls, 1);
+  assert.equal(again.skipped, "synced recently"); assert.equal(calls, firstRun);
   const third = await A.syncActuals(T - 3600_000, T + 7200_000, { now: now + 300_000, fetcher });
   assert.equal(third.recorded, 0, "nothing recorded twice");
   const fail = await A.syncActuals(T, T, { now: now + 900_000, fetcher: (async () => { throw new Error("getaddrinfo ENOTFOUND"); }) as typeof fetch });
@@ -103,5 +104,37 @@ test("recordValues writes many entries in one update; a running sync is not star
   const r = await A.syncActuals(now - 86400_000, now, { now, fetcher: (async () => { calls++; return new Response("[]"); }) as typeof fetch });
   assert.equal(r.skipped, "sync already running"); assert.equal(calls, 0);
   const later = await A.syncActuals(now - 86400_000, now, { now: now + 120_000, fetcher: (async () => { calls++; return new Response("[]"); }) as typeof fetch });
-  assert.equal(later.skipped, undefined, "a stale running claim does not block forever"); assert.equal(calls, 1);
+  assert.equal(later.skipped, undefined, "a stale running claim does not block forever"); assert.equal(calls > 0, true);
+});
+
+test("right after a release without an actual, sync runs every 20 s instead of every 2 minutes", async () => {
+  const { putJSON } = await import("../lib/store.ts");
+  const rel = Date.parse("2026-11-03T13:30:00Z");
+  await mergeEvents([ff("CAD", "Trade Balance", rel, "-6.3B", "-6.0B")], rel - 86400_000);
+  let calls = 0;
+  const fetcher = (async () => { calls++; return new Response("[]"); }) as typeof fetch;
+  const doc = (at: number) => putJSON("actuals-sync.json", { at, result: { fetched: 0, matched: 0, recorded: 0, fields: {}, error: null }, running: null });
+  await doc(rel + 5 * 60_000);
+  const hot = await A.syncActuals(rel - 3600_000, rel + 3600_000, { now: rel + 5 * 60_000 + 25_000, fetcher });
+  assert.equal(hot.skipped, undefined, "hot: synced 25 s after the last run"); assert.equal(calls, 1);
+  await doc(rel + 5 * 60_000 + 25_000);
+  const tooSoon = await A.syncActuals(rel - 3600_000, rel + 3600_000, { now: rel + 5 * 60_000 + 35_000, fetcher });
+  assert.equal(tooSoon.skipped, "synced recently", "never more often than every 20 s"); assert.equal(calls, 1);
+  await doc(rel + 45 * 60_000);
+  const cold = await A.syncActuals(rel - 3600_000, rel + 3600_000, { now: rel + 46 * 60_000, fetcher });
+  assert.equal(cold.skipped, "synced recently", "after 30 minutes the normal 2-minute gap applies"); assert.equal(calls, 1);
+});
+
+test("releases are fetched one UTC day at a time, so a capped multi-day reply cannot hide today's actuals", async () => {
+  const rel = Date.parse("2026-11-05T13:30:00Z");
+  await mergeEvents([ff("CAD", "Building Permits m/m", rel, "1.2%", "-0.4%")], rel - 86400_000);
+  const asked: string[] = [];
+  const fetcher = (async (u: string) => {
+    const q = new URL(u).searchParams; asked.push(`${q.get("from")}>${q.get("to")}`);
+    const rows = q.get("from") === "2026-11-05" ? [{ time: "2026-11-05T13:30:00Z", currency: "CAD", name: "Building Permits MoM", unit: "percent", digits: 1, actual: 2.1, forecast: 1.2, previous: -0.4 }] : [];
+    return new Response(JSON.stringify(rows));
+  }) as unknown as typeof fetch;
+  const res = await A.syncActuals(rel - 86400_000, rel + 3600_000, { now: rel + 60_000, fetcher, minGapMs: 0 });
+  assert.deepEqual(asked.sort(), ["2026-11-04>2026-11-05", "2026-11-05>2026-11-06"]);
+  assert.equal(res.recorded >= 1, true, JSON.stringify(res));
 });

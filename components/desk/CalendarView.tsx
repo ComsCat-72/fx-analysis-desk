@@ -37,12 +37,19 @@ function Impact({ impact }: { impact: string }) {
   );
 }
 
-function Actual({ r }: { r: CalRow }) {
+/** Released within the last 30 minutes, with figures, but no actual yet: shown as awaiting and polled fast. */
+export const awaiting = (r: CalRow, now: number) => !r.actual && !r.all_day && r.state !== "conflicting" && !!(r.forecast || r.previous)
+  && Date.parse(r.at) <= now && now - Date.parse(r.at) < 30 * 60_000;
+
+function Actual({ r, fresh }: { r: CalRow; fresh?: boolean }) {
   if (r.state === "conflicting") return <span className="text-[12px] text-warn" title={Object.entries(r.conflicting ?? {}).map(([k, v]) => `${k}: ${v}`).join("\n")}>sources disagree</span>;
   // Speeches and statements have no figures, so nothing is pending for them.
-  if (!r.actual) return Date.parse(r.at) <= Date.now() && !r.all_day && (r.forecast || r.previous) ? <span className="text-[12px] text-faint" title="Not yet recorded; the free Forex Factory feed has no actuals">pending</span> : null;
+  if (!r.actual) {
+    if (awaiting(r, Date.now())) return <span className="inline-flex items-center gap-1 text-[12px] text-accent" title="Released; the actual figure is being fetched"><span className="size-1.5 animate-pulse rounded-full bg-accent" />awaiting</span>;
+    return Date.parse(r.at) <= Date.now() && !r.all_day && (r.forecast || r.previous) ? <span className="text-[12px] text-faint" title="No actual found yet">pending</span> : null;
+  }
   const tone = r.tone === "better" ? "text-[var(--good)]" : r.tone === "worse" ? "text-[var(--bad)]" : "text-fg";
-  return <span className={cx("font-semibold", tone)} title={r.tone === "better" ? "Better than forecast for the currency" : r.tone === "worse" ? "Worse than forecast for the currency" : "In line with forecast"}>{r.actual}</span>;
+  return <span className={cx("font-semibold", fresh && "cal-actual", tone)} title={r.tone === "better" ? "Better than forecast for the currency" : r.tone === "worse" ? "Worse than forecast for the currency" : "In line with forecast"}>{r.actual}</span>;
 }
 
 function Previous({ r }: { r: CalRow }) {
@@ -57,8 +64,9 @@ function Previous({ r }: { r: CalRow }) {
 function Detail({ r, onDone }: { r: CalRow; onDone: () => void }) {
   const qc = useQueryClient();
   const [f, setF] = useState({ value: "", source: "", url: "" });
+  const hist = useQuery({ queryKey: ["evhist", r.id], queryFn: () => api.eventHistory(r.id) });
   const add = useMutation({ mutationFn: () => api.addActual(r.id, f.value, f.source, f.url || undefined),
-    onSuccess: () => { setF({ value: "", source: "", url: "" }); qc.invalidateQueries({ queryKey: ["calrange"] }); qc.invalidateQueries({ queryKey: ["cal"] }); onDone(); } });
+    onSuccess: () => { setF({ value: "", source: "", url: "" }); qc.invalidateQueries({ queryKey: ["calrange"] }); qc.invalidateQueries({ queryKey: ["cal"] }); qc.invalidateQueries({ queryKey: ["evhist", r.id] }); onDone(); } });
   return (
     <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
       <div className="grid gap-4 border-t border-line bg-surface-2 px-4 py-3 text-[12.5px] md:grid-cols-2">
@@ -69,7 +77,8 @@ function Detail({ r, onDone }: { r: CalRow; onDone: () => void }) {
           <div>
             <p className="text-faint">Value history</p>
             <ul className="mt-0.5 space-y-0.5">
-              {r.history.filter((h) => h.value != null).map((h, i) => (
+              {!hist.data && <li className="text-[11.5px] text-faint">Loading…</li>}
+              {(hist.data?.history ?? []).filter((h) => h.value != null).map((h, i) => (
                 <li key={i} className="num text-[11.5px] text-muted">{h.at_display} · {h.field.replace("_", " ")} <span className="text-fg">{h.value}</span> · {h.url ? <a className="underline" href={h.url} target="_blank" rel="noreferrer">{h.source}</a> : h.source}</li>
               ))}
             </ul>
@@ -92,7 +101,7 @@ function Detail({ r, onDone }: { r: CalRow; onDone: () => void }) {
 
 const COLS = "md:grid md:grid-cols-[8px_58px_46px_48px_minmax(0,1fr)_36px_84px_84px_84px] md:items-center";
 
-function Row({ r, firstOfDay, firstOfTime, open, onToggle, rowRef, isNext, now }: { r: CalRow; firstOfDay: boolean; firstOfTime: boolean; open: boolean; onToggle: () => void; rowRef?: (el: HTMLDivElement | null) => void; isNext: boolean; now: number }) {
+function Row({ r, firstOfTime, open, onToggle, rowRef, isNext, now, fresh }: { r: CalRow; firstOfDay?: boolean; firstOfTime: boolean; open: boolean; onToggle: () => void; rowRef?: (el: HTMLDivElement | null) => void; isNext: boolean; now: number; fresh: boolean }) {
   const past = Date.parse(r.at) <= now;
   return (
     <div ref={rowRef} className={cx("cal-row", firstOfTime && "border-t border-line", isNext && "bg-accent-soft")}>
@@ -105,7 +114,7 @@ function Row({ r, firstOfDay, firstOfTime, open, onToggle, rowRef, isNext, now }
         <div><Impact impact={r.impact} /></div>
         <div className={cx("min-w-0 truncate", r.impact === "High" && "font-medium")} title={r.title}>{r.title}</div>
         <div><button onClick={onToggle} aria-expanded={open} className="grid size-7 cursor-pointer place-items-center rounded-md text-muted hover:bg-surface-3 hover:text-fg" title="Details and record actual"><ChevronDown className={cx("size-4 transition-transform", open && "rotate-180")} /><span className="sr-only">Details for {r.title}</span></button></div>
-        <div className="num text-right"><Actual r={r} /></div>
+        <div className="num text-right"><Actual r={r} fresh={fresh} /></div>
         <div className="num text-right text-muted">{r.forecast ?? ""}</div>
         <div className="num text-right text-muted"><Previous r={r} /></div>
       </div>
@@ -119,7 +128,7 @@ function Row({ r, firstOfDay, firstOfTime, open, onToggle, rowRef, isNext, now }
         <div className="mt-0.5 text-[13.5px] font-medium">{r.title}</div>
         {(r.actual || r.forecast || r.previous) && (
           <div className="num mt-1 flex gap-4 text-[12px]">
-            <span><span className="text-faint">Act </span><Actual r={r} /></span>
+            <span><span className="text-faint">Act </span><Actual r={r} fresh={fresh} /></span>
             <span><span className="text-faint">Fcst </span>{r.forecast ?? "—"}</span>
             <span><span className="text-faint">Prev </span><Previous r={r} /></span>
           </div>
@@ -173,9 +182,20 @@ export function CalendarView({ today, instrumentCurrencies }: { today: string; i
   });
   useEffect(() => { try { localStorage.setItem("fx.calFilter", JSON.stringify(filter)); } catch { /* storage unavailable */ } }, [filter]);
   const [from, to] = range(mode, anchor);
-  const data = useQuery({ queryKey: ["calrange", from, to, filter], queryFn: () => api.calendarRange(from, to, filter.currencies, filter.impacts), refetchInterval: 60_000 });
-  const monthData = useQuery({ queryKey: ["calrange", monthStart(month), monthEnd(month), filter], queryFn: () => api.calendarRange(monthStart(month), monthEnd(month), filter.currencies, filter.impacts) });
-  const marked = useMemo(() => new Set(monthData.data?.rows.map((r) => r.date)), [monthData.data]);
+  // Poll every 15 s while a release is awaiting its actual, otherwise every minute; never while the tab is hidden.
+  const data = useQuery({ queryKey: ["calrange", from, to, filter], queryFn: () => api.calendarRange(from, to, filter.currencies, filter.impacts),
+    refetchInterval: (q) => ((q.state.data?.rows ?? []).some((r) => awaiting(r, Date.now())) ? 15_000 : 60_000), refetchIntervalInBackground: false, refetchOnWindowFocus: false });
+  const monthData = useQuery({ queryKey: ["caldates", monthStart(month), monthEnd(month), filter], queryFn: () => api.calendarDates(monthStart(month), monthEnd(month), filter.currencies, filter.impacts),
+    staleTime: 5 * 60_000, refetchOnWindowFocus: false });
+  const marked = useMemo(() => new Set(monthData.data?.dates), [monthData.data]);
+  // Actuals that arrived since the previous refresh (they flash once); nothing flashes on the first load.
+  const seen = useRef<Map<string, string | null> | null>(null);
+  const fresh = useMemo(() => {
+    const out = new Set<string>(), rows = data.data?.rows ?? [];
+    if (seen.current) for (const r of rows) if (r.actual && seen.current.has(r.id) && !seen.current.get(r.id)) out.add(r.id);
+    seen.current = new Map(rows.map((r) => [r.id, r.actual]));
+    return out;
+  }, [data.data]);
   const refresh = useMutation({ mutationFn: api.refreshCalendar, onSuccess: () => qc.invalidateQueries({ queryKey: ["calrange"] }) });
   const refs = useRef<Record<string, HTMLDivElement | null>>({});
   const pick = (d: string, m: Mode) => { setAnchor(d); setMode(m); setMonth(d); setOpen(null); };
@@ -298,7 +318,7 @@ export function CalendarView({ today, instrumentCurrencies }: { today: string; i
                 )}
                 {i === nowIdx && i > 0 && <div className="relative h-0 border-t-2 border-accent" aria-label="Now"><span className="absolute -top-2.5 left-3 rounded bg-accent px-1.5 text-[10px] font-semibold uppercase text-white">now</span></div>}
                 <Row r={r} firstOfDay={i === 0 || rows[i - 1].date !== r.date} firstOfTime={i === 0 || rows[i - 1].date !== r.date || rows[i - 1].time !== r.time}
-                  open={open === r.id} onToggle={() => setOpen(open === r.id ? null : r.id)} rowRef={(el) => { refs.current[r.id] = el; }} isNext={r.id === nextId} now={now} />
+                  open={open === r.id} onToggle={() => setOpen(open === r.id ? null : r.id)} rowRef={(el) => { refs.current[r.id] = el; }} isNext={r.id === nextId} now={now} fresh={fresh.has(r.id)} />
               </div>
             ))}
           </div>

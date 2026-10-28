@@ -2,7 +2,8 @@
 
 import * as C from "@/lib/calc/forex";
 import { browserZone, useNow } from "../desk/api";
-import { useState } from "react";
+import { memo, useMemo, useState } from "react";
+import { dtf, partsOf } from "@/lib/fmt";
 import { cx } from "../desk/ui";
 
 const two = (n: number) => String(n).padStart(2, "0");
@@ -12,11 +13,9 @@ function countdown(ms: number): string {
 }
 /** Wall-clock parts of an instant in a zone. */
 function parts(t: number, tz: string) {
-  const p = Object.fromEntries(new Intl.DateTimeFormat("en-GB", { timeZone: tz, hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23", weekday: "short", day: "numeric", month: "short" })
-    .formatToParts(new Date(t)).map((x) => [x.type, x.value]));
+  const p = partsOf("en-GB", { timeZone: tz, hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23", weekday: "short", day: "numeric", month: "short" }, t);
   return { h: Number(p.hour), m: Number(p.minute), s: Number(p.second), date: `${p.weekday} ${p.day} ${p.month}` };
 }
-const fmt = (t: number, tz?: string) => new Date(t).toLocaleTimeString("en-GB", { timeZone: tz, hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
 
 /** Classic analogue face: hour, minute and sweeping second hand. */
 function Clock({ h, m, s, open }: { h: number; m: number; s: number; open: boolean }) {
@@ -46,14 +45,14 @@ const SESSION_COLOR: Record<string, string> = { Sydney: "#3b5bdb", Tokyo: "#a300
 const ZONES: [string, string][] = [["Australia/Sydney", "Sydney"], ["Asia/Tokyo", "Tokyo"], ["Asia/Hong_Kong", "Hong Kong"], ["Asia/Dubai", "Dubai"],
   ["Africa/Kampala", "Kampala"], ["Africa/Nairobi", "Nairobi"], ["Africa/Kigali", "Kigali"], ["Africa/Lagos", "Lagos"], ["Africa/Johannesburg", "Johannesburg"],
   ["Europe/London", "London"], ["Europe/Berlin", "Frankfurt"], ["America/New_York", "New York"], ["America/Chicago", "Chicago"], ["America/Los_Angeles", "Los Angeles"], ["UTC", "UTC"]];
-const offset = (tz: string, t: number) => new Intl.DateTimeFormat("en-US", { timeZone: tz, timeZoneName: "shortOffset" }).formatToParts(new Date(t)).find((x) => x.type === "timeZoneName")?.value.replace("GMT", "GMT ").replace("GMT ", "GMT") ?? "GMT";
+const offset = (tz: string, t: number) => dtf("en-US", { timeZone: tz, timeZoneName: "shortOffset" }).formatToParts(new Date(t)).find((x) => x.type === "timeZoneName")?.value.replace("GMT", "GMT ").replace("GMT ", "GMT") ?? "GMT";
 const ABBR: Record<string, (off: string) => string> = {
   "Australia/Sydney": (o) => (o.includes("+11") ? "AEDT" : "AEST"), "Asia/Tokyo": () => "JST",
   "Europe/London": (o) => (o.includes("+1") ? "BST" : "GMT"), "America/New_York": (o) => (o.includes("-4") ? "EDT" : "EST"),
 };
 const ord = (d: number) => `${d}${d % 10 === 1 && d !== 11 ? "st" : d % 10 === 2 && d !== 12 ? "nd" : d % 10 === 3 && d !== 13 ? "rd" : "th"}`;
 function clock(t: number, tz: string, h24: boolean) {
-  return new Date(t).toLocaleTimeString("en-US", { timeZone: tz, hour: "numeric", minute: "2-digit", hour12: !h24 }).toLowerCase();
+  return dtf("en-US", { timeZone: tz, hour: "numeric", minute: "2-digit", hour12: !h24 }).format(new Date(t)).toLowerCase();
 }
 
 /** Small round flags, drawn inline. */
@@ -84,7 +83,8 @@ function Flag({ name }: { name: string }) {
   );
 }
 
-function ActivityCurve({ start, end, now }: { start: number; end: number; now: number }) {
+/** Computed once per day shown (it does not depend on the current second). */
+const ActivityCurve = memo(function ActivityCurve({ start, end }: { start: number; end: number }) {
   const n = 96, pts = Array.from({ length: n + 1 }, (_, i) => { const t = start + ((end - start) * i) / n; return { t, a: C.activityAt(t).score }; });
   const max = 7, y = (a: number) => 52 - (a / max) * 44;
   const d = pts.map((p, i) => `${i ? "L" : "M"}${((i / n) * 1000).toFixed(1)},${y(p.a).toFixed(1)}`).join(" ");
@@ -95,20 +95,22 @@ function ActivityCurve({ start, end, now }: { start: number; end: number; now: n
       <path d={d} fill="none" stroke="url(#act)" strokeWidth="3" vectorEffect="non-scaling-stroke" strokeLinejoin="round" />
     </svg>
   );
-}
+});
 
 function Converter({ now }: { now: number }) {
   const browser = browserZone() || "UTC";
   const [tz, setTz] = useState(browser);
   const [h24, setH24] = useState(true);
   const zones = ZONES.some(([z]) => z === browser) ? ZONES : [[browser, browser.split("/").pop()!.replace("_", " ")] as [string, string], ...ZONES];
-  const day = C.dayIn(now, tz);
+  // Session windows, open/closed states and the activity level change at most once a minute: recompute per minute.
+  const minute = Math.floor(now / 60_000);
+  const { day, sessions, live, act } = useMemo(() => {
+    const t = minute * 60_000, day = C.dayIn(t, tz);
+    return { day, sessions: C.sessionsInDay(day.start, day.end), live: C.sessionsAt(t), act: C.activityAt(t) };
+  }, [minute, tz]);
   const span = day.end - day.start;
   const pct = (t: number) => Math.max(0, Math.min(100, ((t - day.start) / span) * 100));
   const nowPct = pct(now);
-  const sessions = C.sessionsInDay(day.start, day.end);
-  const live = C.sessionsAt(now);
-  const act = C.activityAt(now);
   const hours = Array.from({ length: 24 }, (_, h) => h);
   const label = (h: number) => (h24 ? String(h) : h === 0 ? "•" : String(((h + 11) % 12) + 1));
   const lights = { High: "#40c057", Medium: "#f59f00", Low: "#e64980" } as const;
@@ -147,14 +149,14 @@ function Converter({ now }: { now: number }) {
                   <line x1="10" y1="10" x2={10 + 7 * Math.sin(parts(now, tz).m * Math.PI / 30)} y2={10 - 7 * Math.cos(parts(now, tz).m * Math.PI / 30)} stroke="#333" strokeWidth="1.2" strokeLinecap="round" />
                 </svg>
                 <span className="num text-[11.5px] font-bold leading-tight">{clock(now, tz, h24)}</span>
-                <span className="text-[10.5px] leading-tight opacity-90">{new Date(now).toLocaleDateString("en-US", { timeZone: tz, weekday: "long" })}</span>
+                <span className="text-[10.5px] leading-tight opacity-90">{dtf("en-US", { timeZone: tz, weekday: "long" }).format(new Date(now))}</span>
               </div>
             </div>
           </div>
 
           {sessions.map((s) => {
             const p = parts(now, s.tz), off = offset(s.tz, now), isOpen = live.find((x) => x.name === s.name)?.open_now ?? false;
-            const d = new Date(now), date = `${d.toLocaleDateString("en-US", { timeZone: s.tz, weekday: "short" })} ${d.toLocaleDateString("en-US", { timeZone: s.tz, month: "short" })}. ${ord(Number(d.toLocaleDateString("en-US", { timeZone: s.tz, day: "numeric" })))}`;
+            const dp = partsOf("en-US", { timeZone: s.tz, weekday: "short", month: "short", day: "numeric" }, now), date = `${dp.weekday} ${dp.month}. ${ord(Number(dp.day))}`;
             return (
               <div key={s.name} className="contents">
                 <div className="mt-2 flex items-center gap-3 rounded-l-xl bg-surface-2 px-3 py-3 max-md:rounded-xl md:mt-3">
@@ -188,7 +190,7 @@ function Converter({ now }: { now: number }) {
             </span>
           </div>
           <div className="relative mt-4 rounded-xl border border-line bg-surface-2">
-            <ActivityCurve start={day.start} end={day.end} now={now} />
+            <ActivityCurve start={day.start} end={day.end} />
             <span className="absolute inset-y-0 w-[3px] -translate-x-1/2 bg-accent-strong" style={{ left: `${nowPct}%` }} aria-hidden />
             <span className="absolute top-1/2 z-10 flex -translate-x-1/2 -translate-y-1/2 flex-col gap-1 rounded-full border border-line bg-[var(--surface)] p-1 shadow" style={{ left: `${nowPct}%` }} aria-hidden>
               {(["High", "Medium", "Low"] as const).map((l) => <span key={l} className="size-3 rounded-full" style={{ background: act.level === l ? lights[l] : "var(--surface-3)" }} />)}
@@ -204,20 +206,19 @@ function Converter({ now }: { now: number }) {
 export function MarketHours() {
   const now = useNow(1000);
   const tz = browserZone() || "UTC";
-  const sessions = C.sessionsAt(now);
-  const open = C.fxMarketOpen(now);
+  const minute = Math.floor(now / 60_000);
+  const { sessions, open, nextChange } = useMemo(() => {
+    const t = minute * 60_000;
+    return { sessions: C.sessionsAt(t), open: C.fxMarketOpen(t), nextChange: C.nextMarketChange(t).at };
+  }, [minute]);
   const local = parts(now, tz);
-  const nextChange = (() => {
-    for (let t = now + 60_000, i = 0; i < 8 * 24 * 60; i++, t += 60_000) if (C.fxMarketOpen(t) !== open) return t - (t % 60_000);
-    return null;
-  })();
   return (
     <div className="space-y-4">
       <section className="panel overflow-hidden">
         <div className="flex flex-wrap items-center gap-3 border-b border-line bg-surface-2 px-5 py-3">
           <span className={cx("size-2.5 rounded-full", open ? "bg-[var(--ok)] shadow-[0_0_10px_var(--ok)]" : "bg-[var(--warn)]")} aria-hidden />
           <h2 className="font-serif text-[19px] tracking-wide">The forex market is {open ? "open" : "closed"}</h2>
-          {nextChange && <span className="num text-[13px] text-muted">{open ? "closes" : "reopens"} {new Date(nextChange).toLocaleString("en-GB", { weekday: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23" })} · in {countdown(nextChange - now)}</span>}
+          {nextChange && <span className="num text-[13px] text-muted">{open ? "closes" : "reopens"} {dtf("en-GB", { weekday: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date(nextChange))} · in {countdown(nextChange - now)}</span>}
           <span className="num ml-auto text-[13px] text-muted">Your time {local.date} {two(local.h)}:{two(local.m)}:{two(local.s)} · {tz}</span>
         </div>
         <div className="grid grid-cols-2 gap-x-4 gap-y-6 px-4 py-6 lg:grid-cols-4">
