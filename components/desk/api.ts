@@ -60,6 +60,16 @@ export function friendlyError(e: unknown): string {
   return m;
 }
 
+export interface CalRow {
+  id: string; date: string; time: string; at: string; all_day: boolean; source_time: string; currency: string; impact: string; title: string;
+  actual: string | null; forecast: string | null; previous: string | null; revised_previous: string | null; revision: "up" | "down" | null;
+  state: string; tone: "better" | "worse" | "inline" | null; actual_sources: string[]; conflicting: Record<string, string> | null;
+  history: { field: string; value: string | null; source: string; url: string | null; at_display: string }[]; source: string; is_fixture: boolean; is_next: boolean;
+}
+export interface CalRange { from: string; to: string; timezone: string; timezone_label: string; now: string; currencies: string[];
+  coverage: { week: string; stored: boolean; refreshed_display: string | null }[]; rows: CalRow[] }
+export interface RateRow { pair: string; rate: number | null; time?: string | null; sources?: string[]; fixture?: boolean; error: string | null }
+
 export class ApiError extends Error {
   constructor(public status: number, public detail: unknown) {
     super(typeof detail === "string" ? detail : (detail as { message?: string })?.message ?? `HTTP ${status}`);
@@ -121,6 +131,9 @@ export const api = {
   freshness: (instrument: string) => req<Freshness>(`/api/freshness?${q({ instrument })}`),
   warnings: (instrument: string) => req<DQWarning[]>(`/api/warnings?${q({ instrument })}`),
   jobs: () => req<Job[]>("/api/jobs"),
+  calendarRange: (from: string, to: string, currencies: string[], impacts: string[]) =>
+    req<CalRange>(`/api/calendar/range?${q({ from, to, currencies: currencies.join(","), impacts: impacts.join(",") })}`),
+  rates: (pairs: string[]) => req<RateRow[]>(`/api/rates?${q({ pairs: pairs.join(",") })}`),
   saveSettings: (body: { writer?: string; display_timezone?: string }) =>
     req<{ writer: string; display_timezone: string }>("/api/settings", { method: "PUT", body: JSON.stringify(body) }),
   setMode: (mode: string, confirm_automatic: boolean) =>

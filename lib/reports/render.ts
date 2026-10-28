@@ -3,7 +3,7 @@ import type { Kind } from "../config.ts";
 import { addDays, dayMonth, dayMonthYear, longDate, shortStamp, stamp, dayName } from "../dates.ts";
 import { DIRECTION_LABEL, type Direction } from "../core/evaluation.ts";
 import { citesIn } from "../content/checks.ts";
-import { parseValue } from "../core/events.ts";
+import { INVERSE, parseValue } from "../core/events.ts";
 import { SECTIONS, TITLES, fill } from "./templates.ts";
 import type { Bundle, OutlookIn } from "./types.ts";
 
@@ -31,7 +31,6 @@ function eventsTable(b: Bundle): string {
 
 // Scenario tables (spec §10): for high-impact releases still to come with a verified consensus. Ranges are mutually
 // exclusive at the published precision ("in line" = equal when rounded as published). Weights are never estimated.
-const INVERSE = /\b(?:unemployment|jobless|claims|claimant)\b/i; // a higher figure means a weaker labour market
 const RATE = /\b(?:rate decision|cash rate|bank rate|policy rate|interest rate|federal funds|main refinancing|deposit facility)\b/i;
 
 function implication(title: string, cur: string, side: "above" | "below"): string {

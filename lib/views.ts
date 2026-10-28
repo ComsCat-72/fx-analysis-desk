@@ -1,8 +1,10 @@
 // What the API returns to the dashboard, assembled from the stored documents.
 import { CONFIG, instrument } from "./config.ts";
-import { addDays, dateIn, dayName, displayZone, monday, shortStamp, stamp, weekDays } from "./dates.ts";
+import { addDays, dateIn, dayName, displayZone, hhmm, monday, shortStamp, stamp, weekDays, zoned } from "./dates.ts";
 import { lastClosedSession, marketOpen, weekWindow } from "./core/sessions.ts";
-import { eventAsOf, eventCurrencies, eventsBetween } from "./data/calendar.ts";
+import { calendarPath, eventAsOf, eventCurrencies, eventsBetween, type CalendarDoc } from "./data/calendar.ts";
+import { resultTone, revisionDirection } from "./core/events.ts";
+import { getJSON } from "./store.ts";
 import { fetchSeries } from "./data/yahoo.ts";
 import { HttpError } from "./http.ts";
 import { getVersion, loadIndex, parseId, slotAvailability } from "./reports/service.ts";
@@ -76,3 +78,34 @@ export async function evaluationsFor(inst: string) {
 
 export const instOf = (id: string) => parseId(id).inst;
 export const recentWeeks = (n = 4) => Array.from({ length: n }, (_, i) => addDays(monday(dateIn(Date.now())), -7 * i));
+
+/** The full economic calendar for a date range in the display timezone (Forex Factory layout). Values as known now. */
+export async function calendarRange(from: string, to: string, o: { currencies?: string[]; impacts?: string[] } = {}) {
+  const tz = displayZone().timezone, now = Date.now();
+  const start = zoned(from, "00:00", tz), end = zoned(addDays(to, 1), "00:00", tz);
+  const all = await eventsBetween(start, end);
+  const rows = all.filter((e) => (!o.currencies?.length || o.currencies.includes(e.currency)) && (!o.impacts?.length || o.impacts.includes(e.impact ?? "Low")))
+    .map((e) => {
+      const st = eventAsOf(e, now);
+      return {
+        id: `${monday(dateIn(e.scheduledAt, "America/New_York"))}:${e.id}`, date: dateIn(e.scheduledAt), time: hhmm(e.scheduledAt), at: new Date(e.scheduledAt).toISOString(),
+        all_day: e.impact === "Holiday", source_time: e.sourceTime, currency: e.currency, impact: e.impact ?? "Low", title: e.title,
+        actual: st.actual, forecast: st.consensus, previous: st.previous, revised_previous: st.revisedPrevious,
+        revision: ({ "revised up": "up", "revised down": "down" } as Record<string, string>)[revisionDirection(st.previous, st.revisedPrevious) ?? ""] ?? null,
+        state: st.state, tone: st.actual ? resultTone(e.title, st.actual, st.consensus) : null, actual_sources: st.actualSources, conflicting: st.conflicting,
+        history: e.history.map((h) => ({ field: h.field, value: h.value, source: h.source, url: h.url ?? null, at_display: stamp(h.at) })),
+        source: e.source, is_fixture: !!e.fixture, is_next: false,
+      };
+    });
+  const next = rows.find((r) => Date.parse(r.at) > now && r.impact !== "Holiday");
+  if (next) next.is_next = true;
+  const weeks = new Set<string>();
+  for (let d = monday(from); d <= to; d = addDays(d, 7)) weeks.add(monday(d));
+  const docs = await Promise.all([...weeks].map(async (w) => [w, await getJSON<CalendarDoc>(calendarPath(w))] as const));
+  return {
+    from, to, timezone: tz, timezone_label: displayZone().timezone_label, now: new Date(now).toISOString(),
+    currencies: [...new Set(all.map((e) => e.currency))].sort(),
+    coverage: docs.map(([w, d]) => ({ week: w, stored: !!d, refreshed_display: d?.refreshedAt ? stamp(d.refreshedAt) : null })),
+    rows,
+  };
+}

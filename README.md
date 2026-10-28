@@ -62,6 +62,27 @@ schedule. Anything with a blocking finding stays a draft for you to fix and publ
 - Markdown export, PDF export (the browser's *Save as PDF*), and Configure (publication mode, report writer, display timezone, run a job, terminology, headlines)
 - Light and dark themes. Direction is shown with arrows and words, never with buy/sell colours. There are no trade buttons, signals or position tools.
 
+## Calendar page
+
+**Calendar** in the top bar opens a full economic calendar laid out like Forex Factory's: a month grid with quick
+links (today, tomorrow, this week, next week…), day/week/month views and an **Up next** marker. You can filter by
+currency and impact.
+
+Each row shows the time in your display timezone, the currency and impact, the actual, forecast and previous figures,
+and revisions. A row opens to show its value history and a form for recording the actual result. Actuals are green
+when better than the forecast for that currency, and red when worse (inverted for unemployment-type releases).
+Forex Factory's free feed has no actuals, so they are entered by you, with their source.
+
+## Calculators page
+
+**Calculators** in the top bar has: pip value, position size, margin, profit/loss, risk-reward, pivot points
+(Classic, Woodie, Camarilla, Fibonacci, DeMark), Fibonacci retracements and extensions, compounding, drawdown, a
+currency converter and forex market hours. Conversion rates come from Yahoo Finance (free), show their time and source,
+and can be overridden by hand.
+
+These are general utilities, kept separate from the analysis reports: nothing in `lib/reports` uses `lib/calc`
+(a test enforces this), and the reports still never contain trading advice.
+
 ## Change things
 
 - **`lib/config.ts`:** instruments, which instruments the schedule writes (`scheduled`; fewer means cheaper),

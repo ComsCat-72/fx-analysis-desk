@@ -112,3 +112,25 @@ test("a weekly review without a weekly analysis says so and invents no initial f
   assert.doesNotMatch(v.body_md, /original weekly outlook was/i);
   assert.equal(v.checks.findings.filter((f) => f.severity === "blocking" && f.check !== "data").length, 0);
 });
+
+test("calendar: green/red follows the currency (inverted for unemployment); range filters by currency and impact", async () => {
+  const { resultTone } = await import("../lib/core/events.ts");
+  assert.equal(resultTone("CPI y/y", "4.3%", "4.2%"), "better");
+  assert.equal(resultTone("Unemployment Rate", "4.3%", "4.2%"), "worse");
+  assert.equal(resultTone("Unemployment Claims", "219K", "225K"), "better");
+  assert.equal(resultTone("GDP q/q", "0.2%", "0.20%"), "inline");
+  assert.equal(resultTone("Speech", null, null), null);
+  const { mergeEvents, recordValue } = await import("../lib/data/calendar.ts");
+  const { calendarRange } = await import("../lib/views.ts");
+  const at = Date.parse("2026-10-28T00:30:00Z");
+  const ev = (currency: string, title: string, impact: string) => ({ id: `${currency}${title}`, source: "test", currency, title, impact, scheduledAt: at, sourceTime: "2026-10-28T00:30:00Z", consensus: "0.7%", previous: "0.4%" });
+  await mergeEvents([ev("AUD", "CPI m/m", "High"), ev("EUR", "German GfK", "Medium"), ev("CHF", "UBS Expectations", "Low")], at - 86400_000);
+  await recordValue("2026-10-26", "AUDCPI m/m", "actual", "0.8%", "official:ABS", null, at + 60_000);
+  const all = await calendarRange("2026-10-28", "2026-10-28");
+  assert.equal(all.rows.length, 3);
+  assert.deepEqual(all.currencies, ["AUD", "CHF", "EUR"]);
+  const aud = all.rows.find((r) => r.currency === "AUD")!;
+  assert.equal(aud.actual, "0.8%"); assert.equal(aud.tone, "better"); assert.equal(aud.time, "03:30");
+  assert.equal((await calendarRange("2026-10-28", "2026-10-28", { currencies: ["EUR"] })).rows.length, 1);
+  assert.equal((await calendarRange("2026-10-28", "2026-10-28", { impacts: ["High", "Medium"] })).rows.length, 2);
+});

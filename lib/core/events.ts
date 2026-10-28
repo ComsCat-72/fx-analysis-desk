@@ -52,3 +52,16 @@ export function validateScenarios(rows: ScenarioRow[], method?: string): void {
   if (Math.abs(sum - 100) > 1e-6) throw new Error(`scenario weights sum to ${sum}, not 100`);
   if (new Set(rows.map((r) => r.outcome)).size !== rows.length) throw new Error("scenario outcomes must be distinct");
 }
+
+/** Releases where a higher figure means a weaker economy (labour-market slack). */
+export const INVERSE = /\b(?:unemployment|jobless|claims|claimant)\b/i;
+
+/** Whether a result is better or worse than the forecast for the releasing currency (Forex Factory's green/red).
+ *  Compared at published precision; unemployment-type releases are inverted. */
+export function resultTone(title: string, actual: string | null | undefined, forecast: string | null | undefined): "better" | "worse" | "inline" | null {
+  const s = classifySurprise(actual, forecast);
+  if (s === "in line with consensus") return "inline";
+  if (s !== "above consensus" && s !== "below consensus") return null;
+  const above = s === "above consensus";
+  return (INVERSE.test(title) ? !above : above) ? "better" : "worse";
+}

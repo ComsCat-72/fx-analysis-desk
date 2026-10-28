@@ -1,10 +1,12 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { CalendarDays, ChevronLeft, ChevronRight, CircleHelp, FlaskConical, Globe2, KeyRound, Lock, Moon, Settings2, Sun } from "lucide-react";
+import { Calculator, CalendarDays, CalendarRange, ChevronLeft, ChevronRight, CircleHelp, LayoutDashboard, FlaskConical, Globe2, KeyRound, Lock, Moon, Settings2, Sun } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { api, getToken, setToken, type Kind, type SlotState, type VersionSummary, type Week } from "./api";
 import { Guide } from "./Guide";
+import { CalendarView } from "./CalendarView";
+import { Calculators } from "../calc/Calculators";
 import { ReportPane } from "./ReportPane";
 import { SettingsDrawer } from "./Settings";
 import { ContextPanel, type ContextTab } from "./Context";
@@ -75,8 +77,21 @@ function useWide() {
   return wide;
 }
 
+type View = "desk" | "calendar" | "calculators";
+const VIEWS: { id: View; label: string; icon: typeof Calculator }[] = [
+  { id: "desk", label: "Desk", icon: LayoutDashboard }, { id: "calendar", label: "Calendar", icon: CalendarRange }, { id: "calculators", label: "Calculators", icon: Calculator },
+];
+/** The current page lives in the URL hash so links and the back button work. */
+function useView(): [View, (v: View) => void] {
+  const read = (): View => { const h = typeof window === "undefined" ? "" : window.location.hash.slice(1); return h === "calendar" || h === "calculators" ? h : "desk"; };
+  const [view, setView] = useState<View>("desk");
+  useEffect(() => { setView(read()); const h = () => setView(read()); window.addEventListener("hashchange", h); return () => window.removeEventListener("hashchange", h); }, []);
+  return [view, (v) => { window.location.hash = v === "desk" ? "" : v; setView(v); }];
+}
+
 export default function App() {
   const wide = useWide();
+  const [view, setView] = useView();
   const qc = useQueryClient();
   const [needToken, setNeedToken] = useState(false);
   useEffect(() => {
@@ -144,13 +159,22 @@ export default function App() {
             <p className="text-[11.5px] text-faint">Analysis and reporting · not trading advice</p>
           </div>
         </div>
-        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+        <nav className="flex rounded-lg border border-line bg-surface-2 p-0.5" aria-label="Pages">
+          {VIEWS.map((v) => (
+            <button key={v.id} onClick={() => setView(v.id)} aria-current={view === v.id ? "page" : undefined}
+              className={cx("inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-md px-3 text-[13px] font-medium transition-colors",
+                view === v.id ? "bg-accent-soft text-fg" : "text-muted hover:text-fg")}>
+              <v.icon className="size-4" aria-hidden />{v.label}
+            </button>
+          ))}
+        </nav>
+        <div className={cx("w-full flex-wrap items-center gap-2 sm:w-auto", view === "calculators" ? "hidden" : "flex")}>
           <label className="sr-only" htmlFor="inst">Instrument</label>
           <select id="inst" value={instrument} onChange={(e) => { setInstrument(e.target.value); setVersionId(null); setFocusCite(null); }}
             className={cx(inputCls, "num h-10 min-w-0 flex-1 cursor-pointer text-[14px] font-semibold sm:w-44 sm:flex-none")}>
             {cfg.data!.instruments.map((i) => <option key={i.code} value={i.code}>{i.display}</option>)}
           </select>
-          <div className="flex h-10 items-center rounded-lg border border-line bg-surface-2">
+          <div className={cx("h-10 items-center rounded-lg border border-line bg-surface-2", view === "desk" ? "flex" : "hidden")}>
             <button className="grid size-10 cursor-pointer place-items-center rounded-l-lg text-muted hover:bg-surface-3 hover:text-fg" onClick={() => shiftWeek(-1)} aria-label="Previous week"><ChevronLeft className="size-4" /></button>
             <label className="flex items-center gap-1.5 px-1 text-sm">
               <CalendarDays className="size-4 text-muted" aria-hidden />
@@ -178,6 +202,9 @@ export default function App() {
       </header>
 
       <SystemAlerts />
+      {view === "calendar" && <CalendarView today={todayIn(tz)} instrumentCurrencies={inst ? [inst.base, inst.quote].filter((c) => /^[A-Z]{3}$/.test(c) && !["XAU", "NAS", "BAS"].includes(c)) : []} />}
+      {view === "calculators" && <Calculators />}
+      {view === "desk" && <>
       <Overview instrument={instrument} week={week.data} day={selDay} weekKey={weekKey} />
 
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-[264px_minmax(0,1fr)] 2xl:grid-cols-[264px_minmax(0,1fr)_440px]">
@@ -194,6 +221,7 @@ export default function App() {
         </div>
         {wide && <aside className="min-w-0"><div className="sticky top-3">{context}</div></aside>}
       </div>
+      </>}
       <footer className="pt-1 text-center text-[12px] text-faint">
         Reports explain market behaviour from sourced evidence. They do not recommend buying, selling or positioning in any market.
       </footer>

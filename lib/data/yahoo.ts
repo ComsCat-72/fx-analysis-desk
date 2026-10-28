@@ -86,3 +86,10 @@ export async function fetchSeries(code: string, now = Date.now()): Promise<Serie
 }
 
 export const instrumentCodes = () => Object.keys(CONFIG.instruments);
+
+/** Latest market price for a Yahoo symbol (a quote, not a close), for the calculators' conversion rates. */
+export async function latestQuote(symbol: string): Promise<{ price: number; time: number }> {
+  const m = (await chart(symbol, "interval=1d&range=5d")).meta as { regularMarketPrice?: number; regularMarketTime?: number };
+  if (m.regularMarketPrice == null || m.regularMarketTime == null) throw new Error(`Yahoo ${symbol}: no market price`);
+  return { price: m.regularMarketPrice, time: m.regularMarketTime * 1000 };
+}

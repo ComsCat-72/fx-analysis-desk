@@ -12,6 +12,7 @@ import { detectAdvice } from "../content/advice.ts";
 import { splitSentences } from "../content/checks.ts";
 import { detectTerms, dictionary } from "../content/terminology.ts";
 import { DIRECTION_LABEL, type Direction } from "../core/evaluation.ts";
+import { INVERSE } from "../core/events.ts";
 import { dayName } from "../dates.ts";
 import type { Writer } from "./claude.ts";
 import type { Bundle, EventItem, Item, LevelItem, OutlookIn } from "./types.ts";
@@ -41,7 +42,6 @@ const WORDS = ["no", "one", "two", "three", "four", "five", "six", "seven", "eig
 const count = (n: number) => WORDS[n] ?? String(n); // counts as words: a bare "0" would read as an uncited figure
 const list = (xs: string[]) => (xs.length <= 1 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`);
 
-const INVERSE = /\b(?:unemployment|jobless|claims|claimant)\b/i; // a higher figure means a weaker labour market
 const released = (e: EventItem) => e.state === "released" || e.state === "revised";
 
 /** "supportive" / "negative" in principle for the event's currency, from the result versus consensus. */
