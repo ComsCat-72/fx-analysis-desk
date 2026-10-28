@@ -108,6 +108,24 @@ for (const code of Object.keys(CONFIG.instruments)) {
     importance_high: await probe({ importance: "high" }), importance_list: await probe({ importance: "high,medium" }),
     three_days: await probe({ from: addDays(todayLocal(), -2) }), sync_window: await probe({ from: addDays(todayLocal(), -3), countries: "US,EU,GB,JP,AU,NZ,CA,CH,CN,DE,FR,IT,ES" }),
   };
+  // Second free source: financecalendar.com (keyless; attribution required). Record its shape and today's US/GB actuals.
+  for (const [name, url] of [["fc_calendar", `https://www.financecalendar.com/wp-json/fc/v1/calendar?from=${addDays(todayLocal(), -1)}&to=${addDays(todayLocal(), 1)}`],
+    ["fc_today", "https://www.financecalendar.com/wp-json/fc/v1/today"]] as const) {
+    try {
+      const r = await fetch(url, { headers: { Accept: "application/json" } });
+      const text = await r.text();
+      let b: unknown = null; try { b = JSON.parse(text); } catch { /* not JSON */ }
+      const list = (Array.isArray(b) ? b : b && typeof b === "object" ? Object.values(b as object).find(Array.isArray) ?? [] : []) as Record<string, unknown>[];
+      (out as Record<string, unknown>)[name] = { status: r.status, top: Array.isArray(b) ? "array" : b && typeof b === "object" ? Object.keys(b as object) : text.slice(0, 300),
+        count: list.length, sample: list.slice(0, 3), with_actual: list.filter((x) => x.actual != null && x.actual !== "").length,
+        us_gb: list.filter((x) => /US|GB|UK|United States|United Kingdom|USD|GBP/.test(JSON.stringify([x.country, x.currency, x.country_code]))).slice(0, 8) };
+    } catch (e) { (out as Record<string, unknown>)[name] = { error: (e as Error).message }; }
+  }
+  // biquote: today's US/GB rows in full, to see whether major actuals arrive.
+  try {
+    const r = await fetch(`${A.BIQUOTE_URL}?from=${todayLocal()}&to=${addDays(todayLocal(), 1)}&countries=US,GB`);
+    out.biquote_us_gb = ((await r.json()) as Record<string, unknown>[]).map((x) => ({ time: x.time, name: x.name, actual: x.actual, forecast: x.forecast, importance: x.importance, source: x.source }));
+  } catch (e) { out.biquote_us_gb = { error: (e as Error).message }; }
   out.sync = await A.syncActuals(Date.now() - 3 * 86400_000, Date.now() + 86400_000, { minGapMs: 0 }).catch((e) => ({ error: String(e) }));
   write("biquote.json", JSON.stringify(out, null, 1));
   summary.biquote = { status: out.status, count: out.count, parsed: out.parsed_count, fields: out.fields, sync: out.sync, error: out.error };
