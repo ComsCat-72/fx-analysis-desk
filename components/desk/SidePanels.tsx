@@ -2,47 +2,19 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Activity, AlertTriangle, BookOpenCheck, CalendarClock, Clock, ImageUp, Layers, Plus, ScanSearch } from "lucide-react";
+import { Activity, AlertTriangle, BookOpenCheck, CalendarClock, ImageUp, Layers, Plus, ScanSearch } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { api, type FactItem } from "./api";
 import { Badge, Button, DirectionTag, Empty, Field, Panel, Spinner, cx, inputCls } from "./ui";
 
-export function FreshnessBar({ instrument }: { instrument: string }) {
-  const qc = useQueryClient();
-  const f = useQuery({ queryKey: ["fresh", instrument], queryFn: () => api.freshness(instrument), refetchInterval: 60_000 });
-  const w = useQuery({ queryKey: ["warnings", instrument], queryFn: () => api.warnings(instrument), refetchInterval: 60_000 });
+/** Setup problems that stop the desk from working (shown above everything else). */
+export function SystemAlerts() {
   const h = useQuery({ queryKey: ["health"], queryFn: api.health, staleTime: 300_000 });
-  const refresh = useMutation({ mutationFn: () => api.refresh(instrument), onSuccess: () => qc.invalidateQueries() });
-  const conflicts = (w.data ?? []).filter((x) => x.code === "source_conflict");
-  if (!f.data) return null;
-  const tone = f.data.status === "ok" ? "ok" : f.data.status === "stale" ? "warn" : "danger";
+  if (!h.data || h.data.persistent_storage) return null;
   return (
-    <div className="space-y-2">
-    {h.data && !h.data.persistent_storage && (
-      <div className="rounded-lg border border-[color-mix(in_srgb,var(--danger)_40%,transparent)] bg-danger-soft px-3 py-2 text-[13px] text-danger" role="alert">
-        <strong>No storage connected.</strong> BLOB_READ_WRITE_TOKEN is not set, so reports cannot be saved. In Vercel open
-        Storage → Create → Blob, connect it to this project, then redeploy.
-      </div>
-    )}
-    {h.data && !h.data.anthropic_key && (
-      <div className="rounded-lg border border-[color-mix(in_srgb,var(--warn)_40%,transparent)] bg-warn-soft px-3 py-2 text-[13px] text-warn" role="status">
-        <strong>No Claude API key.</strong> ANTHROPIC_API_KEY is not set, so only the offline rule-based writer is available.
-      </div>
-    )}
-    <div className="flex flex-wrap items-center gap-2 text-[13px]" aria-live="polite">
-      <Badge tone={tone}><Clock className="size-3" />Data {f.data.status === "ok" ? "fresh" : f.data.status}</Badge>
-      <span className="text-muted">{f.data.message}</span>
-      {f.data.last_h1_close && <span className="num text-faint">Last 1H close {f.data.last_h1_close} · {f.data.provider}</span>}
-      <Badge tone={f.data.market_open ? "accent" : "neutral"}>{f.data.market_open ? "Market open" : "Market closed"}</Badge>
-      {f.data.is_fixture && <Badge tone="fixture">Prices are development fixtures</Badge>}
-      {conflicts.length > 0 && <Badge tone="danger"><AlertTriangle className="size-3" />{conflicts.length} source conflict{conflicts.length > 1 ? "s" : ""}: interpretation withheld</Badge>}
-      <Button size="sm" variant={f.data.status === "ok" ? "ghost" : "primary"} busy={refresh.isPending} onClick={() => refresh.mutate()}
-        title="Fetch the economic calendar and central-bank feeds, and check the price source">
-        {refresh.isPending ? "Fetching data…" : "Fetch latest data"}
-      </Button>
-      {refresh.data && refresh.data.problems.length > 0 && <span className="text-danger">Data source problems: {refresh.data.problems.join("; ")}</span>}
-      {refresh.error && <span className="text-danger">{String(refresh.error)}</span>}
-    </div>
+    <div className="rounded-lg border border-[color-mix(in_srgb,var(--danger)_40%,transparent)] bg-danger-soft px-3 py-2 text-[13px] text-danger" role="alert">
+      <strong>No storage connected.</strong> BLOB_READ_WRITE_TOKEN is not set, so reports cannot be saved. In Vercel open
+      Storage → Create → Blob, connect it to this project, then redeploy.
     </div>
   );
 }
@@ -61,7 +33,7 @@ export function EvidencePanel({ versionId, focus }: { versionId: string | null; 
     <Panel title="Sources and evidence" icon={<BookOpenCheck className="size-4" />} bodyClass="p-0"
       actions={r.data && <span className="text-[12px] text-faint">{items.length} items</span>}>
       {!versionId ? <div className="p-4"><Empty>Select a report to see its evidence.</Empty></div> : !r.data ? <Spinner /> : (
-        <div className="max-h-[440px] overflow-y-auto">
+        <div className="max-h-[68vh] overflow-y-auto">
           {(warns.length > 0 || r.data.facts.missing.length > 0) && (
             <div className="space-y-1.5 border-b border-line p-3">
               {r.data.facts.missing.map((m, i) => <div key={"m" + i} className="flex gap-2 text-[12.5px] text-danger"><AlertTriangle className="mt-0.5 size-3.5 shrink-0" />{m}</div>)}
@@ -81,6 +53,7 @@ export function EvidencePanel({ versionId, focus }: { versionId: string | null; 
                   <span className="text-[11px] uppercase tracking-wider text-faint">{KIND_LABEL[it.kind] ?? it.kind}</span>
                   {it.kind === "event" && <Badge tone={it.state === "released" || it.state === "revised" ? "ok" : it.state === "conflicting" ? "danger" : "neutral"}>{String(it.state)}</Badge>}
                   {it.kind === "news" && it.entered_by === "user" && <Badge>user-entered</Badge>}
+                  {it.kind === "news" && it.entered_by === "feed" && <Badge title="Title, link and time only; the article was not read">headline only</Badge>}
                 </div>
                 <p className="leading-relaxed text-fg">{it.text}</p>
                 {(it.url || it.source) && <p className="mt-0.5 truncate text-[11.5px] text-faint">{it.url ? <a className="underline" href={String(it.url)} target="_blank" rel="noreferrer">{String(it.url)}</a> : String(it.source)}</p>}
@@ -104,11 +77,11 @@ export function CalendarPanel({ instrument, weekKey }: { instrument: string; wee
     onSuccess: () => { setEntry(null); qc.invalidateQueries({ queryKey: ["cal"] }); qc.invalidateQueries({ queryKey: ["warnings"] }); } });
   const refresh = useMutation({ mutationFn: api.refreshCalendar, onSuccess: () => qc.invalidateQueries({ queryKey: ["cal"] }) });
   return (
-    <Panel title="Economic calendar · EAT" icon={<CalendarClock className="size-4" />} bodyClass="p-0"
+    <Panel title={`Economic calendar · ${c.data?.[0]?.time_label ?? "local time"}`} icon={<CalendarClock className="size-4" />} bodyClass="p-0"
       actions={<Button size="sm" variant="ghost" busy={refresh.isPending} onClick={() => refresh.mutate()} title="Fetch the configured calendar feed">Refresh</Button>}>
       {refresh.error && <p className="px-3 pt-2 text-[12px] text-danger">{String(refresh.error)}</p>}
       {!c.data ? <Spinner /> : c.data.length === 0 ? <div className="p-4"><Empty>No events stored for this week.</Empty></div> : (
-        <div className="max-h-[380px] overflow-auto">
+        <div className="max-h-[68vh] overflow-auto">
           <table className="w-full text-[12.5px]">
             <thead className="sticky top-0 bg-surface-2 text-left text-[11px] uppercase tracking-wider text-faint">
               <tr><th className="px-3 py-2 font-medium">Time</th><th className="px-1 py-2 font-medium">Event</th><th className="px-1 py-2 text-right font-medium">Cons.</th><th className="px-1 py-2 text-right font-medium">Prev.</th><th className="px-3 py-2 text-right font-medium">Actual</th></tr>
@@ -176,7 +149,7 @@ export function LevelsPanel({ instrument, decimals }: { instrument: string; deci
         </form>
       )}
       {!l.data ? <Spinner /> : rows.length === 0 ? <div className="p-4"><Empty>No levels of your own yet. Calculated levels (previous session and week high/low) are added to each report automatically.</Empty></div> : (
-        <ul className="max-h-[320px] divide-y divide-[var(--border)] overflow-y-auto">
+        <ul className="max-h-[68vh] divide-y divide-[var(--border)] overflow-y-auto">
           {rows.map((x) => (
             <li key={x.id} className="group flex items-center gap-2 px-3 py-2 text-[12.5px]">
               <span className={cx("h-6 w-1 rounded-full", x.role === "resistance" ? "bg-accent" : "bg-muted")} aria-hidden />
@@ -211,7 +184,7 @@ export function EvaluationPanel({ instrument }: { instrument: string }) {
           <div className="flex flex-wrap gap-1.5 border-b border-line px-3 py-2">
             {Object.entries(counts).map(([k, n]) => <Badge key={k} tone={OUT_TONE[k] ?? "neutral"}>{k}: {n}</Badge>)}
           </div>
-          <ul className="max-h-[300px] divide-y divide-[var(--border)] overflow-y-auto">
+          <ul className="max-h-[68vh] divide-y divide-[var(--border)] overflow-y-auto">
             {rows.map((r, i) => (
               <motion.li key={i} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: Math.min(i * 0.02, 0.3) }} className="px-3 py-2 text-[12.5px]">
                 <div className="flex items-center gap-2">
@@ -233,10 +206,10 @@ export function EvaluationPanel({ instrument }: { instrument: string }) {
   );
 }
 
-export function ScreenshotPanel({ instrument }: { instrument: string }) {
+export function ScreenshotPanel({ instrument, canExtract }: { instrument: string; canExtract: boolean }) {
   const qc = useQueryClient();
   const [file, setFile] = useState<File | null>(null);
-  const [extract, setExtract] = useState(true);
+  const [extract, setExtract] = useState(canExtract);
   const [res, setRes] = useState<{ id: string; extracted: Record<string, unknown> } | null>(null);
   const [rows, setRows] = useState<{ lower: string; upper: string; role: string; reason: string }[]>([]);
   const [chartTs, setChartTs] = useState("");
@@ -261,7 +234,9 @@ export function ScreenshotPanel({ instrument }: { instrument: string }) {
             {file ? <span className="text-fg">{file.name}</span> : <span>Choose a TradingView screenshot (PNG, JPEG, WebP)</span>}
             <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
           </label>
-          <label className="flex items-center gap-2 text-[13px] text-muted"><input type="checkbox" checked={extract} onChange={(e) => setExtract(e.target.checked)} />Read visible levels with Claude (approximate; needs API key)</label>
+          {canExtract
+            ? <label className="flex items-center gap-2 text-[13px] text-muted"><input type="checkbox" checked={extract} onChange={(e) => setExtract(e.target.checked)} />Read visible levels with Claude (approximate)</label>
+            : <p className="text-[12.5px] text-faint">The screenshot is stored with your annotations; enter the visible levels yourself after upload. Automatic reading needs the optional Claude writer.</p>}
           {up.error && <p className="text-[12px] text-danger">{String(up.error)}</p>}
           <Button size="sm" variant="primary" disabled={!file} busy={up.isPending} onClick={() => up.mutate()}><ScanSearch className="size-4" />Upload</Button>
         </div>

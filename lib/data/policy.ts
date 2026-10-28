@@ -4,7 +4,7 @@ import { CONFIG } from "../config.ts";
 import { getJSON, update } from "../store.ts";
 
 export interface PolicyItem { bank: string; currency: string; kind: string; title: string; url: string | null; publishedAt: number; summary: string | null; source: string }
-export interface NewsItem { id: string; sourceName: string; title: string; url: string | null; publishedAt: number; summary: string | null; currencies: string[]; enteredBy: "user" | "research" }
+export interface NewsItem { id: string; sourceName: string; title: string; url: string | null; publishedAt: number; summary: string | null; currencies: string[]; enteredBy: "user" | "research" | "feed"; feed?: string }
 
 const DECISION = ["monetary policy decision", "policy decision", "official cash rate", "rate decision", "fomc statement", "monetary policy statement", "bank rate"];
 

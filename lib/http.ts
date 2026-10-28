@@ -2,6 +2,7 @@
 import { authorized, canRead } from "./auth.ts";
 import { ImmutableError } from "./store.ts";
 import { PublishError } from "./reports/service.ts";
+import { getSettings } from "./settings.ts";
 
 export class HttpError extends Error {
   status: number; detail: unknown;
@@ -16,6 +17,7 @@ function wrap<C>(write: boolean, fn: Handler<C>): Handler<C> {
   return async (req, ctx) => {
     if (write ? !authorized(req) : !canRead(req)) return json({ detail: "admin token required" }, 401);
     try {
+      await getSettings(); // applies the display timezone for this request
       return await fn(req, ctx);
     } catch (e) {
       if (e instanceof HttpError) return json({ detail: e.detail }, e.status);

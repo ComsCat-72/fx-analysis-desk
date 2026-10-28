@@ -13,7 +13,7 @@ import { Badge, Button, DirectionTag, Empty, FadeIn, Field, Spinner, cx, inputCl
 /** Replace [F1] / [F1, L2] citations with inline code markers the renderer turns into buttons. */
 function withCiteMarkers(md: string) {
   return md.replace(/\[((?:[FLEP]\d+)(?:\s*,\s*[FLEP]\d+)*)\](?!\()/g, (_, ids: string) =>
-    ids.split(",").map((i) => "`cite:" + i.trim() + "`").join(""));
+    ids.split(",").map((i) => "`cite:" + i.trim() + "`").join(" ")); // a space keeps adjacent code spans apart
 }
 
 function ReportBody({ md, onCite }: { md: string; onCite: (id: string) => void }) {
@@ -144,12 +144,12 @@ export function ReportPane({ instrument, tab, onTab, period, versions, versionId
       <div className="flex flex-wrap items-center gap-2 border-b border-line px-4 py-2.5">
         <label className="flex items-center gap-1.5 text-[13px] text-muted">Writer
           <select value={writer} onChange={(e) => setWriter(e.target.value)} className={cx(inputCls, "h-8 cursor-pointer")}>
-            <option value="claude" disabled={!credentials.anthropic}>Claude{credentials.anthropic ? "" : " (no API key)"}</option>
-            <option value="template">Template (offline, rule-based)</option>
+            <option value="claude" disabled={!credentials.anthropic}>Claude{credentials.anthropic ? " (paid)" : " (no API key)"}</option>
+            <option value="template">Rule-based (free)</option>
           </select>
         </label>
         <Button size="sm" variant={versions.length ? "secondary" : "primary"} busy={draft.isPending} onClick={() => draft.mutate()}>
-          <Sparkles className="size-4" aria-hidden />{draft.isPending ? "Researching and drafting (1–3 min)…" : "Generate draft"}
+          <Sparkles className="size-4" aria-hidden />{draft.isPending ? (writer === "claude" ? "Researching and drafting (1–3 min)…" : "Drafting…") : "Generate draft"}
         </Button>
         {r && r.status === "published" && (
           <>
@@ -187,7 +187,7 @@ export function ReportPane({ instrument, tab, onTab, period, versions, versionId
 
       {err && <div className="mx-4 mt-3 rounded-lg border border-[color-mix(in_srgb,var(--danger)_35%,transparent)] bg-danger-soft px-3 py-2 text-sm text-danger">{String(err.message ?? err)}</div>}
 
-      <div className="grid min-h-[420px] flex-1 grid-cols-1 xl:grid-cols-[minmax(0,1fr)_340px]">
+      <div className="grid min-h-[420px] flex-1 grid-cols-1 min-[1900px]:grid-cols-[minmax(0,1fr)_320px] lg:max-[1535px]:grid-cols-[minmax(0,1fr)_300px]">
         <div className="min-w-0 overflow-x-hidden p-5">
           {versionId == null ? (
             <Empty>No report for this slot yet. Generate a draft to preview it before publishing.</Empty>
@@ -210,7 +210,7 @@ export function ReportPane({ instrument, tab, onTab, period, versions, versionId
           )}
         </div>
         {r && (
-          <aside className="border-t border-line p-4 xl:border-l xl:border-t-0">
+          <aside className="order-first border-b border-line p-4 lg:max-[1535px]:order-none lg:max-[1535px]:border-b-0 lg:max-[1535px]:border-l min-[1900px]:order-none min-[1900px]:border-b-0 min-[1900px]:border-l">
             <button className="flex w-full cursor-pointer items-center gap-2 text-left" onClick={() => setShowChecks(!showChecks)} aria-expanded={showChecks}>
               <h3 className="text-[13px] font-semibold uppercase tracking-[0.07em] text-muted">Pre-publication checks</h3>
               <span className="ml-auto flex gap-1">

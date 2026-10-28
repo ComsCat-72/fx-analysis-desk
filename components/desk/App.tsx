@@ -1,12 +1,14 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { CalendarDays, ChevronLeft, ChevronRight, FlaskConical, KeyRound, Lock, Moon, Settings2, Sun } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, FlaskConical, Globe2, KeyRound, Lock, Moon, Settings2, Sun } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { api, getToken, setToken, type Kind, type VersionSummary, type Week } from "./api";
 import { ReportPane } from "./ReportPane";
 import { SettingsDrawer } from "./Settings";
-import { CalendarPanel, EvaluationPanel, EvidencePanel, FreshnessBar, LevelsPanel, ScreenshotPanel } from "./SidePanels";
+import { ContextPanel, type ContextTab } from "./Context";
+import { Overview } from "./Overview";
+import { SystemAlerts } from "./SidePanels";
 import { Timeline } from "./Timeline";
 import { Badge, Button, Spinner, cx, inputCls } from "./ui";
 
@@ -59,7 +61,20 @@ function TokenDialog({ onDone }: { onDone: () => void }) {
   );
 }
 
+/** True when the viewport is wide enough for the three-column layout (Tailwind's 2xl). */
+function useWide() {
+  const [wide, setWide] = useState(false);
+  useEffect(() => {
+    const m = window.matchMedia("(min-width: 1536px)");
+    const h = () => setWide(m.matches);
+    h(); m.addEventListener("change", h);
+    return () => m.removeEventListener("change", h);
+  }, []);
+  return wide;
+}
+
 export default function App() {
+  const wide = useWide();
   const qc = useQueryClient();
   const [needToken, setNeedToken] = useState(false);
   useEffect(() => {
@@ -70,12 +85,14 @@ export default function App() {
   const cfg = useQuery({ queryKey: ["config"], queryFn: api.config });
   const tz = cfg.data?.display.timezone ?? "Africa/Kampala";
   const [instrument, setInstrument] = useState<string>(() => { try { return localStorage.getItem("fx.instrument") ?? "GBP_USD"; } catch { return "GBP_USD"; } });
-  const [weekKey, setWeekKey] = useState(() => mondayOf(todayIn("Africa/Kampala")));
-  const [day, setDay] = useState(() => todayIn("Africa/Kampala"));
+  const [weekKey, setWeekKey] = useState(() => mondayOf(todayIn(tz)));
+  const [day, setDay] = useState(() => todayIn(tz));
   const [tab, setTab] = useState<Kind>("daily_analysis");
   const [reviewDay, setReviewDay] = useState<string | null>(null);
   const [versionId, setVersionId] = useState<string | null>(null);
   const [focusCite, setFocusCite] = useState<string | null>(null);
+  const [ctxTab, setCtxTab] = useState<ContextTab>("evidence");
+  const cite = (id: string) => { setFocusCite(id); setCtxTab("evidence"); };
   const [settings, setSettings] = useState(false);
   const [theme, setTheme] = useState<"dark" | "light">(() => { try { return (localStorage.getItem("fx.theme") as "dark" | "light") ?? "dark"; } catch { return "dark"; } });
 
@@ -106,42 +123,46 @@ export default function App() {
     </div>
   );
 
+  const context = (
+    <ContextPanel tab={ctxTab} onTab={setCtxTab} instrument={instrument} weekKey={weekKey} versionId={current} focus={focusCite}
+      decimals={inst?.decimals ?? 5} canExtract={!!cfg.data!.credentials.anthropic} />
+  );
   return (
-    <div className="mx-auto flex min-h-screen max-w-[1760px] flex-col gap-3 px-4 pb-6 pt-3 sm:px-5">
-      <header className="panel flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2.5">
+    <div className="mx-auto flex min-h-screen max-w-[1800px] flex-col gap-3 px-4 pb-8 pt-3 sm:px-5">
+      <header className="panel topbar flex flex-wrap items-center gap-x-4 gap-y-2.5 px-4 py-2.5">
         <div className="flex items-center gap-2.5">
-          <div className="grid size-8 place-items-center rounded-lg bg-accent-soft text-accent" aria-hidden>
-            <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M3 17l5-6 4 3 5-7 4 4" /><path d="M3 21h18" /></svg>
+          <div className="brand-mark grid size-9 place-items-center rounded-xl text-white" aria-hidden>
+            <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 17l5-6 4 3 5-7 4 4" /><path d="M3 21h18" /></svg>
           </div>
           <div className="leading-tight">
-            <div className="text-[15px] font-semibold">FX Analysis Desk</div>
-            <div className="text-[11.5px] text-faint">Analysis and reporting · not trading advice</div>
+            <h1 className="text-[15.5px] font-semibold tracking-tight">FX Analysis Desk</h1>
+            <p className="text-[11.5px] text-faint">Analysis and reporting · not trading advice</p>
           </div>
         </div>
         <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
           <label className="sr-only" htmlFor="inst">Instrument</label>
-          <select id="inst" value={instrument} onChange={(e) => { setInstrument(e.target.value); setVersionId(null); }}
-            className={cx(inputCls, "num min-w-0 flex-1 cursor-pointer font-medium sm:w-44 sm:flex-none")}>
+          <select id="inst" value={instrument} onChange={(e) => { setInstrument(e.target.value); setVersionId(null); setFocusCite(null); }}
+            className={cx(inputCls, "num h-10 min-w-0 flex-1 cursor-pointer text-[14px] font-semibold sm:w-44 sm:flex-none")}>
             {cfg.data!.instruments.map((i) => <option key={i.code} value={i.code}>{i.display}</option>)}
           </select>
-          <div className="flex items-center rounded-lg border border-line bg-surface-2">
-            <button className="grid size-9 cursor-pointer place-items-center text-muted hover:text-fg" onClick={() => shiftWeek(-1)} aria-label="Previous week"><ChevronLeft className="size-4" /></button>
+          <div className="flex h-10 items-center rounded-lg border border-line bg-surface-2">
+            <button className="grid size-10 cursor-pointer place-items-center rounded-l-lg text-muted hover:bg-surface-3 hover:text-fg" onClick={() => shiftWeek(-1)} aria-label="Previous week"><ChevronLeft className="size-4" /></button>
             <label className="flex items-center gap-1.5 px-1 text-sm">
               <CalendarDays className="size-4 text-muted" aria-hidden />
               <span className="sr-only">Week of</span>
               <input type="date" value={weekKey} onChange={(e) => e.target.value && (setWeekKey(mondayOf(e.target.value)), setDay(mondayOf(e.target.value)), setVersionId(null))}
                 className="num w-[8.6rem] cursor-pointer bg-transparent text-fg focus:outline-none" />
             </label>
-            <button className="grid size-9 cursor-pointer place-items-center text-muted hover:text-fg" onClick={() => shiftWeek(1)} aria-label="Next week"><ChevronRight className="size-4" /></button>
+            <button className="grid size-10 cursor-pointer place-items-center rounded-r-lg text-muted hover:bg-surface-3 hover:text-fg" onClick={() => shiftWeek(1)} aria-label="Next week"><ChevronRight className="size-4" /></button>
           </div>
         </div>
-        {inst?.label && <span className="hidden text-[12px] text-faint xl:inline">{inst.label}</span>}
-        <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
+        {inst?.label && <span className="hidden max-w-[34ch] truncate text-[12px] text-faint 2xl:inline" title={inst.label}>{inst.label}</span>}
+        <div className="flex flex-wrap items-center gap-1.5 sm:ml-auto">
           {cfg.data!.app_env !== "production" && <Badge tone="fixture" title="Development environment"><FlaskConical className="size-3" />Development</Badge>}
-          <Badge tone={cfg.data!.publication_mode === "automatic" ? "warn" : "neutral"}>
-            {cfg.data!.publication_mode === "automatic" ? "Auto-publish ON" : "Manual publication"}
+          <Badge tone={cfg.data!.publication_mode === "automatic" ? "warn" : "neutral"} title="Change in Configure">
+            {cfg.data!.publication_mode === "automatic" ? "Auto-publish on" : "Manual publication"}
           </Badge>
-          <span className="hidden text-[12px] text-muted sm:inline">Times in {cfg.data!.display.timezone_label} ({tz})</span>
+          <Badge title={`Times are shown in ${tz}; change in Configure`}><Globe2 className="size-3" />{cfg.data!.display.timezone_label} · {tz.split("/").pop()?.replace("_", " ")}</Badge>
           <Button variant="ghost" size="sm" onClick={() => setTheme(theme === "dark" ? "light" : "dark")} title="Toggle theme">
             {theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}<span className="sr-only">Toggle theme</span>
           </Button>
@@ -150,33 +171,25 @@ export default function App() {
         </div>
       </header>
 
-      <FreshnessBar instrument={instrument} />
+      <SystemAlerts />
+      <Overview instrument={instrument} week={week.data} day={selDay} weekKey={weekKey} />
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-[260px_minmax(0,1fr)] 2xl:grid-cols-[270px_minmax(0,1fr)_420px]">
+      <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-[264px_minmax(0,1fr)] 2xl:grid-cols-[264px_minmax(0,1fr)_440px]">
         <div className="order-2 flex flex-col gap-3 lg:order-none">
-          {week.isLoading ? <Spinner /> : <Timeline week={week.data!} tab={tab} day={selDay} reviewDay={slot.period} onSelect={select} />}
+          {week.isLoading ? <Spinner /> : week.data ? <Timeline week={week.data} tab={tab} day={selDay} reviewDay={slot.period} onSelect={select} />
+            : <div className="panel p-4 text-sm text-danger">Could not load this week: {String((week.error as Error)?.message ?? "")}</div>}
         </div>
         <div className="order-1 flex min-w-0 flex-col gap-3 lg:order-none">
           <ReportPane key={`${instrument}-${tab}-${slot.period}`} instrument={instrument} tab={tab} onTab={(k) => select(k)}
             period={slot.period} versions={slot.versions} versionId={current} onVersion={setVersionId}
-            onCite={setFocusCite} credentials={cfg.data!.credentials} defaultWriter={cfg.data!.writer} weekKey={weekKey} />
-          <div className="grid gap-3 lg:grid-cols-2 2xl:hidden">
-            <EvidencePanel versionId={current} focus={focusCite} />
-            <CalendarPanel instrument={instrument} weekKey={weekKey} />
-          </div>
+            onCite={cite} credentials={cfg.data!.credentials} defaultWriter={cfg.data!.writer} weekKey={weekKey} />
+          {!wide && context}
         </div>
-        <aside className="order-3 flex min-w-0 flex-col gap-3 lg:order-none lg:col-span-2 2xl:col-span-1">
-          <div className="hidden flex-col gap-3 2xl:flex">
-            <EvidencePanel versionId={current} focus={focusCite} />
-            <CalendarPanel instrument={instrument} weekKey={weekKey} />
-          </div>
-          <div className="grid gap-3 lg:grid-cols-2 2xl:grid-cols-1">
-            <LevelsPanel instrument={instrument} decimals={inst?.decimals ?? 5} />
-            <EvaluationPanel instrument={instrument} />
-          </div>
-          <ScreenshotPanel instrument={instrument} />
-        </aside>
+        {wide && <aside className="min-w-0"><div className="sticky top-3">{context}</div></aside>}
       </div>
+      <footer className="pt-1 text-center text-[12px] text-faint">
+        Reports explain market behaviour from sourced evidence. They do not recommend buying, selling or positioning in any market.
+      </footer>
       {tokenDialog}
       <SettingsDrawer open={settings} onClose={() => setSettings(false)} config={cfg.data!} instrument={instrument} />
     </div>

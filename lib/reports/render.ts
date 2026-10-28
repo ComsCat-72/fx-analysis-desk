@@ -3,6 +3,7 @@ import type { Kind } from "../config.ts";
 import { addDays, dayMonth, dayMonthYear, longDate, shortStamp, stamp, dayName } from "../dates.ts";
 import { DIRECTION_LABEL, type Direction } from "../core/evaluation.ts";
 import { citesIn } from "../content/checks.ts";
+import { parseValue } from "../core/events.ts";
 import { SECTIONS, TITLES, fill } from "./templates.ts";
 import type { Bundle, OutlookIn } from "./types.ts";
 
@@ -26,6 +27,34 @@ function eventsTable(b: Bundle): string {
     rows.push(`| ${shortStamp(Date.parse(e.scheduled_at))} | ${e.currency} | ${e.title} [${e.id}] | ${e.consensus ?? "n/a"} | ${e.previous ?? "n/a"} | ${actual} | ${status} |`);
   }
   return rows.join("\n");
+}
+
+// Scenario tables (spec §10): for high-impact releases still to come with a verified consensus. Ranges are mutually
+// exclusive at the published precision ("in line" = equal when rounded as published). Weights are never estimated.
+const INVERSE = /\b(?:unemployment|jobless|claims|claimant)\b/i; // a higher figure means a weaker labour market
+const RATE = /\b(?:rate decision|cash rate|bank rate|policy rate|interest rate|federal funds|main refinancing|deposit facility)\b/i;
+
+function implication(title: string, cur: string, side: "above" | "below"): string {
+  if (RATE.test(title)) return side === "above"
+    ? `A higher rate than expected could support ${cur}; the statement and guidance remain important`
+    : `A lower rate than expected could weaken ${cur}; the statement and guidance remain important`;
+  const tighter = INVERSE.test(title) ? side === "below" : side === "above";
+  return tighter ? `Could support ${cur} if it raises expectations of tighter policy` : `Could weaken ${cur} if it lowers expectations of tighter policy`;
+}
+
+export function scenarioTables(b: Bundle): string {
+  const evs = Object.values(b.events).filter((e) => e.impact === "High" && e.state === "scheduled" && parseValue(e.consensus));
+  return evs.slice(0, 4).map((e) => {
+    const c = e.consensus!;
+    const same = Object.values(b.events).filter((x) => x.id !== e.id && x.currency === e.currency && x.scheduled_at === e.scheduled_at);
+    const lines = [`**${e.currency} ${e.title} [${e.id}]** — consensus ${c}${e.previous ? `, previous ${e.previous}` : ""}.`
+      + (same.length ? ` Released at the same time as ${same.map((x) => `${x.title} [${x.id}]`).join(", ")}; the combined reading matters.` : ""),
+      "", "| Outcome | Scenario weight | Possible analytical implication |", "|---|---|---|",
+      `| In line (${c} at the published precision) | Not estimated | Details and the price reaction remain important |`,
+      `| Above consensus (above ${c}) | Not estimated | ${implication(e.title, e.currency, "above")} |`,
+      `| Below consensus (below ${c}) | Not estimated | ${implication(e.title, e.currency, "below")} |`];
+    return lines.join("\n");
+  }).join("\n\n");
 }
 
 export function biasLine(o: OutlookIn | null): string {
@@ -92,12 +121,16 @@ export function render(kind: Kind, b: Bundle, sections: Record<string, string>, 
     const txt = (sections[key] ?? "").trim(), h = hd[key];
     if (key === "fundamental_base") {
       parts.push(kind === "daily_review" ? "## Fundamental Reaction — Both Economies" : kind === "weekly_review" ? "## Fundamental Review — Both Economies" : "## Fundamental Focus — Both Economies");
-      if (kind === "daily_analysis") parts.push(`**Scheduled and released events**\n\n${eventsTable(b)}`);
+      if (kind === "daily_analysis") {
+        parts.push(`**Scheduled and released events**\n\n${eventsTable(b)}`);
+        const sc = scenarioTables(b);
+        if (sc) parts.push(`**Event scenarios**\n\n${sc}`);
+      }
     }
     if (key === "weekly_bias") { parts.push(`## ${h}\n\n${biasLine(outlook)} ${txt}`.trimEnd()); continue; }
     let block = `${key.startsWith("fundamental_") ? "###" : "##"} ${h}\n\n`;
     if (key === "expected_vs_actual" || key === "bias_vs_actual") block += reviewHeader(kind, b) + "\n\n";
-    if (key === "key_events") block += eventsTable(b) + "\n\n";
+    if (key === "key_events") { block += eventsTable(b) + "\n\n"; const sc = scenarioTables(b); if (sc) block += `**Event scenarios**\n\n${sc}\n\n`; }
     if (key === "technical_takeaway") { const t = reactionTable(b); if (t) block += t + "\n\n"; }
     if (key === "technical_review") { const t = reactionTable(b, true); if (t) block += t + "\n\n"; }
     parts.push(block + txt);

@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
-import { BookA, CheckCircle2, Database, KeyRound, Newspaper, Timer, X, XCircle } from "lucide-react";
+import { BookA, CheckCircle2, Database, Globe2, KeyRound, Newspaper, PenLine, Timer, X, XCircle } from "lucide-react";
 import { useState } from "react";
 import { api, type AppConfig, type Kind } from "./api";
 import { Badge, Button, Field, cx, inputCls } from "./ui";
@@ -21,6 +21,8 @@ export function SettingsDrawer({ open, onClose, config, instrument }: { open: bo
   const jobs = useQuery({ queryKey: ["jobs"], queryFn: api.jobs, enabled: open });
   const [confirmAuto, setConfirmAuto] = useState(false);
   const mode = useMutation({ mutationFn: (m: string) => api.setMode(m, confirmAuto), onSuccess: () => qc.invalidateQueries({ queryKey: ["config"] }) });
+  const save = useMutation({ mutationFn: api.saveSettings, onSuccess: () => qc.invalidateQueries() });
+  const [tzOther, setTzOther] = useState("");
   const [job, setJob] = useState<Kind>("daily_analysis");
   const run = useMutation({ mutationFn: () => api.runJob(job, instrument, true), onSuccess: () => qc.invalidateQueries() });
   const terms = useQuery({ queryKey: ["terms"], queryFn: api.terminology, enabled: open });
@@ -63,9 +65,37 @@ export function SettingsDrawer({ open, onClose, config, instrument }: { open: bo
                 <label className="flex items-center gap-2 text-[13px] text-muted"><input type="checkbox" checked={confirmAuto} onChange={(e) => setConfirmAuto(e.target.checked)} />I explicitly enable automatic publication</label>
                 {mode.error && <p className="text-[12px] text-danger">{String(mode.error)}</p>}
               </Section>
+              <Section title="Report writer" icon={<PenLine className="size-4" />}>
+                <div className="flex gap-2">
+                  {([["template", "Rule-based (free)", "Built in code from verified facts only. No paid service."],
+                    ["claude", "Claude (optional, paid)", config.credentials.anthropic ? "Uses your Anthropic API key." : "Needs ANTHROPIC_API_KEY in Vercel."]] as const).map(([w, t, d]) => (
+                    <button key={w} onClick={() => save.mutate({ writer: w })} disabled={w === "claude" && !config.credentials.anthropic}
+                      className={cx("flex-1 cursor-pointer rounded-lg border px-3 py-2 text-left text-[13px] disabled:cursor-not-allowed disabled:opacity-50",
+                        config.writer === w ? "border-accent bg-accent-soft" : "border-line hover:bg-surface-3")}>
+                      <div className="font-medium">{t}</div><div className="text-[12px] text-faint">{d}</div>
+                    </button>
+                  ))}
+                </div>
+                {save.error && <p className="text-[12px] text-danger">{String(save.error)}</p>}
+              </Section>
+              <Section title="Display timezone" icon={<Globe2 className="size-4" />}>
+                <p className="text-[12px] text-faint">Report times and the calendar use this zone. Source timestamps are kept as published, and reports already published keep the zone they were written in.</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {config.display.choices.map((c) => (
+                    <button key={c.tz} onClick={() => save.mutate({ display_timezone: c.tz })}
+                      className={cx("cursor-pointer rounded-lg border px-2.5 py-1.5 text-[12.5px]", config.display.timezone === c.tz ? "border-accent bg-accent-soft text-fg" : "border-line text-muted hover:bg-surface-3")}>
+                      {c.tz.replace("_", " ")} <span className="text-faint">· {c.label}</span>
+                    </button>
+                  ))}
+                </div>
+                <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); if (tzOther.trim()) save.mutate({ display_timezone: tzOther.trim() }); }}>
+                  <input className={cx(inputCls, "flex-1")} placeholder="Other IANA zone, e.g. Africa/Dar_es_Salaam" value={tzOther} onChange={(e) => setTzOther(e.target.value)} aria-label="Other timezone" />
+                  <Button size="sm" type="submit" busy={save.isPending}>Use</Button>
+                </form>
+              </Section>
               <Section title="Credentials and sources" icon={<KeyRound className="size-4" />}>
                 <ul className="space-y-1.5">
-                  {cred("anthropic", "Claude writer, research and review", "set ANTHROPIC_API_KEY")}
+                  {cred("anthropic", "Claude writer (optional, paid)", "not set: free writer in use")}
                   {cred("blob", "Vercel Blob storage", "connect a Blob store")}
                   {cred("admin_token", "Admin token for changes", "set ADMIN_TOKEN")}
                   {cred("cron_secret", "Cron secret for the schedule", "set CRON_SECRET")}
@@ -101,7 +131,7 @@ export function SettingsDrawer({ open, onClose, config, instrument }: { open: bo
                 {terms.data && <p className="text-[12px] text-faint">{terms.data.prohibited.length} prohibited · {terms.data.approved.length} approved · blocked abbreviations: {Object.entries(terms.data.abbreviations).filter(([, v]) => !v.enabled).map(([k]) => k).join(", ")}</p>}
               </Section>
               <Section title="Add a headline (manual source)" icon={<Newspaper className="size-4" />}>
-                <p className="text-[12px] text-faint">Claude also searches the web before each report and cites what it finds. Add headlines you have read yourself here, with a link; they are labelled user-entered.</p>
+                <p className="text-[12px] text-faint">Reuters and WSJ headlines are collected from their free feeds (title, link and time only). Add headlines you have read yourself here, with a link; they are labelled user-entered.</p>
                 <form className="grid grid-cols-2 gap-2" onSubmit={(e) => { e.preventDefault(); addNews.mutate(); }}>
                   <Field label="Source"><input className={inputCls} required value={news.source_name} onChange={(e) => setNews({ ...news, source_name: e.target.value })} placeholder="Reuters" /></Field>
                   <Field label="Published (your local time)"><input type="datetime-local" required className={inputCls} value={news.published_at} onChange={(e) => setNews({ ...news, published_at: e.target.value })} /></Field>
@@ -113,7 +143,7 @@ export function SettingsDrawer({ open, onClose, config, instrument }: { open: bo
                   <div className="col-span-2"><Button size="sm" type="submit" busy={addNews.isPending}>Save headline</Button></div>
                 </form>
               </Section>
-              <Section title="Schedules (EAT)" icon={<Timer className="size-4" />}>
+              <Section title="Schedules (Vercel Cron, UTC)" icon={<Timer className="size-4" />}>
                 <ul className="space-y-1 text-[13px]">
                   {Object.entries(config.schedules).map(([k, v]) => (
                     <li key={k} className="flex flex-col"><span className="text-muted">{k}</span><code className="num text-[12px] text-faint">{String(v)}</code></li>

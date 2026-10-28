@@ -29,8 +29,16 @@ const NY_17: SessionRule = {
 
 export const CONFIG = {
   siteTitle: "FX Analysis Desk",
-  display: { timezone: "Africa/Kampala", timezone_label: "EAT" }, // EAT, UTC+3, no daylight saving
-  // Claude: the writer drafts each report; research (web search) and the pre-publication review use a faster model.
+  // Default display timezone; changeable in Configure. labels: short names shown for common zones.
+  display: {
+    timezone: "Africa/Kampala", timezone_label: "EAT", // EAT, UTC+3, no daylight saving
+    choices: ["Africa/Kampala", "Africa/Kigali", "Africa/Nairobi", "UTC", "Europe/London", "America/New_York"],
+    labels: { "Africa/Kampala": "EAT", "Africa/Nairobi": "EAT", "Africa/Kigali": "CAT", UTC: "UTC" },
+  },
+  // Report writer. "template" (default): the free rule-based writer, which builds every sentence from verified bundle
+  // facts in code; no paid service is used. "claude": optional, only when ANTHROPIC_API_KEY is set (paid API).
+  writer: "template" as "template" | "claude",
+  // Claude (optional): the writer drafts each report; research (web search) and the pre-publication review use a faster model.
   models: { writer: "claude-opus-5-5", research: "claude-sonnet-5-5", review: "claude-sonnet-5-5", vision: "claude-opus-5-5" },
   effort: "medium" as "low" | "medium" | "high",
   webSearchesPerReport: 5,
@@ -80,11 +88,45 @@ export const CONFIG = {
     maxRevisions: 1,
   },
   // Vercel Cron (UTC, see vercel.json): reviews 03:00 UTC Tue–Sat, analyses 05:00 UTC daily.
+  // Keep in step with vercel.json. Shown in Configure, converted to the display timezone.
   schedules: {
-    reviews: "0 3 * * 2-6  (06:00 EAT): previous-session review; Saturday also reviews Friday",
-    analyses: "0 5 * * *  (08:00 EAT): daily analysis Mon–Fri, weekly review Saturday, weekly analysis Sunday",
-  },
+    reviews: { cron: "0 3 * * 2-6", utc: "03:00", what: "Previous-session review, Tuesday to Saturday (Saturday reviews Friday)" },
+    analyses: { cron: "0 5 * * *", utc: "05:00", what: "Daily analysis Monday to Friday, weekly review Saturday, weekly analysis Sunday" },
+  } as Record<string, { cron: string; utc: string; what: string }>,
   calendar: { feed: "https://nfs.faireconomy.media/ff_calendar_thisweek.json", impacts: ["High", "Medium", "Holiday"] },
+  // Free, headline-only feeds (title, link, time). Article text is not fetched; WSJ articles are paywalled.
+  // Reuters publishes no public RSS, so Reuters headlines come from Google News RSS restricted to reuters.com.
+  headlines: {
+    keepDays: 45,
+    perCurrencyInBundle: 4, // newest feed headlines per currency that a report may cite
+    feeds: [
+      { source: "WSJ", name: "WSJ Markets", url: "https://feeds.a.dj.com/rss/RSSMarketsMain.xml" },
+      { source: "WSJ", name: "WSJ World News", url: "https://feeds.a.dj.com/rss/RSSWorldNews.xml" },
+      { source: "WSJ", name: "WSJ US Business", url: "https://feeds.a.dj.com/rss/WSJcomUSBusiness.xml" },
+      ...[
+        "federal reserve OR fed rates OR dollar OR treasury yields",
+        "ecb OR euro zone OR eurozone",
+        "bank of england OR sterling OR uk economy",
+        "reserve bank of australia OR australian dollar",
+        "reserve bank of new zealand OR new zealand dollar",
+        "swiss national bank OR swiss franc",
+        "gold prices",
+        "nasdaq OR wall street stocks",
+      ].map((q) => ({ source: "Reuters", name: `Reuters: ${q}`,
+        url: `https://news.google.com/rss/search?q=${encodeURIComponent(`site:reuters.com ${q} when:7d`)}&hl=en-US&gl=US&ceid=US:en` })),
+    ],
+    // A headline is tagged with a currency when its title contains one of these words (case-insensitive, whole words).
+    currencyKeywords: {
+      USD: ["fed", "federal reserve", "fomc", "powell", "warsh", "dollar", "treasury", "treasuries", "us inflation", "us jobs", "payrolls", "u.s."],
+      EUR: ["ecb", "euro", "eurozone", "euro zone", "lagarde", "germany", "german", "france", "french", "italy"],
+      GBP: ["bank of england", "boe", "sterling", "pound", "uk", "britain", "british", "gilts", "gilt"],
+      AUD: ["rba", "reserve bank of australia", "australia", "australian", "aussie"],
+      NZD: ["rbnz", "reserve bank of new zealand", "new zealand", "kiwi"],
+      CHF: ["snb", "swiss national bank", "swiss", "franc", "switzerland"],
+      XAU: ["gold", "bullion"],
+      NAS100: ["nasdaq", "wall street", "tech stocks", "s&p 500", "stocks"],
+    } as Record<string, string[]>,
+  },
   centralBanks: {
     fed: { currency: "USD", feeds: { press: "https://www.federalreserve.gov/feeds/press_all.xml", speech: "https://www.federalreserve.gov/feeds/speeches.xml" } },
     ecb: { currency: "EUR", feeds: { press: "https://www.ecb.europa.eu/rss/press.html" } },

@@ -2,9 +2,28 @@
 import { CONFIG } from "./config.ts";
 
 const DOW = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-const DISPLAY_TZ = CONFIG.display.timezone, DISPLAY_LABEL = CONFIG.display.timezone_label;
 
-/** Calendar date of an instant in a timezone (default: display timezone, EAT). */
+// Display timezone: CONFIG default (Africa/Kampala), replaced by the dashboard setting whenever settings load.
+// Only the display changes; stored instants and source timestamps are untouched.
+let DISPLAY_TZ = CONFIG.display.timezone, DISPLAY_LABEL = CONFIG.display.timezone_label;
+
+export const isTimeZone = (tz: string) => { try { new Intl.DateTimeFormat("en-US", { timeZone: tz }); return true; } catch { return false; } };
+
+/** Short label for a zone: the configured names (EAT, CAT, ...) first, else Intl's short name (e.g. "GMT+3"). */
+export function zoneLabel(tz: string, t = Date.now()): string {
+  const known = (CONFIG.display.labels as Record<string, string>)[tz];
+  if (known) return known;
+  return new Intl.DateTimeFormat("en-US", { timeZone: tz, timeZoneName: "short" }).formatToParts(new Date(t)).find((x) => x.type === "timeZoneName")?.value ?? tz;
+}
+
+export function setDisplayZone(tz: string | null | undefined) {
+  const z = tz && isTimeZone(tz) ? tz : CONFIG.display.timezone;
+  DISPLAY_TZ = z;
+  DISPLAY_LABEL = zoneLabel(z);
+}
+export const displayZone = () => ({ timezone: DISPLAY_TZ, timezone_label: DISPLAY_LABEL });
+
+/** Calendar date of an instant in a timezone (default: the display timezone). */
 export function dateIn(t: number | Date = Date.now(), tz = DISPLAY_TZ): string {
   const p = Object.fromEntries(new Intl.DateTimeFormat("en-US", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" })
     .formatToParts(new Date(t)).map((x) => [x.type, x.value]));
@@ -52,7 +71,7 @@ export function hhmm(t: number, tz = DISPLAY_TZ): string {
   return new Date(t).toLocaleTimeString("en-GB", { timeZone: tz, hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
 }
 
-/** "Mon 16 Nov 2026 07:31 EAT" */
+/** "Mon 16 Nov 2026 07:31 EAT" (label of the display timezone) */
 export function stamp(t: number | string | Date, opts: { date?: boolean } = {}): string {
   const d = new Date(t);
   if (opts.date === false) return `${hhmm(d.getTime())} ${DISPLAY_LABEL}`;

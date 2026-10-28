@@ -12,6 +12,7 @@ import { runDeterministic, summarize } from "../content/checks.ts";
 import { dictionary } from "../content/terminology.ts";
 import { eventsBetween, recordValue } from "../data/calendar.ts";
 import { levelsFor } from "../data/levels.ts";
+import { headlineItems } from "../data/headlines.ts";
 import { newsItems, policyItems } from "../data/policy.ts";
 import { fetchSeries, type Series } from "../data/yahoo.ts";
 import { getSettings } from "../settings.ts";
@@ -93,8 +94,10 @@ async function runChecks(kind: Kind, b: Bundle, sections: Record<string, string>
   return summarize(fs);
 }
 
-export const writerFor = (name?: string | null): Writer =>
-  (name ?? (env.anthropicKey ? "claude" : "template")) === "template" ? templateWriter : claudeWriter;
+/** An explicit name wins (corrections reuse the original writer); otherwise the Configure setting decides.
+ *  Claude runs only when it is chosen and ANTHROPIC_API_KEY is set; everything else uses the free template writer. */
+export const writerFor = (name?: string | null, setting: "template" | "claude" = CONFIG.writer): Writer =>
+  (name ?? setting) === "claude" && env.anthropicKey ? claudeWriter : templateWriter;
 
 export interface DraftOpts {
   cutoff?: number; writer?: string | null; versionType?: "correction" | "update"; deadline?: number;
@@ -107,7 +110,7 @@ export async function generateDraft(inst: string, kind: Kind, periodIn: string, 
   instrument(inst);
   const period = periodKey(kind, periodIn);
   const deadline = o.deadline ?? Date.now() + 270_000;
-  const writer = writerFor(o.writer);
+  const writer = writerFor(o.writer, (await getSettings()).writer);
   const series = o.series ?? await fetchSeries(inst);
   const rule = instrument(inst).session;
   const horizon = kind === "weekly_analysis" || kind === "weekly_review" ? weekWindow(rule, period) : dayWindow(rule, period);
@@ -129,8 +132,8 @@ export async function generateDraft(inst: string, kind: Kind, periodIn: string, 
     }
   }
   const cutoff = o.cutoff ?? Date.now();
-  const [events, policy, news, levels, index] = await Promise.all([eventsBetween(...evWindow), policyItems(), newsItems(), levelsFor(inst), o.index ?? loadIndex(inst)]);
-  const bundle = buildBundle({ code: inst, kind, period, cutoff, series, events, policy, news, research: researchItems, levels, index });
+  const [events, policy, news, headlines, levels, index] = await Promise.all([eventsBetween(...evWindow), policyItems(), newsItems(), headlineItems(), levelsFor(inst), o.index ?? loadIndex(inst)]);
+  const bundle = buildBundle({ code: inst, kind, period, cutoff, series, events, policy, news: [...news, ...headlines], research: researchItems, levels, index });
   const hd = headings(kind, bundle.meta, bundle.evaluation);
   const bounds = CONFIG.reports.lengthWords[kind];
   let result = await writer.write(kind, bundle, hd, bounds);
@@ -182,7 +185,7 @@ export async function updateDraft(id: string, sections: Record<string, string>, 
   if (v.status !== "draft") throw new PublishError("only drafts can be edited; correct a published report as a new version");
   const o = outlook !== undefined ? outlook : v.sections.outlook;
   const { title, body } = render(v.kind, v.facts, sections, o, v.sections.headings, { version: v.version, versionType: v.version_type });
-  const semantic = writerFor(null).name === "claude" ? await semanticReview(body, v.facts) : [];
+  const semantic = writerFor(null, (await getSettings()).writer).name === "claude" ? await semanticReview(body, v.facts) : [];
   Object.assign(v, { title, body_md: body, sections: { ...v.sections, text: sections, outlook: o, edited_manually: true }, checks: await runChecks(v.kind, v.facts, sections, o, semantic) });
   await saveDraft(v);
   return v;
@@ -325,7 +328,7 @@ export async function runJob(job: Kind, inst: string, o: { force?: boolean; now?
   }
 }
 
-/** Jobs due for a cron run: "reviews" (03:00 UTC) or "analyses" (05:00 UTC), by weekday in EAT. */
+/** Jobs due for a cron run: "reviews" (03:00 UTC) or "analyses" (05:00 UTC), by weekday in the display timezone. */
 export function dueJobs(run: "reviews" | "analyses", now = Date.now()): Kind[] {
   const wd = new Date(dateIn(now) + "T12:00:00Z").getUTCDay();
   if (run === "reviews") return wd >= 2 && wd <= 6 ? ["daily_review"] : [];

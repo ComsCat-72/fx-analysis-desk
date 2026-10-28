@@ -4,10 +4,11 @@ export interface Instrument { code: string; display: string; base: string; quote
 
 export interface AppConfig {
   app_env: string;
-  display: { timezone: string; timezone_label: string };
+  display: { timezone: string; timezone_label: string; choices: { tz: string; label: string }[] };
   instruments: Instrument[];
   publication_mode: "manual" | "automatic";
   writer: string;
+  writer_setting: "template" | "claude";
   schedules: Record<string, string | number | number[]>;
   providers: Record<string, unknown>;
   credentials: Record<string, boolean>;
@@ -106,6 +107,8 @@ export const api = {
   freshness: (instrument: string) => req<Freshness>(`/api/freshness?${q({ instrument })}`),
   warnings: (instrument: string) => req<DQWarning[]>(`/api/warnings?${q({ instrument })}`),
   jobs: () => req<Job[]>("/api/jobs"),
+  saveSettings: (body: { writer?: string; display_timezone?: string }) =>
+    req<{ writer: string; display_timezone: string }>("/api/settings", { method: "PUT", body: JSON.stringify(body) }),
   setMode: (mode: string, confirm_automatic: boolean) =>
     req(`/api/settings/publication-mode`, { method: "PUT", body: JSON.stringify({ mode, confirm_automatic }) }),
   addNews: (body: { source_name: string; title: string; url?: string; published_at: string; currencies: string[] }) =>

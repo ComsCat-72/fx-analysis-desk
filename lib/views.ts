@@ -1,6 +1,6 @@
 // What the API returns to the dashboard, assembled from the stored documents.
 import { CONFIG, instrument } from "./config.ts";
-import { addDays, dateIn, dayName, monday, shortStamp, stamp, weekDays } from "./dates.ts";
+import { addDays, dateIn, dayName, displayZone, monday, shortStamp, stamp, weekDays } from "./dates.ts";
 import { lastClosedSession, marketOpen, weekWindow } from "./core/sessions.ts";
 import { eventAsOf, eventCurrencies, eventsBetween } from "./data/calendar.ts";
 import { fetchSeries } from "./data/yahoo.ts";
@@ -41,7 +41,7 @@ export async function calendarRows(inst: string, week: string) {
   return (await eventsBetween(w.start - 2 * 86400_000, w.end + 86400_000)).filter((e) => curs.includes(e.currency)).map((e) => {
     const st = eventAsOf(e, now);
     return { id: `${monday(dateIn(e.scheduledAt, "America/New_York"))}:${e.id}`, currency: e.currency, title: e.title, impact: e.impact,
-      time_eat: shortStamp(e.scheduledAt), time_label: CONFIG.display.timezone_label, source_time: e.sourceTime, consensus: st.consensus, previous: st.previous,
+      time_eat: shortStamp(e.scheduledAt), time_label: displayZone().timezone_label, source_time: e.sourceTime, consensus: st.consensus, previous: st.previous,
       revised_previous: st.revisedPrevious, actual: st.actual, state: st.state, actual_sources: st.actualSources, source: e.source, is_fixture: !!e.fixture };
   });
 }

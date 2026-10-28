@@ -1,4 +1,4 @@
-// Live check against the real free sources (Yahoo, Forex Factory export, central-bank feeds), using the offline
+// Live check against the real free sources (Yahoo, Forex Factory export, central-bank and headline feeds), using the offline
 // template writer and a throwaway local store. Writes reports and a data summary to ./out. Run in CI:
 //   node --experimental-strip-types scripts/live-check.ts
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
@@ -12,6 +12,7 @@ useLocalStore(mkdtempSync(path.join(tmpdir(), "live-")));
 const { CONFIG } = await import("../lib/config.ts");
 const { refreshCalendar, eventsBetween } = await import("../lib/data/calendar.ts");
 const { refreshPolicy, policyItems } = await import("../lib/data/policy.ts");
+const { refreshHeadlines, headlineItems } = await import("../lib/data/headlines.ts");
 const { fetchSeries } = await import("../lib/data/yahoo.ts");
 const { dayWindow } = await import("../lib/core/sessions.ts");
 const { addDays, monday, todayLocal, weekDays } = await import("../lib/dates.ts");
@@ -22,6 +23,8 @@ mkdirSync(out, { recursive: true });
 const summary: Record<string, unknown> = { at: new Date().toISOString() };
 summary.calendar = await refreshCalendar().catch((e) => `ERROR ${e.message}`);
 summary.policy = await refreshPolicy().catch((e) => `ERROR ${e.message}`);
+summary.headlines = await refreshHeadlines().catch((e) => `ERROR ${e.message}`);
+summary.headlines_sample = (await headlineItems()).slice(0, 8).map((h) => `${new Date(h.publishedAt).toISOString()} ${h.sourceName} [${h.currencies.join(",")}]: ${h.title}`);
 const pol = await policyItems();
 summary.policy_by_bank = Object.fromEntries(Object.keys(CONFIG.centralBanks).map((b) => [b, pol.filter((p) => p.bank === b).slice(0, 3).map((p) => `${new Date(p.publishedAt).toISOString()} ${p.kind}: ${p.title}`)]));
 summary.events_this_week = (await eventsBetween(Date.now() - 7 * 864e5, Date.now() + 7 * 864e5)).length;

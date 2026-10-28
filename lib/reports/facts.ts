@@ -2,7 +2,7 @@
 // E# events, P# policy/news). Strictly as-of: only bars closed by the data cutoff, only event values recorded by
 // the cutoff, only policy/news published by the cutoff, only reports published by the cutoff.
 import { CONFIG, instrument, type Kind } from "../config.ts";
-import { addDays, dateIn, hhmm, isWeekday, monday, shortDate, stamp, weekDays, dayMonthYear, dayName } from "../dates.ts";
+import { addDays, dateIn, displayZone, hhmm, isWeekday, monday, shortDate, stamp, weekDays, dayMonthYear, dayName } from "../dates.ts";
 import * as T from "../core/technical.ts";
 import { evaluateBreak, levelStatus, type BreakRules } from "../core/breaks.ts";
 import { assessDirection, CORRECT_INCORRECT, DIRECTION_LABEL, type Direction } from "../core/evaluation.ts";
@@ -90,7 +90,7 @@ export function buildBundle(ctx: Context): Bundle {
   const tc = CONFIG.technical, rules = breakRules();
   const wk = monday(period);
   const horizon = kind === "weekly_analysis" || kind === "weekly_review" ? weekWindow(rule, wk) : dayWindow(rule, period);
-  const tz = CONFIG.display.timezone, tzl = CONFIG.display.timezone_label;
+  const { timezone: tz, timezone_label: tzl } = displayZone();
 
   const B = new Builder({
     instrument: code, display: inst.display, base: inst.base, quote: inst.quote, instrument_kind: inst.kind, instrument_label: inst.label ?? null,
@@ -157,7 +157,7 @@ export function buildBundle(ctx: Context): Bundle {
   const closes = d1.map((c) => c.close);
   for (const m of tc.movingAverages) {
     const v = m.type === "SMA" ? T.sma(closes, m.period) : T.ema(closes, m.period);
-    if (v != null) B.add("facts", "F", { kind: "indicator", values: [f(v, d)], source: "calculation",
+    if (v != null) B.add("facts", "F", { kind: "indicator", ma: `${m.type}(${m.period})`, position: closes[closes.length - 1] > v ? "above" : "below", values: [f(v, d)], source: "calculation",
       text: `${m.type}(${m.period}) of daily closes: ${f(v, d)}; the last daily close was ${closes[closes.length - 1] > v ? "above" : "below"} it.` });
   }
   if (tc.rsi.enabled) {
@@ -222,13 +222,21 @@ export function buildBundle(ctx: Context): Bundle {
   // ---- policy, news and research findings
   const pFrom = cutoff - 10 * 86400_000;
   for (const p of ctx.policy.filter((p) => curs.includes(p.currency) && p.publishedAt <= cutoff && p.publishedAt >= pFrom && isMonetaryPolicy(p.kind, p.title)).slice(0, 12)) {
-    B.add("policy", "P", { kind: "policy", bank: p.bank, currency: p.currency, type: p.kind, title: p.title, url: p.url, published_display: stamp(p.publishedAt),
+    B.add("policy", "P", { kind: "policy", bank: p.bank, currency: p.currency, type: p.kind, title: p.title, url: p.url, published_at: iso(p.publishedAt), published_display: stamp(p.publishedAt),
       text: `${p.bank.toUpperCase()} ${p.kind}: "${p.title}" (${stamp(p.publishedAt)}). ${(p.summary ?? "").slice(0, 400)}`.trim(),
       values: [], numbers_in_text: nums(`${p.title} ${p.summary ?? ""}`), source: p.url ?? p.source });
   }
-  for (const n of ctx.news.filter((n) => n.publishedAt <= cutoff && n.publishedAt >= pFrom && (!n.currencies.length || n.currencies.some((c) => curs.includes(c)))).slice(0, 20)) {
-    B.add("policy", "P", { kind: "news", source_name: n.sourceName, title: n.title, url: n.url, entered_by: n.enteredBy, published_display: stamp(n.publishedAt),
-      text: `${n.sourceName} (${n.enteredBy === "user" ? "user-entered headline" : "found by web search"}): "${n.title}" (${stamp(n.publishedAt)}). ${(n.summary ?? "").slice(0, 400)}`.trim(),
+  const visible = ctx.news.filter((n) => n.publishedAt <= cutoff && n.publishedAt >= pFrom && (!n.currencies.length || n.currencies.some((c) => curs.includes(c))))
+    .sort((a, c) => c.publishedAt - a.publishedAt);
+  // Feed headlines: the newest few per currency, so one busy currency cannot crowd out the other side of the pair.
+  const perCur = CONFIG.headlines.perCurrencyInBundle, taken = new Set<string>();
+  const feed = curs.flatMap((c) => visible.filter((n) => n.enteredBy === "feed" && n.currencies.includes(c)).slice(0, perCur))
+    .filter((n) => (taken.has(n.id) ? false : (taken.add(n.id), true)));
+  for (const n of [...visible.filter((n) => n.enteredBy !== "feed").slice(0, 20), ...feed]) {
+    const how = n.enteredBy === "user" ? "user-entered headline" : n.enteredBy === "feed" ? "headline only; article content not verified" : "found by web search";
+    B.add("policy", "P", { kind: "news", source_name: n.sourceName, title: n.title, url: n.url, entered_by: n.enteredBy, currencies: n.currencies, published_at: iso(n.publishedAt),
+      published_display: stamp(n.publishedAt),
+      text: `${n.sourceName} (${how}): "${n.title}" (${stamp(n.publishedAt)}). ${(n.summary ?? "").slice(0, 400)}`.trim(),
       values: [], numbers_in_text: nums(`${n.title} ${n.summary ?? ""}`), source: n.url ?? n.sourceName });
   }
   for (const r of ctx.research) {
