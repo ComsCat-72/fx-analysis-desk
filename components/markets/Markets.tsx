@@ -76,6 +76,9 @@ function StrengthView() {
   );
 }
 
+/** A correlation as a percentage: +85%, −41%, 0%. */
+const corrPct = (r: number) => { const p = Math.round(r * 100); return `${p > 0 ? "+" : p < 0 ? "−" : ""}${Math.abs(p)}%`; };
+
 /** Background for a correlation: green for positive, red for negative, stronger colour for a stronger link. */
 const cellStyle = (r: number | null) => r == null ? {} : { background: `color-mix(in srgb, var(${r >= 0 ? "--ok" : "--danger"}) ${Math.round(Math.abs(r) * 55)}%, transparent)` };
 
@@ -107,7 +110,7 @@ function CorrelationView() {
                 <th className="whitespace-nowrap pr-2 text-left font-medium text-muted">{row.display}</th>
                 {m[i].map((r, j) => (
                   <td key={j} className="num rounded-md px-1 py-2 text-center" style={i === j ? undefined : cellStyle(r)}>
-                    {i === j ? <span className="text-faint">—</span> : r == null ? "—" : r.toFixed(2)}
+                    {i === j ? <span className="text-faint">—</span> : r == null ? "—" : corrPct(r)}
                   </td>
                 ))}
               </tr>
@@ -116,8 +119,8 @@ function CorrelationView() {
         </table>
       </div>
       <p className="text-[12px] text-faint">
-        Correlation of daily % changes over the last {days} trading days both markets traded, from Yahoo Finance daily closes. +1: they moved together; −1: they moved
-        opposite; near 0: no steady link. {d.note} Updated {d.as_of_display}.
+        Correlation of daily % changes over the last {days} trading days both markets traded, from Yahoo Finance daily closes. +100%: they moved together; −100%: they moved
+        opposite; near 0%: no steady link. {d.note} Updated {d.as_of_display}.
         {d.errors.length > 0 && <span className="text-warn"> Missing: {d.errors.join("; ")}.</span>}
       </p>
     </div>
