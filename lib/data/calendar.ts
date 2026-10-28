@@ -90,6 +90,22 @@ export async function recordValue(week: string, id: string, field: "actual" | "r
   if (!found) throw new Error("no such event");
 }
 
+/** Append several values to one week's events in a single read-modify-write (far fewer storage round trips). */
+export async function recordValues(week: string, entries: { id: string; field: HistoryEntry["field"]; value: string; source: string; url?: string | null; at: number }[]) {
+  if (!entries.length) return 0;
+  let n = 0;
+  await update<CalendarDoc>(calendarPath(week), () => emptyDoc(week), (doc) => {
+    n = 0;
+    for (const x of entries) {
+      const e = doc.events[x.id];
+      if (!e || e.history.some((h) => h.field === x.field && h.source === x.source && h.value === x.value)) continue;
+      e.history.push({ field: x.field, value: x.value.trim(), source: x.source, url: x.url ?? null, at: x.at });
+      n++;
+    }
+  });
+  return n;
+}
+
 export interface EventAsOf {
   state: EventState; actual: string | null; actualSources: string[]; consensus: string | null; previous: string | null;
   revisedPrevious: string | null; rescheduledTo: string | null; conflicting: Record<string, string> | null;

@@ -382,7 +382,7 @@ export function Calculators() {
         <strong className="text-fg">General trading arithmetic.</strong> These tools are separate from the analysis reports, which never use them. Nothing here is a recommendation to trade.
       </div>
       <div className="grid gap-3 lg:grid-cols-[230px_minmax(0,1fr)]">
-        <nav className="panel h-fit p-2 lg:sticky lg:top-24" aria-label="Calculators">
+        <nav className="panel h-fit min-w-0 p-2 lg:sticky lg:top-24" aria-label="Calculators">
           <ul className="flex gap-1 overflow-x-auto lg:flex-col tabs-scroll">
             {LIST.map((c) => (
               <li key={c.id} className="shrink-0">

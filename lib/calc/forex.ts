@@ -207,3 +207,34 @@ export function sessionsAt(t: number) {
     return { ...s, open_now: marketOpen && !!current, current, next: upcoming, windows: valid };
   });
 }
+
+// Typical activity: how many centres trade at once, with London and New York weighted most. An estimate from
+// session overlap, not measured volume.
+export const SESSION_WEIGHT: Record<string, number> = { Sydney: 1, Tokyo: 1.5, London: 3, "New York": 2.5 };
+
+export function activityAt(t: number): { score: number; level: "High" | "Medium" | "Low" } {
+  if (!fxMarketOpen(t)) return { score: 0, level: "Low" };
+  const score = sessionsAt(t).filter((s) => s.open_now).reduce((a, s) => a + SESSION_WEIGHT[s.name], 0);
+  return { score, level: score >= 3 ? "High" : score >= 1.5 ? "Medium" : "Low" };
+}
+
+/** The calendar day containing `t` in `tz`: its start and end instants (23 or 25 hours on daylight-saving days). */
+export function dayIn(t: number, tz: string) {
+  const p = Object.fromEntries(new Intl.DateTimeFormat("en-US", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date(t)).map((x) => [x.type, x.value]));
+  const d = `${p.year}-${p.month}-${p.day}`;
+  return { date: d, start: zoned(d, "00:00", tz), end: zoned(addDays(d, 1), "00:00", tz) };
+}
+
+/** Each session's open windows that fall inside a day (clipped to it). */
+export function sessionsInDay(start: number, end: number) {
+  const mid = (start + end) / 2;
+  const seen = new Map<string, { start: number; end: number }[]>();
+  for (const probe of [start, mid, end - 1]) {
+    for (const s of sessionsAt(probe)) {
+      const list = seen.get(s.name) ?? [];
+      for (const w of s.windows) if (w.end > start && w.start < end && !list.some((x) => x.start === w.start)) list.push(w);
+      seen.set(s.name, list);
+    }
+  }
+  return SESSIONS.map((s) => ({ ...s, windows: (seen.get(s.name) ?? []).map((w) => ({ start: Math.max(w.start, start), end: Math.min(w.end, end) })).sort((a, b) => a.start - b.start) }));
+}

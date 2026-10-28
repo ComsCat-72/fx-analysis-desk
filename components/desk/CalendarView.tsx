@@ -90,15 +90,14 @@ function Detail({ r, onDone }: { r: CalRow; onDone: () => void }) {
   );
 }
 
-const COLS = "md:grid md:grid-cols-[76px_58px_46px_48px_minmax(0,1fr)_36px_84px_84px_84px] md:items-center";
+const COLS = "md:grid md:grid-cols-[8px_58px_46px_48px_minmax(0,1fr)_36px_84px_84px_84px] md:items-center";
 
 function Row({ r, firstOfDay, firstOfTime, open, onToggle, rowRef, isNext, now }: { r: CalRow; firstOfDay: boolean; firstOfTime: boolean; open: boolean; onToggle: () => void; rowRef?: (el: HTMLDivElement | null) => void; isNext: boolean; now: number }) {
   const past = Date.parse(r.at) <= now;
   return (
     <div ref={rowRef} className={cx("cal-row", firstOfTime && "border-t border-line", isNext && "bg-accent-soft")}>
-      {firstOfDay && <div className="border-b border-line bg-surface-2 px-3 py-1.5 text-[12px] font-semibold md:hidden">{fmt(r.date, { weekday: "long", day: "numeric", month: "short" })}</div>}
       <div className={cx(COLS, "hidden min-h-[30px] px-3 py-1 text-[12.5px]", past && !isNext && "opacity-75")}>
-        <div className="text-[12px] leading-tight">{firstOfDay && <><div className="font-semibold">{fmt(r.date, { weekday: "short" })}</div><div className="text-muted">{fmt(r.date, { day: "numeric", month: "short" })}</div></>}</div>
+        <div aria-hidden />{/* the day is shown in the sticky day header above */}
         <div className={cx("num text-[12.5px]", past ? "text-faint" : "text-muted")}>
           {firstOfTime && (r.all_day ? "All day" : <span className="inline-flex items-center gap-1">{isNext && <Play className="size-3 fill-current text-accent" aria-label="Up next" />}{r.time}</span>)}
         </div>
@@ -164,7 +163,7 @@ function MiniMonth({ month, selected, today, mode, onPick, marked }: { month: st
 
 export function CalendarView({ today, instrumentCurrencies }: { today: string; instrumentCurrencies: string[] }) {
   const qc = useQueryClient();
-  const [mode, setMode] = useState<Mode>("day"); // opens on today, like Forex Factory
+  const [mode, setMode] = useState<Mode>("week"); // the whole week, like Forex Factory's "This week"
   const [anchor, setAnchor] = useState(today);
   const [month, setMonth] = useState(today);
   const [open, setOpen] = useState<string | null>(null);
@@ -227,6 +226,12 @@ export function CalendarView({ today, instrumentCurrencies }: { today: string; i
             ))}
           </div>
           <div className="ml-auto flex flex-wrap items-center gap-1.5">
+            {(filter.currencies.length > 0 || filter.impacts.length > 0) && (
+              <span className="inline-flex items-center gap-1.5 rounded-lg border border-[color-mix(in_srgb,var(--warn)_40%,transparent)] bg-warn-soft px-2 py-1 text-[12px] text-warn">
+                Filtered: {[filter.currencies.length && `${filter.currencies.length} currenc${filter.currencies.length === 1 ? "y" : "ies"}`, filter.impacts.length && `${filter.impacts.length} impact level${filter.impacts.length === 1 ? "" : "s"}`].filter(Boolean).join(", ")}
+                <button className="cursor-pointer font-semibold underline" onClick={() => setFilter({ currencies: [], impacts: [] })}>Show everything</button>
+              </span>
+            )}
             <Button size="sm" variant="ghost" onClick={upNext}><Play className="size-3.5 fill-current" aria-hidden />Up next</Button>
             <Button size="sm" variant={filter.currencies.length || filter.impacts.length ? "primary" : "secondary"} onClick={() => setShowFilter(!showFilter)} title="Filter by currency and impact">
               <Filter className="size-4" aria-hidden />Filter{filter.currencies.length + filter.impacts.length ? ` (${filter.currencies.length + filter.impacts.length})` : ""}
@@ -270,9 +275,14 @@ export function CalendarView({ today, instrumentCurrencies }: { today: string; i
         </AnimatePresence>
 
         <div className={cx(COLS, "hidden border-b border-line bg-surface-2 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-faint")}>
-          <span>Date</span><span>Time</span><span>Cur.</span><span>Impact</span><span>Event</span><span>Detail</span><span className="text-right">Actual</span><span className="text-right">Forecast</span><span className="text-right">Previous</span>
+          <span /><span>Time</span><span>Cur.</span><span>Impact</span><span>Event</span><span>Detail</span><span className="text-right">Actual</span><span className="text-right">Forecast</span><span className="text-right">Previous</span>
         </div>
-        {data.isLoading ? <Spinner label="Loading calendar" /> : data.error ? <p className="p-4 text-sm text-danger">{friendlyError(data.error)}</p> : rows.length === 0 ? (
+        {data.isLoading ? <Spinner label="Loading calendar" /> : data.error ? (
+          <div className="flex items-center gap-3 p-4 text-sm text-danger" role="alert">
+            <span>Could not load the calendar: {friendlyError(data.error)}</span>
+            <Button size="sm" onClick={() => data.refetch()}>Retry</Button>
+          </div>
+        ) : rows.length === 0 ? (
           <div className="space-y-1 p-6 text-center text-sm text-muted">
             <p>No events stored for this {mode}{filter.currencies.length || filter.impacts.length ? " with the current filter" : ""}.</p>
             <p className="text-[12.5px] text-faint">Forex Factory's free feed covers the current week. Earlier weeks are kept as they were fetched, and next week appears once Forex Factory publishes it. Use the refresh button to fetch the latest.</p>
@@ -281,6 +291,11 @@ export function CalendarView({ today, instrumentCurrencies }: { today: string; i
           <div role="table" aria-label="Economic calendar" className="min-h-0 flex-1 overflow-y-auto">
             {rows.map((r, i) => (
               <div key={r.id}>
+                {(i === 0 || rows[i - 1].date !== r.date) && (
+                  <div className="sticky top-0 z-10 border-y border-line bg-surface-2/95 px-3 py-1 text-[12px] font-semibold backdrop-blur">
+                    {fmt(r.date, { weekday: "long", day: "numeric", month: "long" })}{r.date === today && <span className="ml-2 rounded bg-accent-soft px-1.5 py-0.5 text-[11px] text-accent">Today</span>}
+                  </div>
+                )}
                 {i === nowIdx && i > 0 && <div className="relative h-0 border-t-2 border-accent" aria-label="Now"><span className="absolute -top-2.5 left-3 rounded bg-accent px-1.5 text-[10px] font-semibold uppercase text-white">now</span></div>}
                 <Row r={r} firstOfDay={i === 0 || rows[i - 1].date !== r.date} firstOfTime={i === 0 || rows[i - 1].date !== r.date || rows[i - 1].time !== r.time}
                   open={open === r.id} onToggle={() => setOpen(open === r.id ? null : r.id)} rowRef={(el) => { refs.current[r.id] = el; }} isNext={r.id === nextId} now={now} />
@@ -290,7 +305,9 @@ export function CalendarView({ today, instrumentCurrencies }: { today: string; i
         )}
         <p className="border-t border-line px-4 py-2 text-[11.5px] text-faint">
           Schedule, forecast and previous: Forex Factory weekly export. Actual results: biquote.io free economic calendar, refreshed every two minutes while the calendar is open (and editable in each row's details).
+          {data.data?.actuals_synced_display && <> Last actuals update: {data.data.actuals_synced_display}.</>}
           {data.data?.actuals_sync?.error && <span className="text-warn"> {data.data.actuals_sync.error}.</span>}{" "}
+          Forex Factory's free feed covers the current week; earlier weeks show what was stored while they were current.
           Green and red show whether the actual was better or worse than the forecast for that currency; it is not a market call.
           {data.data && <> Times in {data.data.timezone_label} ({data.data.timezone}).</>}
         </p>

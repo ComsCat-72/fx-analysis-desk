@@ -8,7 +8,7 @@
 // as "conflicting" instead of being overwritten.
 import { parseValue } from "../core/events.ts";
 import { getJSON, putJSON } from "../store.ts";
-import { eventsBetween, recordValue, type CalendarEvent } from "./calendar.ts";
+import { eventsBetween, recordValues, type CalendarEvent } from "./calendar.ts";
 import { dateIn, monday } from "../dates.ts";
 
 export const BIQUOTE_URL = process.env.BIQUOTE_URL || "https://biquote.io/api/calendar"; // overridable for local testing
@@ -98,46 +98,52 @@ export function formatLike(value: string, like: (string | null)[], unit: string 
 }
 
 export interface SyncResult { fetched: number; matched: number; recorded: number; fields: Record<string, string>; error: string | null; skipped?: string }
-interface SyncDoc { at: number; result: SyncResult }
+interface SyncDoc { at: number; result: SyncResult; running?: number | null }
 
 /** Fetch releases for the range and attach actuals (and missing forecast/previous) to Forex Factory events.
- *  Runs at most once every `minGapMs`; failures are returned, never thrown. */
+ *  Runs at most once every `minGapMs`, and never twice at once: a run first claims the sync document.
+ *  All values for one calendar week are written in a single update. Failures are returned, never thrown. */
 export async function syncActuals(from: number, to: number, o: { now?: number; minGapMs?: number; fetcher?: typeof fetch } = {}): Promise<SyncResult> {
   const now = o.now ?? Date.now(), gap = o.minGapMs ?? 120_000;
   const last = await getJSON<SyncDoc>("actuals-sync.json");
-  if (last && now - last.at < gap) return { ...last.result, skipped: "synced recently" };
+  if (last?.running && now - last.running < 90_000) return { ...last.result, skipped: "sync already running" };
+  if (last && !last.running && now - last.at < gap) return { ...last.result, skipped: "synced recently" };
+  const empty: SyncResult = { fetched: 0, matched: 0, recorded: 0, fields: {}, error: null };
+  await putJSON("actuals-sync.json", { at: last?.at ?? 0, result: last?.result ?? empty, running: now } satisfies SyncDoc).catch(() => undefined);
   const fields: Record<string, string> = {};
   let result: SyncResult;
   try {
     const q = new URLSearchParams({ from: dateIn(from, "UTC"), to: dateIn(to, "UTC"), countries: COUNTRIES.join(",") });
-    const r = await (o.fetcher ?? fetch)(`${BIQUOTE_URL}?${q}`, { headers: { Accept: "application/json", "User-Agent": "fx-analysis-desk/1.0" }, cache: "no-store", signal: AbortSignal.timeout(6000) });
+    const r = await (o.fetcher ?? fetch)(`${BIQUOTE_URL}?${q}`, { headers: { Accept: "application/json", "User-Agent": "fx-analysis-desk/1.0" }, cache: "no-store", signal: AbortSignal.timeout(8000) });
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const releases = parseReleases(await r.json(), fields);
     const events = await eventsBetween(from - 86400_000, to + 86400_000);
-    let matched = 0, recorded = 0;
+    const byWeek = new Map<string, Parameters<typeof recordValues>[1]>();
+    let matched = 0;
     for (const rel of releases) {
       const e = matchEvent(rel, events);
       if (!e) continue;
       matched++;
       const wk = monday(dateIn(e.scheduledAt, "America/New_York"));
-      const has = (field: string, v: string) => e.history.some((h) => h.field === field && h.source === SOURCE && h.value === v);
-      const put = async (field: "actual" | "consensus" | "previous" | "revised_previous", v: string) => {
-        if (has(field, v)) return;
-        await recordValue(wk, e.id, field, v, SOURCE, BIQUOTE_URL, now);
-        e.history.push({ field, value: v, source: SOURCE, url: BIQUOTE_URL, at: now });
-        recorded++;
+      const put = (field: "actual" | "consensus" | "previous" | "revised_previous", v: string) => {
+        if (e.history.some((h) => h.field === field && h.source === SOURCE && h.value === v)) return;
+        const list = byWeek.get(wk) ?? [];
+        list.push({ id: e.id, field, value: v, source: SOURCE, url: BIQUOTE_URL, at: now });
+        byWeek.set(wk, list);
       };
-      const like = [e.consensus, e.previous];
-      if (rel.actual && rel.at <= now) await put("actual", formatLike(rel.actual, like, rel.unit, rel.digits, rel.multiplier));
-      if (!e.consensus && rel.forecast) await put("consensus", formatLike(rel.forecast, like, rel.unit, rel.digits, rel.multiplier));
-      if (!e.previous && rel.previous) await put("previous", formatLike(rel.previous, like, rel.unit, rel.digits, rel.multiplier));
-      if (rel.revised && e.previous && !same(rel.revised, e.previous)) await put("revised_previous", formatLike(rel.revised, like, rel.unit, rel.digits, rel.multiplier));
+      const fmt = (v: string) => formatLike(v, [e.consensus, e.previous], rel.unit, rel.digits, rel.multiplier);
+      if (rel.actual && rel.at <= now) put("actual", fmt(rel.actual));
+      if (!e.consensus && rel.forecast) put("consensus", fmt(rel.forecast));
+      if (!e.previous && rel.previous) put("previous", fmt(rel.previous));
+      if (rel.revised && e.previous && !same(rel.revised, e.previous)) put("revised_previous", fmt(rel.revised));
     }
+    let recorded = 0;
+    for (const [wk, entries] of byWeek) recorded += await recordValues(wk, entries);
     result = { fetched: releases.length, matched, recorded, fields, error: null };
   } catch (e) {
     result = { fetched: 0, matched: 0, recorded: 0, fields, error: `biquote.io unavailable: ${(e as Error).message}` };
   }
-  await putJSON("actuals-sync.json", { at: now, result } satisfies SyncDoc).catch(() => undefined);
+  await putJSON("actuals-sync.json", { at: now, result, running: null } satisfies SyncDoc).catch(() => undefined);
   return result;
 }
 

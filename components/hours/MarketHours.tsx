@@ -2,6 +2,7 @@
 
 import * as C from "@/lib/calc/forex";
 import { browserZone, useNow } from "../desk/api";
+import { useState } from "react";
 import { cx } from "../desk/ui";
 
 const two = (n: number) => String(n).padStart(2, "0");
@@ -23,7 +24,7 @@ function Clock({ h, m, s, open }: { h: number; m: number; s: number; open: boole
     <line x1="50" y1="50" x2={50 + len * Math.sin((deg * Math.PI) / 180)} y2={50 - len * Math.cos((deg * Math.PI) / 180)} strokeWidth={w} strokeLinecap="round" className={cls} />
   );
   return (
-    <svg viewBox="0 0 100 100" className="size-36 sm:size-40" role="img" aria-label={`${two(h)}:${two(m)}`}>
+    <svg viewBox="0 0 100 100" className="size-28 sm:size-40" role="img" aria-label={`${two(h)}:${two(m)}`}>
       <circle cx="50" cy="50" r="47" className="fill-[var(--surface-2)] stroke-[var(--border-strong)]" strokeWidth="1.5" />
       <circle cx="50" cy="50" r="43" className={cx("fill-none", open ? "stroke-[var(--ok)]" : "stroke-[var(--border)]")} strokeWidth="1" />
       {Array.from({ length: 60 }, (_, i) => {
@@ -39,26 +40,177 @@ function Clock({ h, m, s, open }: { h: number; m: number; s: number; open: boole
   );
 }
 
+// ---------------------------------------------------------------- time zone converter (BabyPips-style board)
+
+const SESSION_COLOR: Record<string, string> = { Sydney: "#3b5bdb", Tokyo: "#a3008a", London: "#3b9cf0", "New York": "#4cc21c" };
+const ZONES: [string, string][] = [["Australia/Sydney", "Sydney"], ["Asia/Tokyo", "Tokyo"], ["Asia/Hong_Kong", "Hong Kong"], ["Asia/Dubai", "Dubai"],
+  ["Africa/Kampala", "Kampala"], ["Africa/Nairobi", "Nairobi"], ["Africa/Kigali", "Kigali"], ["Africa/Lagos", "Lagos"], ["Africa/Johannesburg", "Johannesburg"],
+  ["Europe/London", "London"], ["Europe/Berlin", "Frankfurt"], ["America/New_York", "New York"], ["America/Chicago", "Chicago"], ["America/Los_Angeles", "Los Angeles"], ["UTC", "UTC"]];
+const offset = (tz: string, t: number) => new Intl.DateTimeFormat("en-US", { timeZone: tz, timeZoneName: "shortOffset" }).formatToParts(new Date(t)).find((x) => x.type === "timeZoneName")?.value.replace("GMT", "GMT ").replace("GMT ", "GMT") ?? "GMT";
+const ABBR: Record<string, (off: string) => string> = {
+  "Australia/Sydney": (o) => (o.includes("+11") ? "AEDT" : "AEST"), "Asia/Tokyo": () => "JST",
+  "Europe/London": (o) => (o.includes("+1") ? "BST" : "GMT"), "America/New_York": (o) => (o.includes("-4") ? "EDT" : "EST"),
+};
+const ord = (d: number) => `${d}${d % 10 === 1 && d !== 11 ? "st" : d % 10 === 2 && d !== 12 ? "nd" : d % 10 === 3 && d !== 13 ? "rd" : "th"}`;
+function clock(t: number, tz: string, h24: boolean) {
+  return new Date(t).toLocaleTimeString("en-US", { timeZone: tz, hour: "numeric", minute: "2-digit", hour12: !h24 }).toLowerCase();
+}
+
+/** Small round flags, drawn inline. */
+function Flag({ name }: { name: string }) {
+  const common = { width: 28, height: 28, viewBox: "0 0 28 28" };
+  const clip = <clipPath id={`f-${name}`}><circle cx="14" cy="14" r="13" /></clipPath>;
+  const ring = <circle cx="14" cy="14" r="13" fill="none" stroke="var(--border-strong)" />;
+  if (name === "Tokyo") return <svg {...common} aria-hidden><circle cx="14" cy="14" r="13" fill="#fff" /><circle cx="14" cy="14" r="5.5" fill="#bc002d" />{ring}</svg>;
+  if (name === "New York") return (
+    <svg {...common} aria-hidden><defs>{clip}</defs><g clipPath={`url(#f-${name})`}>
+      {Array.from({ length: 7 }, (_, i) => <rect key={i} y={i * 4} width="28" height="2" fill="#b22234" />)}{Array.from({ length: 7 }, (_, i) => <rect key={`w${i}`} y={i * 4 + 2} width="28" height="2" fill="#fff" />)}
+      <rect width="13" height="14" fill="#3c3b6e" />{[3, 7, 11].flatMap((x) => [3, 7, 11].map((y) => <circle key={`${x}${y}`} cx={x} cy={y} r="0.9" fill="#fff" />))}
+    </g>{ring}</svg>
+  );
+  const jack = (
+    <g>
+      <rect width="28" height="28" fill="#012169" />
+      <path d="M0 0L28 28M28 0L0 28" stroke="#fff" strokeWidth="5" /><path d="M0 0L28 28M28 0L0 28" stroke="#c8102e" strokeWidth="2" />
+      <path d="M14 0V28M0 14H28" stroke="#fff" strokeWidth="7" /><path d="M14 0V28M0 14H28" stroke="#c8102e" strokeWidth="4" />
+    </g>
+  );
+  if (name === "London") return <svg {...common} aria-hidden><defs>{clip}</defs><g clipPath={`url(#f-${name})`}>{jack}</g>{ring}</svg>;
+  return ( // Sydney: Australian flag, simplified
+    <svg {...common} aria-hidden><defs>{clip}</defs><g clipPath={`url(#f-${name})`}>
+      <rect width="28" height="28" fill="#012169" /><g transform="scale(0.5)">{jack}</g>
+      {[[20, 8], [23, 14], [17, 16], [20, 21], [7, 21]].map(([x, y], i) => <circle key={i} cx={x} cy={y} r={i === 4 ? 2 : 1.2} fill="#fff" />)}
+    </g>{ring}</svg>
+  );
+}
+
+function ActivityCurve({ start, end, now }: { start: number; end: number; now: number }) {
+  const n = 96, pts = Array.from({ length: n + 1 }, (_, i) => { const t = start + ((end - start) * i) / n; return { t, a: C.activityAt(t).score }; });
+  const max = 7, y = (a: number) => 52 - (a / max) * 44;
+  const d = pts.map((p, i) => `${i ? "L" : "M"}${((i / n) * 1000).toFixed(1)},${y(p.a).toFixed(1)}`).join(" ");
+  return (
+    <svg viewBox="0 0 1000 56" preserveAspectRatio="none" className="h-14 w-full" aria-hidden>
+      <defs><linearGradient id="act" x1="0" y1="1" x2="0" y2="0"><stop offset="0%" stopColor="#e64980" /><stop offset="45%" stopColor="#f59f00" /><stop offset="100%" stopColor="#40c057" /></linearGradient></defs>
+      <path d={`${d} L1000,56 L0,56 Z`} fill="var(--surface-3)" opacity="0.6" />
+      <path d={d} fill="none" stroke="url(#act)" strokeWidth="3" vectorEffect="non-scaling-stroke" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function Converter({ now }: { now: number }) {
+  const browser = browserZone() || "UTC";
+  const [tz, setTz] = useState(browser);
+  const [h24, setH24] = useState(true);
+  const zones = ZONES.some(([z]) => z === browser) ? ZONES : [[browser, browser.split("/").pop()!.replace("_", " ")] as [string, string], ...ZONES];
+  const day = C.dayIn(now, tz);
+  const span = day.end - day.start;
+  const pct = (t: number) => Math.max(0, Math.min(100, ((t - day.start) / span) * 100));
+  const nowPct = pct(now);
+  const sessions = C.sessionsInDay(day.start, day.end);
+  const live = C.sessionsAt(now);
+  const act = C.activityAt(now);
+  const hours = Array.from({ length: 24 }, (_, h) => h);
+  const label = (h: number) => (h24 ? String(h) : h === 0 ? "•" : String(((h + 11) % 12) + 1));
+  const lights = { High: "#40c057", Medium: "#f59f00", Low: "#e64980" } as const;
+
+  return (
+    <section className="panel overflow-hidden">
+      <div className="flex flex-wrap items-end gap-4 border-b border-line px-5 pb-3 pt-4">
+        <div>
+          <h2 className="font-serif text-[20px] tracking-wide">Forex market time zone converter</h2>
+          <p className="text-[12.5px] text-muted">Session hours shown in the time zone you choose. Bars mark when each centre is trading.</p>
+        </div>
+        <label className="ml-auto flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-faint">Time zone
+          <select value={tz} onChange={(e) => setTz(e.target.value)} className="h-9 cursor-pointer rounded-lg border border-transparent bg-accent-strong px-3 text-[13.5px] font-medium normal-case tracking-normal text-white">
+            {zones.map(([z, name]) => <option key={z} value={z}>{name} ({offset(z, now)})</option>)}
+          </select>
+        </label>
+        <div className="flex flex-col items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-faint"><span id="h24-label">24-hour time</span>
+          <button role="switch" aria-checked={h24} aria-labelledby="h24-label" onClick={() => setH24(!h24)} className={cx("relative h-6 w-11 rounded-full transition-colors", h24 ? "bg-accent-strong" : "bg-surface-3")}>
+            <span className={cx("absolute top-0.5 size-5 rounded-full bg-white shadow transition-[left]", h24 ? "left-[22px]" : "left-0.5")} />
+          </button>
+        </div>
+      </div>
+
+      <div className="px-3 pb-4 pt-2 sm:px-5">
+        <div className="grid grid-cols-[minmax(0,1fr)] md:grid-cols-[230px_minmax(0,1fr)] md:gap-x-0">
+          {/* hour scale + now pin */}
+          <div className="hidden md:block" />
+          <div className="relative h-20">
+            <div className="absolute inset-x-0 bottom-1 flex">
+              {hours.map((h) => <span key={h} className={cx("num flex-1 text-center text-[12px] font-semibold text-muted", h % 3 !== 0 && "max-sm:invisible")}>{label(h)}</span>)}
+            </div>
+            <div className="absolute top-0 z-20 -translate-x-1/2" style={{ left: `${nowPct}%` }}>
+              <div className="flex flex-col items-center rounded-t-full rounded-b-lg bg-accent-strong px-2.5 pb-1.5 pt-2 text-center text-white shadow-lg">
+                <svg viewBox="0 0 20 20" className="size-5" aria-hidden><circle cx="10" cy="10" r="9" fill="#fff" />
+                  <line x1="10" y1="10" x2={10 + 5 * Math.sin((parts(now, tz).h % 12 + parts(now, tz).m / 60) * Math.PI / 6)} y2={10 - 5 * Math.cos((parts(now, tz).h % 12 + parts(now, tz).m / 60) * Math.PI / 6)} stroke="#333" strokeWidth="1.8" strokeLinecap="round" />
+                  <line x1="10" y1="10" x2={10 + 7 * Math.sin(parts(now, tz).m * Math.PI / 30)} y2={10 - 7 * Math.cos(parts(now, tz).m * Math.PI / 30)} stroke="#333" strokeWidth="1.2" strokeLinecap="round" />
+                </svg>
+                <span className="num text-[11.5px] font-bold leading-tight">{clock(now, tz, h24)}</span>
+                <span className="text-[10.5px] leading-tight opacity-90">{new Date(now).toLocaleDateString("en-US", { timeZone: tz, weekday: "long" })}</span>
+              </div>
+            </div>
+          </div>
+
+          {sessions.map((s) => {
+            const p = parts(now, s.tz), off = offset(s.tz, now), isOpen = live.find((x) => x.name === s.name)?.open_now ?? false;
+            const d = new Date(now), date = `${d.toLocaleDateString("en-US", { timeZone: s.tz, weekday: "short" })} ${d.toLocaleDateString("en-US", { timeZone: s.tz, month: "short" })}. ${ord(Number(d.toLocaleDateString("en-US", { timeZone: s.tz, day: "numeric" })))}`;
+            return (
+              <div key={s.name} className="contents">
+                <div className="mt-2 flex items-center gap-3 rounded-l-xl bg-surface-2 px-3 py-3 max-md:rounded-xl md:mt-3">
+                  <Flag name={s.name} />
+                  <div className="min-w-0 leading-tight">
+                    <p className="font-serif text-[16px] font-semibold">{s.name}</p>
+                    <p className="num text-[14px] text-muted">{clock(now, s.tz, h24)}<span className="sr-only"> {two(p.s)}s</span></p>
+                    <p className="text-[11px] leading-snug text-faint">{date} {ABBR[s.tz]?.(off) ?? ""} ({off.replace("GMT", "UTC ")})</p>
+                  </div>
+                </div>
+                <div className="relative mt-1 h-[78px] overflow-hidden rounded-r-xl bg-surface-2 max-md:rounded-xl md:mt-3">
+                  {hours.map((h) => <span key={h} className="absolute inset-y-0 w-px bg-[var(--border)]" style={{ left: `${(h / 24) * 100}%` }} aria-hidden />)}
+                  <span className="absolute left-2 top-1.5 z-10 text-[10.5px] font-bold uppercase tracking-wide" style={{ color: SESSION_COLOR[s.name] }}>
+                    {s.name} session {isOpen ? "open" : "closed"}
+                  </span>
+                  {s.windows.map((w, i) => (
+                    <span key={i} title={`${clock(w.start, tz, h24)} – ${clock(w.end, tz, h24)}`} className={cx("absolute bottom-3 top-7 rounded-sm transition-opacity", !isOpen && "opacity-85")}
+                      style={{ left: `${pct(w.start)}%`, width: `${pct(w.end) - pct(w.start)}%`, background: SESSION_COLOR[s.name] }} />
+                  ))}
+                  <span className="absolute inset-y-0 z-10 w-[3px] -translate-x-1/2 bg-accent-strong" style={{ left: `${nowPct}%` }} aria-hidden />
+                </div>
+              </div>
+            );
+          })}
+
+          {/* typical activity */}
+          <div className="mt-4 flex flex-col items-center justify-center gap-2 px-3 text-center">
+            <p className="text-[12.5px] font-semibold text-muted">Trading volume is usually {act.level.toLowerCase()} at this time of day.</p>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-line px-3 py-0.5 text-[12.5px] font-semibold">
+              <span className="size-3 rounded-full" style={{ background: lights[act.level] }} aria-hidden />{act.level}
+            </span>
+          </div>
+          <div className="relative mt-4 rounded-xl border border-line bg-surface-2">
+            <ActivityCurve start={day.start} end={day.end} now={now} />
+            <span className="absolute inset-y-0 w-[3px] -translate-x-1/2 bg-accent-strong" style={{ left: `${nowPct}%` }} aria-hidden />
+            <span className="absolute top-1/2 z-10 flex -translate-x-1/2 -translate-y-1/2 flex-col gap-1 rounded-full border border-line bg-[var(--surface)] p-1 shadow" style={{ left: `${nowPct}%` }} aria-hidden>
+              {(["High", "Medium", "Low"] as const).map((l) => <span key={l} className="size-3 rounded-full" style={{ background: act.level === l ? lights[l] : "var(--surface-3)" }} />)}
+            </span>
+          </div>
+        </div>
+        <p className="mt-3 text-[11.5px] text-faint">Volume is an estimate from how many centres are trading at once (London and New York weigh most); it is not measured volume. Session hours are each centre's usual business hours and follow its own daylight-saving rules.</p>
+      </div>
+    </section>
+  );
+}
+
 export function MarketHours() {
   const now = useNow(1000);
   const tz = browserZone() || "UTC";
   const sessions = C.sessionsAt(now);
   const open = C.fxMarketOpen(now);
-  // The viewer's local day as the 24-hour board.
   const local = parts(now, tz);
-  const dayStart = now - ((local.h * 60 + local.m) * 60 + local.s) * 1000 - (now % 1000);
-  const pct = (t: number) => Math.max(0, Math.min(100, ((t - dayStart) / 86400_000) * 100));
-  const nowPct = pct(now);
-  // Weekly open/close: Sunday 17:00 to Friday 17:00 New York.
   const nextChange = (() => {
     for (let t = now + 60_000, i = 0; i < 8 * 24 * 60; i++, t += 60_000) if (C.fxMarketOpen(t) !== open) return t - (t % 60_000);
     return null;
   })();
-  const overlaps = [["Tokyo", "London"], ["London", "New York"], ["Sydney", "Tokyo"]].flatMap(([a, b]) => {
-    const A = sessions.find((s) => s.name === a)!, B = sessions.find((s) => s.name === b)!;
-    return A.windows.flatMap((x) => B.windows.map((y) => ({ name: `${a} – ${b}`, start: Math.max(x.start, y.start), end: Math.min(x.end, y.end) }))).filter((o) => o.end > o.start && o.end > dayStart && o.start < dayStart + 86400_000);
-  });
-
   return (
     <div className="space-y-4">
       <section className="panel overflow-hidden">
@@ -78,7 +230,7 @@ export function MarketHours() {
                 <h3 className="mt-2 font-serif text-[18px] tracking-wide">{s.name}</h3>
                 <p className="num text-[15px] font-semibold">{two(p.h)}:{two(p.m)}:{two(p.s)}</p>
                 <p className="text-[12px] text-faint">{p.date} · {s.tz}</p>
-                <p className={cx("mt-1.5 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[12px]", s.open_now ? "border-[color-mix(in_srgb,var(--ok)_45%,transparent)] text-ok" : "border-line text-muted")}>
+                <p className={cx("mt-1.5 inline-flex flex-wrap items-center justify-center gap-x-1.5 rounded-2xl border px-2.5 py-0.5 text-[12px] max-sm:text-[11px]", s.open_now ? "border-[color-mix(in_srgb,var(--ok)_45%,transparent)] text-ok" : "border-line text-muted")}>
                   <span className={cx("size-1.5 rounded-full", s.open_now ? "bg-[var(--ok)]" : "bg-[var(--faint)]")} aria-hidden />{s.open_now ? "Open" : "Closed"} · <span className="num">{until}</span>
                 </p>
               </div>
@@ -86,66 +238,7 @@ export function MarketHours() {
           })}
         </div>
       </section>
-
-      <section className="panel p-5">
-        <h2 className="mb-1 font-serif text-[17px] tracking-wide">Today's sessions in your time</h2>
-        <p className="mb-4 text-[12.5px] text-muted">{local.date} · {tz}. Shaded bands mark overlaps, when two centres trade at once. The red line is now.</p>
-        <div className="relative">
-          <div className="relative ml-24 mb-1 h-4 text-[10.5px] text-faint">
-            {[0, 3, 6, 9, 12, 15, 18, 21].map((h) => <span key={h} className="num absolute -translate-x-1/2" style={{ left: `${(h / 24) * 100}%` }}>{two(h)}:00</span>)}
-          </div>
-          {sessions.map((s) => (
-            <div key={s.name} className="flex items-center gap-3 py-1.5">
-              <span className="w-21 shrink-0 font-serif text-[14px]">{s.name}</span>
-              <div className="relative h-7 flex-1 rounded-md border border-line bg-surface-2">
-                {[3, 6, 9, 12, 15, 18, 21].map((h) => <span key={h} className="absolute inset-y-0 w-px bg-[var(--border)]" style={{ left: `${(h / 24) * 100}%` }} aria-hidden />)}
-                {s.windows.map((w, i) => {
-                  const a = pct(w.start), b = pct(w.end);
-                  const live = s.open_now && w.start === s.current?.start;
-                  return b > a && (
-                    <span key={i} className={cx("absolute inset-y-1 flex items-center overflow-hidden rounded px-1.5 text-[10.5px] font-medium", live ? "bg-accent text-white" : "bg-accent/30 text-fg")} style={{ left: `${a}%`, width: `${b - a}%` }}>
-                      <span className="num truncate">{fmt(w.start)}–{fmt(w.end)}</span>
-                    </span>
-                  );
-                })}
-                <span className="absolute -inset-y-1 w-0.5 rounded bg-[var(--danger)]" style={{ left: `${nowPct}%` }} aria-hidden />
-              </div>
-            </div>
-          ))}
-          <div className="flex items-center gap-3 py-1.5">
-            <span className="w-21 shrink-0 font-serif text-[14px] text-muted">Overlaps</span>
-            <div className="relative h-7 flex-1 rounded-md border border-dashed border-line">
-              {overlaps.map((o, i) => (
-                <span key={i} title={`${o.name}: ${fmt(o.start)}–${fmt(o.end)}`} className="absolute inset-y-1 overflow-hidden rounded bg-[color-mix(in_srgb,var(--warn)_35%,transparent)] px-1.5 text-[10.5px] text-fg"
-                  style={{ left: `${pct(o.start)}%`, width: `${pct(o.end) - pct(o.start)}%` }}><span className="truncate">{o.name}</span></span>
-              ))}
-              <span className="absolute -inset-y-1 w-0.5 rounded bg-[var(--danger)]" style={{ left: `${nowPct}%` }} aria-hidden />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="panel overflow-x-auto">
-        <table className="w-full text-[13px]">
-          <thead className="bg-surface-2 text-left text-[11px] uppercase tracking-wider text-faint">
-            <tr><th className="px-4 py-2.5">Centre</th><th className="px-4 py-2.5">Local hours</th><th className="px-4 py-2.5">In your time</th><th className="px-4 py-2.5">Status</th></tr>
-          </thead>
-          <tbody className="divide-y divide-[var(--border)]">
-            {sessions.map((s) => {
-              const w = s.current ?? s.next;
-              return (
-                <tr key={s.name}>
-                  <td className="px-4 py-2.5 font-serif text-[14px]">{s.name}</td>
-                  <td className="num px-4 py-2.5">{s.open}–{s.close} <span className="text-faint">({s.tz})</span></td>
-                  <td className="num px-4 py-2.5">{w ? `${fmt(w.start)}–${fmt(w.end)}` : "—"}</td>
-                  <td className={cx("px-4 py-2.5", s.open_now ? "text-ok" : "text-muted")}>{s.open_now ? "Open" : "Closed"}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-        <p className="border-t border-line px-4 py-2 text-[12px] text-faint">Session hours are each centre's usual business hours and follow its own daylight-saving rules. The forex market as a whole trades from Sunday 17:00 to Friday 17:00 New York time.</p>
-      </section>
+      <Converter now={now} />
     </div>
   );
 }

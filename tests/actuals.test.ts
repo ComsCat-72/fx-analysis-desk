@@ -84,3 +84,24 @@ test("real biquote.io response shape (captured by the live-check workflow)", () 
   assert.equal(A.formatLike(r[2].actual!, [], r[2].unit, r[2].digits, r[2].multiplier), "-5.86B");
   assert.equal(A.formatLike("-134.9", ["-130.4B"], "currency", 1, "billions"), "-134.9B");
 });
+
+test("recordValues writes many entries in one update; a running sync is not started twice", async () => {
+  const { recordValues } = await import("../lib/data/calendar.ts");
+  const { putJSON } = await import("../lib/store.ts");
+  const at = Date.parse("2026-10-20T08:00:00Z");
+  const a = ff("GBP", "CPI y/y", at, "3.6%", "3.8%"), b = ff("GBP", "Core CPI y/y", at, "3.1%", "3.2%");
+  await mergeEvents([a, b], at - 86400_000);
+  const n = await recordValues("2026-10-19", [
+    { id: a.id, field: "actual", value: "3.6%", source: "test", at }, { id: b.id, field: "actual", value: "3.0%", source: "test", at },
+    { id: a.id, field: "actual", value: "3.6%", source: "test", at }, { id: "missing", field: "actual", value: "1", source: "test", at }]);
+  assert.equal(n, 2, "duplicates and unknown events are skipped");
+  const evs = await eventsBetween(at - 1, at + 1);
+  assert.equal(eventAsOf(evs.find((e) => e.id === b.id)!, at + 1).actual, "3.0%");
+  const now = Date.parse("2026-10-30T10:00:00Z");
+  await putJSON("actuals-sync.json", { at: 0, result: { fetched: 0, matched: 0, recorded: 0, fields: {}, error: null }, running: now - 10_000 });
+  let calls = 0;
+  const r = await A.syncActuals(now - 86400_000, now, { now, fetcher: (async () => { calls++; return new Response("[]"); }) as typeof fetch });
+  assert.equal(r.skipped, "sync already running"); assert.equal(calls, 0);
+  const later = await A.syncActuals(now - 86400_000, now, { now: now + 120_000, fetcher: (async () => { calls++; return new Response("[]"); }) as typeof fetch });
+  assert.equal(later.skipped, undefined, "a stale running claim does not block forever"); assert.equal(calls, 1);
+});

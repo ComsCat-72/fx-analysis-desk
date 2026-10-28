@@ -58,7 +58,7 @@ export function friendlyError(e: unknown): string {
   if (/no such (report )?version/i.test(m)) return "That report version could not be found. It may still be saving: wait a moment and reload the page.";
   if (/admin token required|not authorised/i.test(m)) return "This action needs the admin password: click the key icon in the top bar and enter your ADMIN_TOKEN.";
   if (/could not save .*kept rejecting/i.test(m)) return "The report could not be saved because another save happened at the same moment. Please try again.";
-  if (/HTTP 50[24]|timed out|FUNCTION_INVOCATION_TIMEOUT/i.test(m)) return "The server took too long to answer. Please try again in a minute.";
+  if (/HTTP 50[24]|timed out|timeout|aborted|FUNCTION_INVOCATION_TIMEOUT/i.test(m)) return "The server took too long to answer. Please try again in a minute.";
   return m;
 }
 
@@ -70,7 +70,7 @@ export interface CalRow {
 }
 export interface CalRange { from: string; to: string; timezone: string; timezone_label: string; now: string; currencies: string[];
   coverage: { week: string; stored: boolean; refreshed_display: string | null }[]; rows: CalRow[];
-  actuals_sync?: { fetched: number; matched: number; recorded: number; error: string | null; skipped?: string } }
+  actuals_sync?: { fetched: number; matched: number; recorded: number; error: string | null; skipped?: string } | null; actuals_synced_display?: string | null }
 export interface RateRow { pair: string; rate: number | null; time?: string | null; sources?: string[]; fixture?: boolean; error: string | null }
 
 export class ApiError extends Error {
@@ -142,7 +142,7 @@ export const api = {
   warnings: (instrument: string) => req<DQWarning[]>(`/api/warnings?${q({ instrument })}`),
   jobs: () => req<Job[]>("/api/jobs"),
   calendarRange: (from: string, to: string, currencies: string[], impacts: string[]) =>
-    req<CalRange>(`/api/calendar/range?${q({ from, to, currencies: currencies.join(","), impacts: impacts.join(",") })}`),
+    req<CalRange>(`/api/calendar/range?${q({ from, to, currencies: currencies.join(","), impacts: impacts.join(",") })}`, { signal: AbortSignal.timeout(25_000) }),
   ohlc: (pair: string, period: string) => req<{ pair: string; period: string; start: string | null; open: number; high: number; low: number; close: number; source: string; fixture: boolean }>(`/api/ohlc?${q({ pair, period })}`),
   rates: (pairs: string[]) => req<RateRow[]>(`/api/rates?${q({ pairs: pairs.join(",") })}`),
   saveSettings: (body: { writer?: string; display_timezone?: string }) =>

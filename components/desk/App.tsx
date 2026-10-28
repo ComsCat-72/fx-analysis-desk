@@ -178,9 +178,9 @@ export default function App() {
         <nav className="flex rounded-lg border border-line bg-surface-2 p-0.5" aria-label="Pages">
           {VIEWS.map((v) => (
             <button key={v.id} onClick={() => setView(v.id)} aria-current={view === v.id ? "page" : undefined}
-              className={cx("inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-md px-3 text-[13px] font-medium transition-colors",
+              title={v.label} className={cx("inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-md px-3 text-[13px] font-medium transition-colors max-sm:px-3.5",
                 view === v.id ? "bg-accent-soft text-fg" : "text-muted hover:text-fg")}>
-              <v.icon className="size-4" aria-hidden />{v.label}
+              <v.icon className="size-4" aria-hidden /><span className="max-sm:sr-only">{v.label}</span>
             </button>
           ))}
         </nav>
