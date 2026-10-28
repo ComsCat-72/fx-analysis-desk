@@ -163,3 +163,28 @@ test("FXStreet fills an actual biquote lacks; the same figure from both sources 
     fetcher: (async (u: string) => (u.includes("eventDates") ? new Response("no", { status: 503 }) : new Response("[]"))) as unknown as typeof fetch });
   assert.match(String(down.error), /FXStreet unavailable: HTTP 503/, "one source down is reported, the other still runs");
 });
+
+test("sibling FXStreet series (level and % change) never make an event conflicting; a wrong stored value is repaired", async () => {
+  const rel = Date.parse("2026-11-09T15:00:00Z");
+  const nhs = ff("USD", "New Home Sales", rel, "651K", "684K"), conf = ff("USD", "CB Consumer Confidence", rel, "81.2", "84.2");
+  await mergeEvents([nhs, conf], rel - 86400_000);
+  const fx = [
+    { dateUtc: "2026-11-09T15:00:00Z", name: "New Home Sales (MoM)", currencyCode: "USD", actual: 0.676, consensus: 0.651, previous: 0.684, revised: 0.68, unit: null, potency: "M" },
+    { dateUtc: "2026-11-09T15:00:00Z", name: "New Home Sales Change (MoM)", currencyCode: "USD", actual: -0.6, consensus: null, previous: 6.4, revised: 5.1, unit: "%", potency: "ZERO" },
+    { dateUtc: "2026-11-09T15:00:00Z", name: "Consumer Confidence", currencyCode: "USD", actual: 91.7, consensus: 81.2, previous: 84.2, revised: null, unit: null, potency: "ZERO" },
+  ];
+  // What an earlier version stored: both siblings' figures from the same source, the wrong one last.
+  const { recordValues } = await import("../lib/data/calendar.ts");
+  const week = "2026-11-09";
+  const url = "https://www.fxstreet.com/economic-calendar";
+  await recordValues(week, [{ id: nhs.id, field: "actual", value: "676K", source: "FXStreet economic calendar", url, at: rel + 60_000 },
+    { id: nhs.id, field: "actual", value: "-0.6%", source: "FXStreet economic calendar", url, at: rel + 61_000 }]);
+  const fetcher = (async (u: string) => new Response(JSON.stringify(u.includes("eventDates") ? fx : []))) as unknown as typeof fetch;
+  await A.syncActuals(rel - 3600_000, rel + 3600_000, { now: rel + 120_000, fetcher, minGapMs: 0 });
+  const evs = await eventsBetween(rel - 1, rel + 1);
+  const n = eventAsOf(evs.find((e) => e.id === nhs.id)!, rel + 120_000);
+  assert.equal(n.actual, "676K"); assert.equal(n.conflicting, null); assert.equal(n.revisedPrevious, "680K", "FXStreet's revision of the previous figure");
+  assert.equal(eventAsOf(evs.find((e) => e.id === conf.id)!, rel + 120_000).actual, "91.7");
+  const again = await A.syncActuals(rel - 3600_000, rel + 3600_000, { now: rel + 240_000, fetcher, minGapMs: 0 });
+  assert.equal(again.recorded, 0, "nothing re-recorded once current");
+});

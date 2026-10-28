@@ -98,7 +98,10 @@ export async function recordValues(week: string, entries: { id: string; field: H
     n = 0;
     for (const x of entries) {
       const e = doc.events[x.id];
-      if (!e || e.history.some((h) => h.field === x.field && h.source === x.source && h.value === x.value)) continue;
+      if (!e) continue;
+      // Skip only when it is already this source's latest value for the field (an older value can become current again).
+      const latest = e.history.filter((h) => h.field === x.field && h.source === x.source).reduce<HistoryEntry | null>((a, h) => (!a || h.at >= a.at ? h : a), null);
+      if (latest?.value === x.value.trim()) continue;
       e.history.push({ field: x.field, value: x.value.trim(), source: x.source, url: x.url ?? null, at: x.at });
       n++;
     }

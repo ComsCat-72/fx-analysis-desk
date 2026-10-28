@@ -25,7 +25,7 @@ export function parseFxstreet(body: unknown): Release[] {
     const suffix = o.unit === "%" ? "%" : /^[KMBT]$/.test(String(o.potency)) ? String(o.potency) : "";
     const fig = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? `${v}${suffix}` : null);
     out.push({ title: String(o.name), currency, at, actual: fig(o.actual), forecast: fig(o.consensus), previous: fig(o.previous), revised: fig(o.revised),
-      unit: o.unit === "%" ? "percent" : null, source: FXSTREET_SOURCE, url: FXSTREET_PAGE });
+      unit: o.unit === "%" ? "percent" : "none", source: FXSTREET_SOURCE, url: FXSTREET_PAGE });
   }
   return out;
 }

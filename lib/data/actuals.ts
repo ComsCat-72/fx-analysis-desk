@@ -65,17 +65,30 @@ const same = (a: string | null | undefined, b: string | null | undefined) => {
   return eq(num(a)!, num(b)!) || eq(pa.num, pb.num);
 };
 
-/** The Forex Factory event a release belongs to, or null when none or more than one fit equally well. */
-export function matchEvent(r: Release, events: CalendarEvent[]): CalendarEvent | null {
-  const cands = events.filter((e) => e.currency === r.currency && Math.abs(e.scheduledAt - r.at) <= 10 * 60_000 && e.impact !== "Holiday");
+/** Whether a release's figures are percentages; null when the source does not say (no unit, no "%"). */
+function releasePct(r: Release): boolean | null {
+  if (r.unit === "percent" || r.unit === "%" || [r.actual, r.forecast, r.previous].some((v) => v != null && /%$/.test(String(v)))) return true;
+  return r.unit == null ? null : false;
+}
+
+/** The Forex Factory event a release belongs to, with its score, or null when none or more than one fit equally well.
+ *  A percentage release never matches an event whose figures are not percentages (or the other way round). */
+export function matchScored(r: Release, events: CalendarEvent[]): { e: CalendarEvent; s: number } | null {
+  const pct = releasePct(r);
+  const cands = events.filter((e) => {
+    if (e.currency !== r.currency || Math.abs(e.scheduledAt - r.at) > 10 * 60_000 || e.impact === "Holiday") return false;
+    const ref = parseValue(e.consensus) ?? parseValue(e.previous);
+    return pct == null || !ref || (ref.unit === "%") === pct;
+  });
   if (!cands.length) return null;
   const rt = tokens(r.title);
   const scored = cands.map((e) => ({ e, s: (same(r.previous, e.previous) ? 3 : 0) + (same(r.forecast, e.consensus) ? 2 : 0) + 2 * overlap(rt, tokens(e.title)) }))
     .sort((a, b) => b.s - a.s);
   if (scored[0].s < 1) return null; // nothing beyond coincidence of time
   if (scored.length > 1 && Math.abs(scored[0].s - scored[1].s) < 0.5) return null; // ambiguous: never guess
-  return scored[0].e;
+  return scored[0];
 }
+export const matchEvent = (r: Release, events: CalendarEvent[]) => matchScored(r, events)?.e ?? null;
 
 // biquote describes units as e.g. unit "percent" with digits 1, or unit "currency" with multiplier "billions".
 const MULT: Record<string, string> = { thousands: "K", millions: "M", billions: "B", trillions: "T" };
@@ -157,14 +170,23 @@ export async function syncActuals(from: number, to: number, o: { now?: number; m
     const events = await eventsBetween(from - 86400_000, to + 86400_000);
     const byWeek = new Map<string, Parameters<typeof recordValues>[1]>();
     let matched = 0;
+    // Several releases from one source can fit the same event (FXStreet lists "New Home Sales" and "New Home Sales
+    // Change"); only the best fit per source and event is used, so a sibling series never makes the event conflicting.
+    const best = new Map<string, { rel: Release; e: CalendarEvent; s: number }>();
     for (const rel of releases) {
-      const e = matchEvent(rel, events);
-      if (!e) continue;
+      const m = matchScored(rel, events);
+      if (!m) continue;
+      const k = `${rel.source ?? SOURCE}|${m.e.id}`, cur = best.get(k);
+      if (!cur || m.s > cur.s) best.set(k, { rel, ...m });
+    }
+    for (const { rel, e } of best.values()) {
       matched++;
       const wk = monday(dateIn(e.scheduledAt, "America/New_York"));
       const src = rel.source ?? SOURCE;
       const put = (field: "actual" | "consensus" | "previous" | "revised_previous", v: string) => {
-        if (e.history.some((h) => h.field === field && h.source === src && h.value === v)) return;
+        // Skip only if it is already this source's latest value: re-recording an older value makes it current again.
+        const mine = e.history.filter((h) => h.field === field && h.source === src).sort((a, b) => a.at - b.at).at(-1);
+        if (mine?.value === v) return;
         const list = byWeek.get(wk) ?? [];
         // The same figure from the second source adds nothing; a different one is kept and shows as conflicting.
         if (field === "actual" && list.some((x) => x.id === e.id && x.field === "actual" && same(x.value, v))) return;

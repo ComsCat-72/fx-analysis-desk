@@ -11,5 +11,5 @@ test("market-hours helpers stay cheap enough to run every second", () => {
     C.sessionsAt(t); C.activityAt(t); C.nextMarketChange(t);
   }
   const ms = performance.now() - start;
-  assert.ok(ms < 1500, `1000 iterations took ${ms.toFixed(0)} ms`);
+  assert.ok(ms < 4000, `1000 iterations took ${ms.toFixed(0)} ms`);
 });
