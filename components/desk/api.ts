@@ -1,10 +1,12 @@
+import { useEffect, useState } from "react";
 export type Kind = "weekly_analysis" | "daily_analysis" | "daily_review" | "weekly_review";
 
 export interface Instrument { code: string; display: string; base: string; quote: string; kind: string; label?: string; decimals: number }
 
 export interface AppConfig {
   app_env: string;
-  display: { timezone: string; timezone_label: string; choices: { tz: string; label: string }[] };
+  /** timezone: the viewer's browser zone (all display); report_timezone: the zone reports are written in (Configure). */
+  display: { timezone: string; timezone_label: string; choices: { tz: string; label: string }[]; report_timezone: string; report_label: string };
   instruments: Instrument[];
   publication_mode: "manual" | "automatic";
   writer: string;
@@ -83,8 +85,15 @@ export function setToken(t: string) {
   try { localStorage.setItem("fx.adminToken", t); } catch { /* storage unavailable */ }
 }
 /** Export links can't send headers, so the token rides as a query parameter. */
-export const withToken = (url: string) => (getToken() ? `${url}?token=${encodeURIComponent(getToken())}` : url);
-const authHeaders = (): Record<string, string> => (getToken() ? { "X-Admin-Token": getToken() } : {});
+export const withToken = (url: string) => {
+  const p = new URLSearchParams();
+  if (getToken()) p.set("token", getToken());
+  if (browserZone()) p.set("tz", browserZone());
+  return p.toString() ? `${url}?${p}` : url;
+};
+/** The viewer's own timezone, sent with every request so the server shows times in it. */
+export const browserZone = () => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch { return ""; } };
+const authHeaders = (): Record<string, string> => ({ ...(getToken() ? { "X-Admin-Token": getToken() } : {}), ...(browserZone() ? { "X-Display-TZ": browserZone() } : {}) });
 
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
   const r = await fetch(path, { ...init, headers: { "Content-Type": "application/json", ...authHeaders(), ...(init?.headers ?? {}) } });
@@ -133,6 +142,7 @@ export const api = {
   jobs: () => req<Job[]>("/api/jobs"),
   calendarRange: (from: string, to: string, currencies: string[], impacts: string[]) =>
     req<CalRange>(`/api/calendar/range?${q({ from, to, currencies: currencies.join(","), impacts: impacts.join(",") })}`),
+  ohlc: (pair: string, period: string) => req<{ pair: string; period: string; start: string | null; open: number; high: number; low: number; close: number; source: string; fixture: boolean }>(`/api/ohlc?${q({ pair, period })}`),
   rates: (pairs: string[]) => req<RateRow[]>(`/api/rates?${q({ pairs: pairs.join(",") })}`),
   saveSettings: (body: { writer?: string; display_timezone?: string }) =>
     req<{ writer: string; display_timezone: string }>("/api/settings", { method: "PUT", body: JSON.stringify(body) }),
@@ -156,3 +166,10 @@ export const api = {
   confirmScreenshot: (id: string, levels: unknown[], chart_timestamp?: string) =>
     req<{ level_ids: string[] }>(`/api/screenshots/${encodeURIComponent(id)}/confirm`, { method: "POST", body: JSON.stringify({ levels, chart_timestamp }) }),
 };
+
+/** Re-renders every `ms` with the browser's current time, so "now" markers and countdowns stay live. */
+export function useNow(ms = 60_000): number {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => { const t = setInterval(() => setNow(Date.now()), ms); return () => clearInterval(t); }, [ms]);
+  return now;
+}

@@ -5,7 +5,7 @@ const DOW = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "
 
 // Display timezone: CONFIG default (Africa/Kampala), replaced by the dashboard setting whenever settings load.
 // Only the display changes; stored instants and source timestamps are untouched.
-let DISPLAY_TZ = CONFIG.display.timezone, DISPLAY_LABEL = CONFIG.display.timezone_label;
+let DEFAULT_TZ = CONFIG.display.timezone, DEFAULT_LABEL = CONFIG.display.timezone_label;
 
 export const isTimeZone = (tz: string) => { try { new Intl.DateTimeFormat("en-US", { timeZone: tz }); return true; } catch { return false; } };
 
@@ -18,13 +18,20 @@ export function zoneLabel(tz: string, t = Date.now()): string {
 
 export function setDisplayZone(tz: string | null | undefined) {
   const z = tz && isTimeZone(tz) ? tz : CONFIG.display.timezone;
-  DISPLAY_TZ = z;
-  DISPLAY_LABEL = zoneLabel(z);
+  DEFAULT_TZ = z;
+  DEFAULT_LABEL = zoneLabel(z);
 }
-export const displayZone = () => ({ timezone: DISPLAY_TZ, timezone_label: DISPLAY_LABEL });
+
+// A request can override the display zone for its own duration (the viewer's browser zone). The scope lives in a
+// server-only module (lib/zone.ts, AsyncLocalStorage) so concurrent requests never share it; this module stays usable
+// in the browser.
+type Scope = () => { timezone: string; timezone_label: string } | undefined;
+let scoped: Scope = () => undefined;
+export const setZoneScope = (fn: Scope) => { scoped = fn; };
+export const displayZone = () => scoped() ?? { timezone: DEFAULT_TZ, timezone_label: DEFAULT_LABEL };
 
 /** Calendar date of an instant in a timezone (default: the display timezone). */
-export function dateIn(t: number | Date = Date.now(), tz = DISPLAY_TZ): string {
+export function dateIn(t: number | Date = Date.now(), tz = displayZone().timezone): string {
   const p = Object.fromEntries(new Intl.DateTimeFormat("en-US", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" })
     .formatToParts(new Date(t)).map((x) => [x.type, x.value]));
   return `${p.year}-${p.month}-${p.day}`;
@@ -67,24 +74,25 @@ export function zoned(d: string, hhmm: string, tz: string): number {
 }
 
 /** "HH:MM" of an instant in a timezone. */
-export function hhmm(t: number, tz = DISPLAY_TZ): string {
+export function hhmm(t: number, tz = displayZone().timezone): string {
   return new Date(t).toLocaleTimeString("en-GB", { timeZone: tz, hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
 }
 
 /** "Mon 16 Nov 2026 07:31 EAT" (label of the display timezone) */
 export function stamp(t: number | string | Date, opts: { date?: boolean } = {}): string {
   const d = new Date(t);
-  if (opts.date === false) return `${hhmm(d.getTime())} ${DISPLAY_LABEL}`;
+  const z = displayZone();
+  if (opts.date === false) return `${hhmm(d.getTime())} ${z.timezone_label}`;
   const s = d.toLocaleString("en-GB", {
-    timeZone: DISPLAY_TZ, weekday: "short", day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hourCycle: "h23",
+    timeZone: z.timezone, weekday: "short", day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hourCycle: "h23",
   });
-  return `${s.replace(/,/g, "")} ${DISPLAY_LABEL}`;
+  return `${s.replace(/,/g, "")} ${z.timezone_label}`;
 }
 
 /** "Tue 27 Oct 14:30" in the display timezone (calendar tables). */
 export function shortStamp(t: number): string {
   return new Date(t).toLocaleString("en-GB", {
-    timeZone: DISPLAY_TZ, weekday: "short", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23",
+    timeZone: displayZone().timezone, weekday: "short", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23",
   }).replace(/,/g, "");
 }
 

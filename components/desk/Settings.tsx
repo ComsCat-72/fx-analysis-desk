@@ -78,12 +78,12 @@ export function SettingsDrawer({ open, onClose, config, instrument }: { open: bo
                 </div>
                 {save.error && <p className="text-[12px] text-danger">{String(save.error)}</p>}
               </Section>
-              <Section title="Display timezone" icon={<Globe2 className="size-4" />}>
-                <p className="text-[12px] text-faint">Report times and the calendar use this zone. Source timestamps are kept as published, and reports already published keep the zone they were written in.</p>
+              <Section title="Timezone for written reports and scheduled runs" icon={<Globe2 className="size-4" />}>
+                <p className="text-[12px] text-faint">The dashboard always shows times in your browser's timezone ({config.display.timezone_label}, {config.display.timezone}). Reports are written in the zone chosen here, so every report in a series uses one zone, and the schedule uses it to decide the day. Source timestamps are kept as published, and reports already published keep the zone they were written in.</p>
                 <div className="flex flex-wrap gap-1.5">
                   {config.display.choices.map((c) => (
                     <button key={c.tz} onClick={() => save.mutate({ display_timezone: c.tz })}
-                      className={cx("cursor-pointer rounded-lg border px-2.5 py-1.5 text-[12.5px]", config.display.timezone === c.tz ? "border-accent bg-accent-soft text-fg" : "border-line text-muted hover:bg-surface-3")}>
+                      className={cx("cursor-pointer rounded-lg border px-2.5 py-1.5 text-[12.5px]", config.display.report_timezone === c.tz ? "border-accent bg-accent-soft text-fg" : "border-line text-muted hover:bg-surface-3")}>
                       {c.tz.replace("_", " ")} <span className="text-faint">· {c.label}</span>
                     </button>
                   ))}

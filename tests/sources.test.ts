@@ -134,3 +134,24 @@ test("calendar: green/red follows the currency (inverted for unemployment); rang
   assert.equal((await calendarRange("2026-10-28", "2026-10-28", { currencies: ["EUR"] })).rows.length, 1);
   assert.equal((await calendarRange("2026-10-28", "2026-10-28", { impacts: ["High", "Medium"] })).rows.length, 2);
 });
+
+test("browser timezone: reads are shown in the viewer's zone, per request; writes keep the Configure zone", async () => {
+  const { withZone } = await import("../lib/zone.ts");
+  const t = Date.parse("2026-10-20T06:30:00Z");
+  const a = withZone("America/New_York", async () => { await new Promise((r) => setTimeout(r, 20)); return stamp(t); });
+  const b = withZone("Asia/Tokyo", async () => stamp(t));
+  assert.equal(await b, "Tue 20 Oct 2026 15:30 GMT+9");
+  assert.equal(await a, "Tue 20 Oct 2026 02:30 EDT", "overlapping requests keep their own zone");
+  assert.equal(stamp(t), "Tue 20 Oct 2026 09:30 EAT", "outside a request the Configure zone applies");
+  assert.equal(withZone("Not/AZone", () => displayZone().timezone), "Africa/Kampala");
+
+  const { read, write, json } = await import("../lib/http.ts");
+  const handler = async () => json({ tz: displayZone().timezone });
+  const headers = { "x-display-tz": "America/New_York" };
+  const got = await (await read(handler)(new Request("http://x/api/t", { headers }), {})).json();
+  assert.equal(got.tz, "America/New_York");
+  const viaQuery = await (await read(handler)(new Request("http://x/api/t?tz=Europe/London"), {})).json();
+  assert.equal(viaQuery.tz, "Europe/London");
+  const wrote = await (await write(handler)(new Request("http://x/api/t", { method: "POST", headers }), {})).json();
+  assert.equal(wrote.tz, "Africa/Kampala", "drafting and publishing use the report zone");
+});

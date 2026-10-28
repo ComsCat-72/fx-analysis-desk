@@ -16,73 +16,117 @@ export const lotUnits = (pair: string) => (split(pair).base === "XAU" ? GOLD_LOT
 
 const finite = (...xs: number[]) => xs.every((x) => Number.isFinite(x));
 
-/** Value of a pip in the account currency. `quoteToAccount`: units of account currency per unit of the quote currency. */
-export function pipValue(o: { pair: string; units: number; pips?: number; quoteToAccount: number }) {
-  if (!finite(o.units, o.quoteToAccount) || o.units < 0 || o.quoteToAccount <= 0) return null;
-  const perPip = pipSize(o.pair) * o.units * o.quoteToAccount;
-  return { perPip, total: perPip * (o.pips ?? 1) };
+/** An amount in the pair's quote currency, in the account currency (BabyPips' convention):
+ *  account = quote → unchanged; account = base → divided by the pair's price; otherwise × the quote→account cross rate. */
+export function toAccount(amountInQuote: number, pair: string, price: number, account: string, crossRate?: number | null): number | null {
+  const { base, quote } = split(pair);
+  if (account === quote) return amountInQuote;
+  if (account === base) return finite(price) && price > 0 ? amountInQuote / price : null;
+  return crossRate != null && finite(crossRate) && crossRate > 0 ? amountInQuote * crossRate : null;
 }
+/** Whether converting into `account` needs a cross rate (the account currency is neither side of the pair). */
+export const needsCross = (pair: string, account: string) => account !== split(pair).base && account !== split(pair).quote;
 
-/** Position size from the amount at risk and the stop distance in pips. */
-export function positionSize(o: { pair: string; balance: number; riskPercent?: number; riskAmount?: number; stopPips: number; quoteToAccount: number }) {
-  const risk = o.riskAmount ?? (o.balance * (o.riskPercent ?? 0)) / 100;
-  if (!finite(risk, o.stopPips, o.quoteToAccount) || risk <= 0 || o.stopPips <= 0 || o.quoteToAccount <= 0) return null;
-  const units = risk / (o.stopPips * pipSize(o.pair) * o.quoteToAccount);
+/** Value of one pip (and of `pips` pips) in the account currency, plus per standard, mini and micro lot. */
+export function pipValue(o: { pair: string; units: number; pips?: number; price: number; account: string; crossRate?: number | null }) {
+  if (!finite(o.units) || o.units < 0) return null;
+  const per = (units: number) => toAccount(units * pipSize(o.pair), o.pair, o.price, o.account, o.crossRate);
+  const perPip = per(o.units);
+  if (perPip == null) return null;
   const lot = lotUnits(o.pair);
-  return { risk, units, lots: units / lot, miniLots: units / (lot / 10), microLots: units / (lot / 100) };
+  return { perPip, total: perPip * (o.pips ?? 1), standard: per(lot)!, mini: per(lot / 10)!, micro: per(lot / 100)! };
 }
 
-/** Margin required in the account currency. `baseToAccount`: account currency per unit of the base currency. */
-export function margin(o: { units: number; leverage: number; baseToAccount: number }) {
-  if (!finite(o.units, o.leverage, o.baseToAccount) || o.units < 0 || o.leverage <= 0 || o.baseToAccount <= 0) return null;
-  const notional = o.units * o.baseToAccount;
-  return { notional, margin: notional / o.leverage };
+/** Stop distance in pips from two prices. */
+export const pipsBetween = (pair: string, a: number, b: number) => Math.abs(a - b) / pipSize(pair);
+
+/** Position size (BabyPips): units = amount at risk ÷ (stop pips × pip value per unit in the account currency). */
+export function positionSize(o: { pair: string; balance: number; riskPercent?: number; riskAmount?: number; stopPips: number; price: number; account: string; crossRate?: number | null }) {
+  const risk = o.riskAmount ?? (o.balance * (o.riskPercent ?? 0)) / 100;
+  if (!finite(risk, o.stopPips) || risk <= 0 || o.stopPips <= 0) return null;
+  const perUnit = toAccount(pipSize(o.pair), o.pair, o.price, o.account, o.crossRate);
+  if (perUnit == null || perUnit <= 0) return null;
+  const units = risk / (o.stopPips * perUnit);
+  const lot = lotUnits(o.pair);
+  return { risk, units, lots: units / lot, miniLots: units / (lot / 10), microLots: units / (lot / 100), pipValuePerLot: perUnit * lot };
 }
 
-/** Result of a closed position, in pips and in the account currency (converted at `quoteToAccount`). */
-export function profit(o: { pair: string; direction: "buy" | "sell"; open: number; close: number; units: number; quoteToAccount: number }) {
-  if (!finite(o.open, o.close, o.units, o.quoteToAccount) || o.units < 0 || o.quoteToAccount <= 0) return null;
-  const sign = o.direction === "buy" ? 1 : -1;
-  const move = (o.close - o.open) * sign;
-  return { pips: move / pipSize(o.pair), quote: move * o.units, account: move * o.units * o.quoteToAccount };
+/** Required margin (BabyPips): position value in the account currency ÷ leverage.
+ *  Position value = units of the base currency: account = base → units; account = quote → units × price; else via the cross rate. */
+export function margin(o: { pair: string; units: number; leverage: number; price: number; account: string; crossRate?: number | null }) {
+  if (!finite(o.units, o.leverage) || o.units < 0 || o.leverage <= 0) return null;
+  const notional = toAccount(o.units * o.price, o.pair, o.price, o.account, o.crossRate);
+  if (notional == null) return null;
+  return { notional, margin: notional / o.leverage, requirementPercent: 100 / o.leverage };
 }
 
-/** Distances from entry to stop and to target, and their ratio. The direction follows the target. */
-export function riskReward(o: { pair: string; entry: number; stop: number; target: number }) {
-  if (!finite(o.entry, o.stop, o.target) || o.entry === o.stop || o.entry === o.target) return null;
-  const long = o.target > o.entry;
-  if (long ? o.stop >= o.entry : o.stop <= o.entry) return { error: "The stop must be on the opposite side of the entry from the target." } as const;
-  const risk = Math.abs(o.entry - o.stop) / pipSize(o.pair), reward = Math.abs(o.target - o.entry) / pipSize(o.pair);
-  return { direction: long ? "long" : "short", riskPips: risk, rewardPips: reward, ratio: reward / risk } as const;
+/** Result of a closed position: pips, the amount in the quote currency, and in the account currency converted at the close price. */
+export function profit(o: { pair: string; direction: "buy" | "sell"; open: number; close: number; units: number; account: string; crossRate?: number | null }) {
+  if (!finite(o.open, o.close, o.units) || o.units < 0 || o.open <= 0 || o.close <= 0) return null;
+  const move = (o.close - o.open) * (o.direction === "buy" ? 1 : -1);
+  const quote = move * o.units;
+  return { pips: move / pipSize(o.pair), quote, account: toAccount(quote, o.pair, o.close, o.account, o.crossRate) };
+}
+
+/** Percentage gained or lost between two balances, and the gain needed to recover a loss (BabyPips Gain & Loss %).
+ *  Give the start and one of: end, amount (signed), percent (signed). */
+export function gainLoss(o: { start: number; end?: number; amount?: number; percent?: number }) {
+  if (!finite(o.start) || o.start <= 0) return null;
+  const end = o.end != null ? o.end : o.amount != null ? o.start + o.amount : o.percent != null ? o.start * (1 + o.percent / 100) : NaN;
+  if (!finite(end) || end < 0) return null;
+  const amount = end - o.start, percent = (amount / o.start) * 100;
+  return { end, amount, percent, recoveryPercent: percent < 0 ? recoveryNeeded(-percent) : 0 };
+}
+
+/** BabyPips: the ratio of the entry→stop distance to the entry→target distance; break-even win rate = 1 ÷ (1 + reward/risk). */
+export function riskReward(o: { pair: string; riskPips: number; rewardPips: number; units?: number; price?: number; account?: string; crossRate?: number | null }) {
+  if (!finite(o.riskPips, o.rewardPips) || o.riskPips <= 0 || o.rewardPips <= 0) return null;
+  const ratio = o.rewardPips / o.riskPips;
+  let money: { risk: number; reward: number } | null = null;
+  if (o.units && o.price && o.account) {
+    const perPip = toAccount(o.units * pipSize(o.pair), o.pair, o.price, o.account, o.crossRate);
+    if (perPip != null) money = { risk: perPip * o.riskPips, reward: perPip * o.rewardPips };
+  }
+  return { riskPips: o.riskPips, rewardPips: o.rewardPips, ratio, breakEvenWinRate: 100 / (1 + ratio), money };
+}
+
+/** Pip distances from entry, stop and target prices; the direction follows the target. */
+export function riskRewardFromPrices(pair: string, entry: number, stop: number, target: number) {
+  if (!finite(entry, stop, target) || entry === stop || entry === target) return null;
+  const long = target > entry;
+  if (long ? stop >= entry : stop <= entry) return { error: "The stop must be on the opposite side of the entry from the target." } as const;
+  return { direction: long ? "long" : "short", riskPips: pipsBetween(pair, entry, stop), rewardPips: pipsBetween(pair, entry, target) } as const;
 }
 
 export type PivotSet = { method: string; levels: Record<string, number> };
 
-/** Classic, Woodie, Camarilla, Fibonacci and DeMark pivot points from the previous period's high, low, close (and open). */
+/** Floor, Woodie, Camarilla, DeMark and Fibonacci pivot points from the previous period's high, low, close (and open, for DeMark). */
 export function pivots(o: { high: number; low: number; close: number; open?: number }): PivotSet[] | null {
   const { high: H, low: L, close: C } = o;
   if (!finite(H, L, C) || H < L || C > H || C < L) return null;
   const R = H - L, P = (H + L + C) / 3;
   const W = (H + L + 2 * C) / 4;
   const out: PivotSet[] = [
-    { method: "Classic", levels: { R3: H + 2 * (P - L), R2: P + R, R1: 2 * P - L, PP: P, S1: 2 * P - H, S2: P - R, S3: L - 2 * (H - P) } },
-    { method: "Woodie", levels: { R3: H + 2 * (W - L), R2: W + R, R1: 2 * W - L, PP: W, S1: 2 * W - H, S2: W - R, S3: L - 2 * (H - W) } },
+    { method: "Floor", levels: { R3: H + 2 * (P - L), R2: P + R, R1: 2 * P - L, PP: P, S1: 2 * P - H, S2: P - R, S3: L - 2 * (H - P) } },
+    { method: "Woodie", levels: { R2: W + R, R1: 2 * W - L, PP: W, S1: 2 * W - H, S2: W - R } },
     { method: "Camarilla", levels: { R4: C + (R * 1.1) / 2, R3: C + (R * 1.1) / 4, R2: C + (R * 1.1) / 6, R1: C + (R * 1.1) / 12, PP: P,
       S1: C - (R * 1.1) / 12, S2: C - (R * 1.1) / 6, S3: C - (R * 1.1) / 4, S4: C - (R * 1.1) / 2 } },
-    { method: "Fibonacci", levels: { R3: P + R, R2: P + 0.618 * R, R1: P + 0.382 * R, PP: P, S1: P - 0.382 * R, S2: P - 0.618 * R, S3: P - R } },
   ];
   if (o.open != null && Number.isFinite(o.open)) {
     const X = C < o.open ? H + 2 * L + C : C > o.open ? 2 * H + L + C : H + L + 2 * C;
     out.push({ method: "DeMark", levels: { R1: X / 2 - L, PP: X / 4, S1: X / 2 - H } });
   }
+  out.push({ method: "Fibonacci", levels: { R3: P + R, R2: P + 0.618 * R, R1: P + 0.382 * R, PP: P, S1: P - 0.382 * R, S2: P - 0.618 * R, S3: P - R } });
   return out;
 }
 
-export const RETRACEMENTS = [0.236, 0.382, 0.5, 0.618, 0.786];
-export const EXTENSIONS = [1.382, 1.5, 1.618, 2.618];
+// BabyPips' Fibonacci lessons: retracements 23.6/38.2/50/61.8/76.4; 127.2 is √1.618.
+export const RETRACEMENTS = [0.236, 0.382, 0.5, 0.618, 0.764];
+export const EXTENSIONS = [1.272, 1.382, 1.618, 2, 2.618];
 
-/** Retracements of the move between low and high, and extensions measured from the start of the move.
- *  Upward: the move ran from the low to the high; downward: from the high to the low. */
+/** Retracements of the move, and extensions measured from its start (so 127.2% lies 27.2% of the range beyond the end).
+ *  Upward move (low → high): retracement = high − range × r; extension = low + range × e.
+ *  Downward move (high → low): retracement = low + range × r; extension = high − range × e. */
 export function fibonacci(o: { high: number; low: number; trend: "up" | "down" }) {
   if (!finite(o.high, o.low) || o.high <= o.low) return null;
   const R = o.high - o.low, up = o.trend === "up";
@@ -92,21 +136,24 @@ export function fibonacci(o: { high: number; low: number; trend: "up" | "down" }
   };
 }
 
-/** Balance grown at a fixed percentage per period, with an optional deposit added at the end of each period. */
-export function compounding(o: { start: number; ratePercent: number; periods: number; deposit?: number }) {
+/** Balance compounded at a fixed percentage per period. Each period applies the return first, then adds the deposit
+ *  and takes the withdrawal, so new money compounds from the next period. */
+export function compounding(o: { start: number; ratePercent: number; periods: number; deposit?: number; withdrawal?: number }) {
   if (!finite(o.start, o.ratePercent, o.periods) || o.start < 0 || o.periods < 1 || o.periods > 1200) return null;
-  const rows: { period: number; start: number; gain: number; deposit: number; end: number }[] = [];
-  let bal = o.start;
+  const rows: { period: number; start: number; gain: number; deposit: number; withdrawal: number; end: number }[] = [];
+  let bal = o.start, dep = 0, wd = 0;
   for (let i = 1; i <= Math.floor(o.periods); i++) {
-    const gain = bal * (o.ratePercent / 100), dep = o.deposit ?? 0;
-    rows.push({ period: i, start: bal, gain, deposit: dep, end: bal + gain + dep });
-    bal += gain + dep;
+    const gain = bal * (o.ratePercent / 100), d = o.deposit ?? 0, w = Math.min(o.withdrawal ?? 0, bal + gain + d);
+    rows.push({ period: i, start: bal, gain, deposit: d, withdrawal: w, end: bal + gain + d - w });
+    bal += gain + d - w; dep += d; wd += w;
   }
-  const deposits = (o.deposit ?? 0) * rows.length;
-  return { end: bal, totalGain: bal - o.start - deposits, deposits, rows };
+  return { end: bal, totalGain: bal - o.start - dep + wd, deposits: dep, withdrawals: wd, rows };
 }
 
-/** Balance after consecutive losses of a fixed percentage, the drawdown, and the gain needed to recover. */
+/** Annualised equivalent of a per-period return. */
+export const annualised = (ratePercent: number, periodsPerYear: number) => (Math.pow(1 + ratePercent / 100, periodsPerYear) - 1) * 100;
+
+/** Balance after consecutive losses of a fixed percentage of the current balance, the drawdown, and the gain needed to recover. */
 export function drawdown(o: { start: number; lossPercent: number; losses: number }) {
   if (!finite(o.start, o.lossPercent, o.losses) || o.start <= 0 || o.lossPercent <= 0 || o.lossPercent >= 100 || o.losses < 1 || o.losses > 500) return null;
   const rows: { trade: number; balance: number; drawdownPercent: number; recoveryPercent: number }[] = [];
@@ -118,8 +165,8 @@ export function drawdown(o: { start: number; lossPercent: number; losses: number
   return { end: bal, rows };
 }
 
-/** Gain needed to return to the starting balance after a loss of `lossPercent`. */
-export const recoveryNeeded = (lossPercent: number) => (lossPercent >= 100 ? Infinity : (1 / (1 - lossPercent / 100) - 1) * 100);
+/** Gain needed to return to the starting balance after a loss of `lossPercent`: loss ÷ (100 − loss) × 100. */
+export const recoveryNeeded = (lossPercent: number) => (lossPercent >= 100 ? Infinity : (lossPercent / (100 - lossPercent)) * 100);
 
 // ---------------------------------------------------------------- market hours
 

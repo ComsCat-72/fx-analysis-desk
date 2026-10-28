@@ -93,3 +93,22 @@ export async function latestQuote(symbol: string): Promise<{ price: number; time
   if (m.regularMarketPrice == null || m.regularMarketTime == null) throw new Error(`Yahoo ${symbol}: no market price`);
   return { price: m.regularMarketPrice, time: m.regularMarketTime * 1000 };
 }
+
+/** The last completed daily, weekly or monthly bar for a Yahoo symbol (a bar still forming is dropped). */
+export async function lastCompletedBar(symbol: string, period: "daily" | "weekly" | "monthly", now = Date.now()) {
+  const [interval, range] = ({ daily: ["1d", "1mo"], weekly: ["1wk", "6mo"], monthly: ["1mo", "2y"] } as const)[period];
+  const c = await chart(symbol, `interval=${interval}&range=${range}`);
+  const ts = c.timestamp ?? [], q = c.indicators?.quote?.[0] ?? {};
+  const end = (t: number) => {
+    const d = new Date(t * 1000);
+    if (period === "daily") return t * 1000 + 86400_000;
+    if (period === "weekly") return t * 1000 + 7 * 86400_000;
+    return Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1);
+  };
+  for (let i = ts.length - 1; i >= 0; i--) {
+    const [o, h, l, cl] = (["open", "high", "low", "close"] as const).map((k) => q[k]?.[i] ?? null);
+    if (o == null || h == null || l == null || cl == null || end(ts[i]) > now) continue;
+    return { start: new Date(ts[i] * 1000).toISOString(), open: o, high: h, low: l, close: cl };
+  }
+  throw new Error(`Yahoo ${symbol}: no completed ${period} bar`);
+}

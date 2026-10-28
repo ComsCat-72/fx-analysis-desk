@@ -5,6 +5,7 @@ import { Calculator, CalendarDays, CalendarRange, ChevronLeft, ChevronRight, Cir
 import { useEffect, useMemo, useState } from "react";
 import { api, getToken, setToken, type Kind, type SlotState, type VersionSummary, type Week } from "./api";
 import { Guide } from "./Guide";
+import { useNow } from "./api";
 import { CalendarView } from "./CalendarView";
 import { Calculators } from "../calc/Calculators";
 import { ReportPane } from "./ReportPane";
@@ -65,6 +66,18 @@ function TokenDialog({ onDone }: { onDone: () => void }) {
   );
 }
 
+/** The browser's current time in its own zone, ticking every second. All times on the dashboard use this zone. */
+function LiveClock({ tz, label }: { tz: string; label: string }) {
+  const now = useNow(1000);
+  const t = new Date(now).toLocaleTimeString("en-GB", { timeZone: tz, hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23" });
+  const d = new Date(now).toLocaleDateString("en-GB", { timeZone: tz, weekday: "short", day: "numeric", month: "short" });
+  return (
+    <Badge title={`Your browser's time and timezone (${tz}). Every time on the dashboard is shown in it.`}>
+      <Globe2 className="size-3" /><span className="num" suppressHydrationWarning>{d} {t}</span> {label}
+    </Badge>
+  );
+}
+
 /** True when the viewport is wide enough for the three-column layout (Tailwind's 2xl). */
 function useWide() {
   const [wide, setWide] = useState(false);
@@ -119,7 +132,8 @@ export default function App() {
   useEffect(() => { document.documentElement.dataset.theme = theme; try { localStorage.setItem("fx.theme", theme); } catch { /* storage unavailable */ } }, [theme]);
   useEffect(() => { try { localStorage.setItem("fx.instrument", instrument); } catch { /* storage unavailable */ } }, [instrument]);
 
-  const week = useQuery({ queryKey: ["week", instrument, weekKey], queryFn: () => api.week(instrument, weekKey) });
+  // Refetched every minute so slot states ("Opens…", "Closed", Next) follow the clock.
+  const week = useQuery({ queryKey: ["week", instrument, weekKey], queryFn: () => api.week(instrument, weekKey), refetchInterval: 60_000 });
   const days = week.data?.days.map((d) => d.date) ?? [];
   // While the week is (re)loading keep the chosen day, so an action never targets a fallback slot.
   const selDay = !days.length || days.includes(day) ? day : days.find((d) => d === todayIn(tz)) ?? days[0];
@@ -191,7 +205,7 @@ export default function App() {
           <Badge tone={cfg.data!.publication_mode === "automatic" ? "warn" : "neutral"} title="Change in Configure">
             {cfg.data!.publication_mode === "automatic" ? "Auto-publish on" : "Manual publication"}
           </Badge>
-          <Badge title={`Times are shown in ${tz}; change in Configure`}><Globe2 className="size-3" />{cfg.data!.display.timezone_label} · {tz.split("/").pop()?.replace("_", " ")}</Badge>
+          <LiveClock tz={tz} label={cfg.data!.display.timezone_label} />
           <Button variant="ghost" size="sm" onClick={() => setGuide(true)} title="How the desk works"><CircleHelp className="size-4" aria-hidden /><span className="hidden md:inline">How it works</span></Button>
           <Button variant="ghost" size="sm" onClick={() => setTheme(theme === "dark" ? "light" : "dark")} title="Toggle theme">
             {theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}<span className="sr-only">Toggle theme</span>

@@ -11,7 +11,8 @@ export const GET = read(async () => {
   const s = await getSettings();
   const writer = writerFor(null, s.writer).name;
   return json({
-    app_env: env.appEnv, display: { ...displayZone(), choices: CONFIG.display.choices.map((tz) => ({ tz, label: zoneLabel(tz) })) },
+    app_env: env.appEnv, display: { ...displayZone(), choices: CONFIG.display.choices.map((tz) => ({ tz, label: zoneLabel(tz) })),
+      report_timezone: s.display_timezone, report_label: zoneLabel(s.display_timezone) },
     instruments: Object.entries(CONFIG.instruments).map(([code, i]) => ({ code, display: i.display, base: i.base, quote: i.quote, kind: i.kind, label: i.label ?? null,
       decimals: i.decimals, symbol: i.yahoo, session: i.session.description, scheduled: CONFIG.scheduled.includes(code) })),
     publication_mode: s.publication_mode, writer, writer_setting: s.writer, models: CONFIG.models, schedules: Object.fromEntries(Object.entries(CONFIG.schedules).map(([k, v]) => {

@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Filter, Play, RefreshCw } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { addDays } from "./App";
-import { api, friendlyError, type CalRow } from "./api";
+import { api, friendlyError, useNow, type CalRow } from "./api";
 import { Badge, Button, Field, Spinner, cx, inputCls } from "./ui";
 
 type Mode = "day" | "week" | "month";
@@ -92,15 +92,15 @@ function Detail({ r, onDone }: { r: CalRow; onDone: () => void }) {
 
 const COLS = "md:grid md:grid-cols-[92px_64px_52px_56px_minmax(0,1fr)_44px_92px_92px_92px] md:items-center";
 
-function Row({ r, firstOfDay, firstOfTime, open, onToggle, rowRef }: { r: CalRow; firstOfDay: boolean; firstOfTime: boolean; open: boolean; onToggle: () => void; rowRef?: (el: HTMLDivElement | null) => void }) {
-  const past = Date.parse(r.at) <= Date.now();
+function Row({ r, firstOfDay, firstOfTime, open, onToggle, rowRef, isNext, now }: { r: CalRow; firstOfDay: boolean; firstOfTime: boolean; open: boolean; onToggle: () => void; rowRef?: (el: HTMLDivElement | null) => void; isNext: boolean; now: number }) {
+  const past = Date.parse(r.at) <= now;
   return (
-    <div ref={rowRef} className={cx("cal-row", firstOfTime && "border-t border-line", r.is_next && "bg-accent-soft")}>
+    <div ref={rowRef} className={cx("cal-row", firstOfTime && "border-t border-line", isNext && "bg-accent-soft")}>
       {firstOfDay && <div className="border-b border-line bg-surface-2 px-3 py-1.5 text-[12px] font-semibold md:hidden">{fmt(r.date, { weekday: "long", day: "numeric", month: "short" })}</div>}
       <div className={cx(COLS, "hidden px-3 py-2 text-[13px]")}>
         <div className="text-[12px] leading-tight">{firstOfDay && <><div className="font-semibold">{fmt(r.date, { weekday: "short" })}</div><div className="text-muted">{fmt(r.date, { day: "numeric", month: "short" })}</div></>}</div>
         <div className={cx("num text-[12.5px]", past ? "text-faint" : "text-muted")}>
-          {firstOfTime && (r.all_day ? "All day" : <span className="inline-flex items-center gap-1">{r.is_next && <Play className="size-3 fill-current text-accent" aria-label="Up next" />}{r.time}</span>)}
+          {firstOfTime && (r.all_day ? "All day" : <span className="inline-flex items-center gap-1">{isNext && <Play className="size-3 fill-current text-accent" aria-label="Up next" />}{r.time}</span>)}
         </div>
         <div className="num font-semibold">{r.currency}</div>
         <div><Impact impact={r.impact} /></div>
@@ -114,7 +114,7 @@ function Row({ r, firstOfDay, firstOfTime, open, onToggle, rowRef }: { r: CalRow
         <div className="flex items-center gap-2 text-[12.5px]">
           <span className="num w-11 text-muted">{r.all_day ? "All day" : r.time}</span>
           <span className="num font-semibold">{r.currency}</span><Impact impact={r.impact} />
-          {r.is_next && <Badge tone="accent">Up next</Badge>}
+          {isNext && <Badge tone="accent">Up next</Badge>}
           <ChevronDown className={cx("ml-auto size-4 text-faint transition-transform", open && "rotate-180")} aria-hidden />
         </div>
         <div className="mt-0.5 text-[13.5px] font-medium">{r.title}</div>
@@ -182,7 +182,7 @@ export function CalendarView({ today, instrumentCurrencies }: { today: string; i
   const pick = (d: string, m: Mode) => { setAnchor(d); setMode(m); setMonth(d); setOpen(null); };
   const step = (n: number) => pick(mode === "day" ? addDays(anchor, n) : mode === "week" ? addDays(anchor, 7 * n) : addDays(monthStart(anchor), n > 0 ? 32 : -1), mode);
   const upNext = () => {
-    const next = data.data?.rows.find((r) => r.is_next);
+    const next = data.data?.rows.find((r) => r.id === nextId);
     if (next) refs.current[next.id]?.scrollIntoView({ block: "center", behavior: "smooth" });
     else pick(today, "week");
   };
@@ -190,7 +190,9 @@ export function CalendarView({ today, instrumentCurrencies }: { today: string; i
   const title = mode === "day" ? `${anchor === today ? "Today: " : ""}${fmt(anchor, { weekday: "short", day: "numeric", month: "short" })}`
     : mode === "week" ? `Week of ${fmt(addDays(range("week", anchor)[0], 1), { day: "numeric", month: "short" })}` : fmt(anchor, { month: "long", year: "numeric" });
   const toggle = (list: string[], v: string) => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
-  const nowIdx = rows.findIndex((r) => Date.parse(r.at) > Date.now());
+  const now = useNow(30_000); // the "now" line and Up next follow the browser clock
+  const nowIdx = rows.findIndex((r) => Date.parse(r.at) > now);
+  const nextId = rows.find((r) => Date.parse(r.at) > now && r.impact !== "Holiday")?.id;
   const quick: [string, () => void][] = [
     ["Today", () => pick(today, "day")], ["Tomorrow", () => pick(addDays(today, 1), "day")], ["Yesterday", () => pick(addDays(today, -1), "day")],
     ["This week", () => pick(today, "week")], ["Next week", () => pick(addDays(today, 7), "week")], ["Last week", () => pick(addDays(today, -7), "week")],
@@ -281,7 +283,7 @@ export function CalendarView({ today, instrumentCurrencies }: { today: string; i
               <div key={r.id}>
                 {i === nowIdx && i > 0 && <div className="relative h-0 border-t-2 border-accent" aria-label="Now"><span className="absolute -top-2.5 left-3 rounded bg-accent px-1.5 text-[10px] font-semibold uppercase text-white">now</span></div>}
                 <Row r={r} firstOfDay={i === 0 || rows[i - 1].date !== r.date} firstOfTime={i === 0 || rows[i - 1].date !== r.date || rows[i - 1].time !== r.time}
-                  open={open === r.id} onToggle={() => setOpen(open === r.id ? null : r.id)} rowRef={(el) => { refs.current[r.id] = el; }} />
+                  open={open === r.id} onToggle={() => setOpen(open === r.id ? null : r.id)} rowRef={(el) => { refs.current[r.id] = el; }} isNext={r.id === nextId} now={now} />
               </div>
             ))}
           </div>

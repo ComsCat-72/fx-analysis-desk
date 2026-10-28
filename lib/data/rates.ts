@@ -1,7 +1,7 @@
 // Conversion rates for the Calculators page: Yahoo Finance quotes (free), cached for a minute per symbol.
 // Gold has no free spot quote on Yahoo, so XAU uses COMEX gold futures (GC=F), and the result says so.
 import { env } from "../config.ts";
-import { latestQuote } from "./yahoo.ts";
+import { lastCompletedBar, latestQuote } from "./yahoo.ts";
 
 export interface Rate { from: string; to: string; rate: number; time: string | null; sources: string[]; fixture: boolean }
 
@@ -31,4 +31,16 @@ export async function rate(from: string, to: string): Promise<Rate> {
   }
   const q = await quote(`${from}${to}=X`);
   return { from, to, rate: q.price, time: new Date(q.time).toISOString(), sources: [`Yahoo Finance ${from}${to}=X`], fixture: false };
+}
+
+/** Previous completed period's OHLC for a pair (pivot points). Gold uses COMEX futures (GC=F). */
+export async function previousPeriod(pair: string, period: "daily" | "weekly" | "monthly") {
+  const [base, quote] = pair.split("/");
+  if (env.dataSource === "fixture") {
+    const mid = (FIXTURE_USD[base] ?? 1) / (FIXTURE_USD[quote] ?? 1), r = mid * 0.006;
+    return { pair, period, start: null, open: mid - r * 0.2, high: mid + r, low: mid - r, close: mid + r * 0.3, source: "DEVELOPMENT FIXTURE", fixture: true };
+  }
+  const symbol = base === "XAU" && quote === "USD" ? "GC=F" : `${base}${quote}=X`;
+  const b = await lastCompletedBar(symbol, period);
+  return { pair, period, ...b, source: symbol === "GC=F" ? "Yahoo Finance GC=F (COMEX gold futures, not spot)" : `Yahoo Finance ${symbol}`, fixture: false };
 }
