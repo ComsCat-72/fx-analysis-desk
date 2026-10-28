@@ -92,9 +92,10 @@ for (const code of Object.keys(CONFIG.instruments)) {
   // Paging probes: how many rows each parameter variant returns for one day, and the first/last times.
   const probe = async (extra: Record<string, string>) => {
     try {
-      const qq = new URLSearchParams({ from: todayLocal(), to: todayLocal(), ...extra });
+      const qq = new URLSearchParams({ from: todayLocal(), to: addDays(todayLocal(), 1), ...extra });
       const r = await fetch(`${A.BIQUOTE_URL}?${qq}`);
       const b = await r.json() as unknown;
+      if (!r.ok) return { status: r.status, body: b };
       const list = (Array.isArray(b) ? b : Object.values(b as object).find(Array.isArray) ?? []) as { time?: string; currency?: string; actual?: unknown }[];
       return { status: r.status, count: list.length, first: list[0]?.time ?? null, last: list.at(-1)?.time ?? null,
         currencies: [...new Set(list.map((x) => x.currency))].slice(0, 20), with_actual: list.filter((x) => x.actual != null).length,
@@ -104,7 +105,8 @@ for (const code of Object.keys(CONFIG.instruments)) {
   out.probes = {
     day: await probe({}), limit500: await probe({ limit: "500" }), limit1000: await probe({ limit: "1000" }), offset100: await probe({ offset: "100" }),
     page2: await probe({ page: "2" }), countries: await probe({ countries: "US,GB,EU" }), country: await probe({ country: "US" }), currency: await probe({ currency: "USD" }),
-    importance_high: await probe({ importance: "high" }),
+    importance_high: await probe({ importance: "high" }), importance_list: await probe({ importance: "high,medium" }),
+    three_days: await probe({ from: addDays(todayLocal(), -2) }), sync_window: await probe({ from: addDays(todayLocal(), -3), countries: "US,EU,GB,JP,AU,NZ,CA,CH,CN,DE,FR,IT,ES" }),
   };
   out.sync = await A.syncActuals(Date.now() - 3 * 86400_000, Date.now() + 86400_000, { minGapMs: 0 }).catch((e) => ({ error: String(e) }));
   write("biquote.json", JSON.stringify(out, null, 1));
