@@ -114,6 +114,8 @@ export interface EventAsOf {
   revisedPrevious: string | null; rescheduledTo: string | null; conflicting: Record<string, string> | null;
 }
 
+const rank = (sourceKey: string) => (sourceKey.startsWith("biquote.io") ? 2 : sourceKey.startsWith("FXStreet") ? 1 : 0);
+
 /** Reconstruct the event exactly as it was known at `cutoff`, from the append-only history. */
 export function eventAsOf(e: CalendarEvent, cutoff: number): EventAsOf {
   const latest: Record<string, Map<string, string | null>> = {};
@@ -122,7 +124,11 @@ export function eventAsOf(e: CalendarEvent, cutoff: number): EventAsOf {
     if (h.field === "rescheduled_to") resched = h.value;
     (latest[h.field] ??= new Map()).set(h.url ? `${h.source} (${h.url})` : h.source, h.value);
   }
-  const actuals = Object.fromEntries([...(latest.actual ?? new Map())].filter(([, v]) => v)) as Record<string, string>;
+  // Sources rank: anything you enter yourself, then FXStreet, then biquote.io (whose sibling series sometimes match
+  // the wrong release). Only the best-ranked sources present are compared, so a weaker feed never hides a good figure.
+  const all = [...(latest.actual ?? new Map())].filter(([, v]) => v) as [string, string][];
+  const top = Math.min(...all.map(([k]) => rank(k)));
+  const actuals = Object.fromEntries(all.filter(([k]) => rank(k) === top));
   const rec = reconcileActuals(actuals);
   const last = (f: string, dflt: string | null) => { const m = latest[f]; return m && m.size ? [...m.values()].pop() ?? null : dflt; };
   const consensus = last("consensus", null), previous = last("previous", null), revised = last("revised_previous", null);

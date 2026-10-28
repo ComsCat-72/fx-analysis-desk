@@ -188,3 +188,26 @@ test("sibling FXStreet series (level and % change) never make an event conflicti
   const again = await A.syncActuals(rel - 3600_000, rel + 3600_000, { now: rel + 240_000, fetcher, minGapMs: 0 });
   assert.equal(again.recorded, 0, "nothing re-recorded once current");
 });
+
+test("source ranking: FXStreet's figure beats biquote's mismatched sibling; your own entry beats both", async () => {
+  assert.equal(A.formatLike("0.676", ["651K"], "none", 3, "millions"), "676K", "biquote's multiplier is honoured");
+  assert.equal(A.formatLike("-134.9", ["-130.4B"], "currency", 1, "billions"), "-134.9B");
+  const rel = Date.parse("2026-11-10T00:30:00Z");
+  const cpi = ff("AUD", "CPI y/y", rel, "4.2%", "4.0%");
+  await mergeEvents([cpi], rel - 86400_000);
+  const fx = [{ dateUtc: "2026-11-10T00:30:00Z", name: "Consumer Price Index (YoY)", currencyCode: "AUD", actual: 4.3, consensus: 4.2, previous: 4, unit: "%", potency: "ZERO" }];
+  const bq = [{ time: "2026-11-10T00:30:00Z", currency: "AUD", name: "CPI y/y", unit: "percent", digits: 1, actual: 3.9, forecast: 4.7, previous: 3.9 }]; // the quarterly series
+  const fetcher = (async (u: string) => new Response(JSON.stringify(u.includes("eventDates") ? fx : bq))) as unknown as typeof fetch;
+  await A.syncActuals(rel - 3600_000, rel + 3600_000, { now: rel + 120_000, fetcher, minGapMs: 0 });
+  let e = (await eventsBetween(rel - 1, rel + 1)).find((x) => x.id === cpi.id)!;
+  assert.equal(eventAsOf(e, rel + 120_000).actual, "4.3%");
+  assert.equal(e.history.filter((h) => h.field === "actual").length, 1, "biquote's figure is not recorded when FXStreet has one");
+  // A biquote value stored earlier no longer hides FXStreet's figure.
+  const { recordValues, recordValue } = await import("../lib/data/calendar.ts");
+  await recordValues("2026-11-09", [{ id: cpi.id, field: "actual", value: "3.9%", source: A.SOURCE, url: A.BIQUOTE_URL, at: rel + 60_000 }]);
+  e = (await eventsBetween(rel - 1, rel + 1)).find((x) => x.id === cpi.id)!;
+  assert.equal(eventAsOf(e, rel + 180_000).actual, "4.3%");
+  await recordValue("2026-11-09", cpi.id, "actual", "4.4%", "manual: ABS release", null, rel + 200_000);
+  e = (await eventsBetween(rel - 1, rel + 1)).find((x) => x.id === cpi.id)!;
+  assert.equal(eventAsOf(e, rel + 300_000).actual, "4.4%", "an entry you make yourself wins");
+});

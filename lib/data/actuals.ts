@@ -10,7 +10,7 @@ import { parseValue } from "../core/events.ts";
 import { getJSON, putJSON } from "../store.ts";
 import { eventsBetween, recordValues, type CalendarEvent } from "./calendar.ts";
 import { addDays, dateIn, monday } from "../dates.ts";
-import { FXSTREET_HEADERS, fxstreetUrl, parseFxstreet } from "./fxstreet.ts";
+import { FXSTREET_HEADERS, FXSTREET_SOURCE, fxstreetUrl, parseFxstreet } from "./fxstreet.ts";
 
 export const BIQUOTE_URL = process.env.BIQUOTE_URL || "https://biquote.io/api/calendar"; // overridable for local testing
 export const SOURCE = "biquote.io economic calendar";
@@ -99,7 +99,8 @@ export function formatLike(value: string, like: (string | null)[], unit: string 
   const raw = String(value).trim();
   const ref = like.map((x) => parseValue(x)).find(Boolean);
   if (/%$/.test(raw)) return raw; // already carries its unit
-  const suf = raw.match(/^(-?[\d.,]+)\s*([KMBT])$/i);
+  const stated = MULT[multiplier ?? ""]; // biquote: 0.676 with multiplier "millions" is 0.676M
+  const suf = raw.match(/^(-?[\d.,]+)\s*([KMBT])$/i) ?? (stated && ref && SCALE[ref.unit] && /^-?[\d.,]+$/.test(raw) ? [raw, raw, stated] : null);
   if (suf) {
     // A figure with its own multiplier (FXStreet "0.676M") rescaled to the Forex Factory unit ("676K").
     const scale = ref ? SCALE[ref.unit] : undefined;
@@ -179,8 +180,11 @@ export async function syncActuals(from: number, to: number, o: { now?: number; m
       const k = `${rel.source ?? SOURCE}|${m.e.id}`, cur = best.get(k);
       if (!cur || m.s > cur.s) best.set(k, { rel, ...m });
     }
+    const fxsActual = new Set([...best.values()].filter((b) => b.rel.source === FXSTREET_SOURCE && b.rel.actual).map((b) => b.e.id));
     for (const { rel, e } of best.values()) {
       matched++;
+      // FXStreet's figure is preferred; biquote fills only events FXStreet has no actual for.
+      const fxsHas = fxsActual.has(e.id) || e.history.some((h) => h.field === "actual" && h.source === FXSTREET_SOURCE);
       const wk = monday(dateIn(e.scheduledAt, "America/New_York"));
       const src = rel.source ?? SOURCE;
       const put = (field: "actual" | "consensus" | "previous" | "revised_previous", v: string) => {
@@ -196,7 +200,7 @@ export async function syncActuals(from: number, to: number, o: { now?: number; m
         byWeek.set(wk, list);
       };
       const fmt = (v: string) => formatLike(v, [e.consensus, e.previous], rel.unit, rel.digits, rel.multiplier);
-      if (rel.actual && rel.at <= now) put("actual", fmt(rel.actual));
+      if (rel.actual && rel.at <= now && !(src !== FXSTREET_SOURCE && fxsHas)) put("actual", fmt(rel.actual));
       if (!e.consensus && rel.forecast) put("consensus", fmt(rel.forecast));
       if (!e.previous && rel.previous) put("previous", fmt(rel.previous));
       if (rel.revised && e.previous && !same(rel.revised, e.previous)) put("revised_previous", fmt(rel.revised));
