@@ -1,5 +1,8 @@
 // Actual results for the Forex Factory schedule, from biquote.io's free, keyless economic calendar
-// (https://biquote.io/api/calendar). Forex Factory stays the master schedule: a biquote release is attached to a
+// (https://biquote.io/api/calendar). Response: an array of events such as
+//   { id, eventId, time: "2026-10-26T03:30:00Z", countryCode: "TH", currency: "THB", name: "Imports YoY", importance,
+//     type, unit: "percent" | "currency" | "none", multiplier: "billions" | null, digits: 1,
+//     actual: 50.4, forecast: 31.3, previous: 25.1, revisedPrevious: null, sourceUrl, source } Forex Factory stays the master schedule: a biquote release is attached to a
 // Forex Factory event only when currency and time agree and the figures or titles identify it unambiguously.
 // Values are appended to the event history (lib/data/calendar.ts), so a disagreement with another source shows
 // as "conflicting" instead of being overwritten.
@@ -14,7 +17,8 @@ const COUNTRIES = ["US", "EU", "GB", "JP", "AU", "NZ", "CA", "CH", "CN", "DE", "
 const CURRENCY: Record<string, string> = { US: "USD", USA: "USD", EU: "EUR", EMU: "EUR", EA: "EUR", DE: "EUR", FR: "EUR", IT: "EUR", ES: "EUR", GB: "GBP", UK: "GBP",
   JP: "JPY", AU: "AUD", NZ: "NZD", CA: "CAD", CH: "CHF", CN: "CNY" };
 
-export interface Release { title: string; currency: string; at: number; actual: string | null; forecast: string | null; previous: string | null; revised: string | null; unit: string | null }
+export interface Release { title: string; currency: string; at: number; actual: string | null; forecast: string | null; previous: string | null; revised: string | null; unit: string | null;
+  digits?: number | null; multiplier?: string | null }
 
 const pick = (o: Record<string, unknown>, keys: string[]) => { for (const k of keys) if (o[k] != null && o[k] !== "") return { key: k, value: o[k] }; return null; };
 const str = (v: unknown) => (v == null || v === "" ? null : String(v));
@@ -34,7 +38,8 @@ export function parseReleases(body: unknown, fields: Record<string, string> = {}
     const currency = cur?.toUpperCase() ?? CURRENCY[(country ?? "").toUpperCase()];
     if (!title || !currency || Number.isNaN(at)) continue;
     out.push({ title, currency, at, actual: str(f("actual", ["actual", "actualValue", "value"])), forecast: str(f("forecast", ["forecast", "consensus", "estimate", "expected"])),
-      previous: str(f("previous", ["previous", "prior", "prev"])), revised: str(f("revised", ["revisedPrevious", "revised", "previousRevised", "revised_previous"])), unit: str(f("unit", ["unit", "units", "suffix"])) });
+      previous: str(f("previous", ["previous", "prior", "prev"])), revised: str(f("revised", ["revisedPrevious", "revised", "previousRevised", "revised_previous"])), unit: str(f("unit", ["unit", "units", "suffix"])),
+      digits: typeof o.digits === "number" ? o.digits : null, multiplier: str(o.multiplier) });
   }
   return out;
 }
@@ -71,14 +76,21 @@ export function matchEvent(r: Release, events: CalendarEvent[]): CalendarEvent |
   return scored[0].e;
 }
 
-/** A biquote figure written the way Forex Factory writes the event's own figures (unit suffix and decimals). */
-export function formatLike(value: string, like: (string | null)[], unit: string | null = null): string {
+// biquote describes units as e.g. unit "percent" with digits 1, or unit "currency" with multiplier "billions".
+const MULT: Record<string, string> = { thousands: "K", millions: "M", billions: "B", trillions: "T" };
+
+/** A biquote figure written the way Forex Factory writes the event's own figures (unit suffix and decimals).
+ *  Without a Forex Factory figure to copy, biquote's own unit, multiplier and digits are used. */
+export function formatLike(value: string, like: (string | null)[], unit: string | null = null, digits: number | null = null, multiplier: string | null = null): string {
   const raw = String(value).trim();
   if (/[%KMBT]$/i.test(raw)) return raw; // already carries its unit
   const n = Number(raw.replace(/,/g, ""));
   const ref = like.map((x) => parseValue(x)).find(Boolean);
   if (!Number.isFinite(n)) return raw;
-  if (!ref) return unit === "%" ? `${raw}%` : raw;
+  if (!ref) {
+    const suffix = unit === "%" || unit === "percent" ? "%" : MULT[multiplier ?? ""] ?? "";
+    return `${digits != null && digits >= 0 ? n.toFixed(digits) : raw}${suffix}`;
+  }
   const scale = SCALE[ref.unit] ?? 1;
   // A plain number for a K/M/B series is either already in that unit or a full count; pick the reading near the reference.
   const v = scale > 1 && Math.abs(n) > Math.abs(ref.num) * scale / 100 ? n / scale : n;
@@ -116,10 +128,10 @@ export async function syncActuals(from: number, to: number, o: { now?: number; m
         recorded++;
       };
       const like = [e.consensus, e.previous];
-      if (rel.actual && rel.at <= now) await put("actual", formatLike(rel.actual, like, rel.unit));
-      if (!e.consensus && rel.forecast) await put("consensus", formatLike(rel.forecast, like, rel.unit));
-      if (!e.previous && rel.previous) await put("previous", formatLike(rel.previous, like, rel.unit));
-      if (rel.revised && e.previous && !same(rel.revised, e.previous)) await put("revised_previous", formatLike(rel.revised, like, rel.unit));
+      if (rel.actual && rel.at <= now) await put("actual", formatLike(rel.actual, like, rel.unit, rel.digits, rel.multiplier));
+      if (!e.consensus && rel.forecast) await put("consensus", formatLike(rel.forecast, like, rel.unit, rel.digits, rel.multiplier));
+      if (!e.previous && rel.previous) await put("previous", formatLike(rel.previous, like, rel.unit, rel.digits, rel.multiplier));
+      if (rel.revised && e.previous && !same(rel.revised, e.previous)) await put("revised_previous", formatLike(rel.revised, like, rel.unit, rel.digits, rel.multiplier));
     }
     result = { fetched: releases.length, matched, recorded, fields, error: null };
   } catch (e) {

@@ -290,7 +290,7 @@ export function CalendarView({ today, instrumentCurrencies }: { today: string; i
         )}
         <p className="border-t border-line px-4 py-2 text-[11.5px] text-faint">
           Schedule, forecast and previous: Forex Factory weekly export. Actual results: biquote.io free economic calendar, refreshed every two minutes while the calendar is open (and editable in each row's details).
-          {data.data?.actuals_sync?.error && <span className="text-warn"> {data.data.actuals_sync.error}.</span>}
+          {data.data?.actuals_sync?.error && <span className="text-warn"> {data.data.actuals_sync.error}.</span>}{" "}
           Green and red show whether the actual was better or worse than the forecast for that currency; it is not a market call.
           {data.data && <> Times in {data.data.timezone_label} ({data.data.timezone}).</>}
         </p>

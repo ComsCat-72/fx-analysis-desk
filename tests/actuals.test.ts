@@ -66,3 +66,21 @@ test("sync records actuals once, fills missing figures, throttles, and never thr
   const fail = await A.syncActuals(T, T, { now: now + 900_000, fetcher: (async () => { throw new Error("getaddrinfo ENOTFOUND"); }) as typeof fetch });
   assert.match(fail.error ?? "", /biquote.io unavailable/);
 });
+
+test("real biquote.io response shape (captured by the live-check workflow)", () => {
+  const sample = [
+    { id: "mql5:248898", eventId: "mql5:554021008", time: "2026-10-26T00:00:00Z", period: null, countryCode: "NZ", currency: "NZD", name: "Labor Day", importance: "none", type: "holiday",
+      unit: "none", multiplier: "none", digits: 0, actual: null, forecast: null, previous: null, revisedPrevious: null, revision: 0, timeMode: "date", source: "mql5" },
+    { id: "fxempire:406285", eventId: "fxempire:th:imports-yoy", time: "2026-10-26T03:30:00Z", countryCode: "TH", currency: "THB", name: "Imports YoY", importance: "low",
+      type: "indicator", unit: "percent", multiplier: null, digits: 1, actual: 50.4, forecast: 31.3, previous: 25.1, revisedPrevious: null, source: "fxempire" },
+    { id: "fxempire:413129", time: "2026-10-26T03:30:00Z", countryCode: "TH", currency: "THB", name: "Balance of Trade", unit: "currency", multiplier: "billions", digits: 2,
+      actual: -5.86, forecast: -1.8, previous: -2.48, revisedPrevious: null },
+  ];
+  const fields: Record<string, string> = {};
+  const r = A.parseReleases(sample, fields);
+  assert.deepEqual(fields, { title: "name", currency: "currency", country: "countryCode", time: "time", unit: "unit", actual: "actual", forecast: "forecast", previous: "previous" }); // revisedPrevious registers once a sample has one
+  assert.equal(r[1].title, "Imports YoY"); assert.equal(r[1].at, Date.parse("2026-10-26T03:30:00Z")); assert.equal(r[1].digits, 1);
+  assert.equal(A.formatLike(r[1].actual!, [], r[1].unit, r[1].digits, r[1].multiplier), "50.4%");
+  assert.equal(A.formatLike(r[2].actual!, [], r[2].unit, r[2].digits, r[2].multiplier), "-5.86B");
+  assert.equal(A.formatLike("-134.9", ["-130.4B"], "currency", 1, "billions"), "-134.9B");
+});
