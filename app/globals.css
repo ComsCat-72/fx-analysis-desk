@@ -89,35 +89,8 @@ body { font-family: var(--font-sans); font-size: 15px; line-height: 1.5; -webkit
 .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); }
 .topbar { z-index: 20; background: color-mix(in srgb, var(--surface) 86%, transparent); backdrop-filter: blur(14px) saturate(140%); }
 .brand-mark { background: linear-gradient(135deg, var(--accent-strong), color-mix(in srgb, var(--accent) 55%, var(--ok))); box-shadow: 0 6px 18px -8px var(--accent-strong); }
-.stat::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 3px; background: var(--accent); opacity: .55; }
-.stat-warn::before { background: var(--warn); opacity: 1; }
-.stat-danger::before { background: var(--danger); opacity: 1; }
-.stat-fixture::before { background: var(--fixture); opacity: 1; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
 
-/* Rendered report */
-.report { font-size: 15px; line-height: 1.65; color: var(--text); max-width: 78ch; }
-.report h1 { font-size: 1.45rem; font-weight: 700; letter-spacing: 0.01em; margin: 0 0 .25rem; }
-.report h1 + p { color: var(--muted); font-family: var(--font-mono); font-size: .8rem; margin-top: 0; }
-.report h2 { font-size: 1.02rem; font-weight: 600; margin: 1.6rem 0 .5rem; padding-bottom: .35rem; border-bottom: 1px solid var(--border); }
-.report h3 { font-size: .92rem; font-weight: 600; margin: 1.1rem 0 .3rem; color: var(--accent); text-transform: uppercase; letter-spacing: .06em; }
-.report p { margin: .55rem 0; }
-.report ul { margin: .4rem 0 .6rem; padding-left: 1.1rem; list-style: disc; }
-.report li { margin: .2rem 0; }
-.report li::marker { color: var(--faint); }
-.report strong { font-weight: 600; }
-.report em { color: var(--muted); }
-.report blockquote { margin: .8rem 0; padding: .6rem .85rem; border-radius: 10px; background: var(--warn-soft); border: 1px solid color-mix(in srgb, var(--warn) 35%, transparent); color: var(--text); font-size: .88rem; }
-.report blockquote p { margin: 0; }
-.report-table { overflow-x: auto; margin: .7rem 0 1rem; border: 1px solid var(--border); border-radius: 10px; }
-.report table { width: 100%; border-collapse: collapse; font-size: .83rem; }
-.report th, .report td { padding: .45rem .6rem; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; min-width: 6.5rem; }
-.report tr:last-child td { border-bottom: none; }
-.report td:first-child, .report th { white-space: nowrap; }
-.report th { font-weight: 600; color: var(--muted); background: var(--surface-2); font-size: .74rem; text-transform: uppercase; letter-spacing: .05em; }
-.report code { font-family: var(--font-mono); font-size: .85em; }
-.cite { font-family: var(--font-mono); font-size: .72em; color: var(--accent); background: var(--accent-soft); border-radius: 5px; padding: 0 .3em; margin: 0 .05em; cursor: pointer; border: none; vertical-align: .08em; }
-.cite:hover { background: color-mix(in srgb, var(--accent) 25%, transparent); }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
@@ -125,12 +98,6 @@ body { font-family: var(--font-sans); font-size: 15px; line-height: 1.5; -webkit
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 8px; border: 2px solid var(--bg); }
 
-/* Print page (PDF export via the browser's "Save as PDF") */
-@media print {
-  :root { --bg: #fff; --surface: #fff; --text: #000; --muted: #333; --faint: #555; --border: #ccc; color-scheme: light; }
-  .no-print { display: none !important; }
-  .report { max-width: none; }
-}
 @media (min-width: 1024px) { .topbar { position: sticky; top: 8px; } }
 
 /* Tab strips scroll if they must, without a visible scrollbar; the context tabs show icons only when narrow. */

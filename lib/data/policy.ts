@@ -1,5 +1,4 @@
-// Central-bank press releases and speeches from the banks' official RSS/Atom feeds, plus news headlines you
-// enter yourself. Both are stored with their publication time so a report only sees items published before its cutoff.
+// Central-bank press releases and speeches from the banks' official RSS/Atom feeds, stored with their publication time.
 import { CONFIG } from "../config.ts";
 import { getJSON, update } from "../store.ts";
 
@@ -75,12 +74,3 @@ export async function refreshPolicy(now = Date.now()): Promise<{ stored: number;
 }
 
 export const policyItems = async () => (await getJSON<PolicyDoc>("policy.json"))?.items ?? [];
-export const newsItems = async () => (await getJSON<{ items: NewsItem[] }>("news.json"))?.items ?? [];
-
-export async function addNews(n: Omit<NewsItem, "id">): Promise<string> {
-  const id = `n${n.publishedAt.toString(36)}${Math.random().toString(36).slice(2, 6)}`;
-  await update<{ items: NewsItem[] }>("news.json", () => ({ items: [] }), (doc) => {
-    doc.items = [{ ...n, id }, ...doc.items].sort((a, b) => b.publishedAt - a.publishedAt).slice(0, 400);
-  });
-  return id;
-}

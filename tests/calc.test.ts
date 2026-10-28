@@ -1,6 +1,5 @@
 // Calculator arithmetic against known values. These tools are separate from the reports.
 import assert from "node:assert/strict";
-import { readdirSync, readFileSync } from "node:fs";
 import { test } from "node:test";
 import * as C from "../lib/calc/forex.ts";
 
@@ -93,10 +92,6 @@ test("market hours follow each centre's daylight saving; FX is closed at the wee
   assert.equal(new Date(lon(Date.parse("2026-10-27T10:00:00Z")).current!.start).toISOString(), "2026-10-27T08:00:00.000Z");
   assert.equal(C.fxMarketOpen(Date.parse("2026-10-31T12:00:00Z")), false); // Saturday
   assert.equal(C.sessionsAt(Date.parse("2026-10-31T12:00:00Z")).some((s) => s.open_now), false);
-});
-
-test("the analysis reports never use the calculators", () => {
-  for (const f of readdirSync("lib/reports")) assert.doesNotMatch(readFileSync(`lib/reports/${f}`, "utf8"), /calc\//, f);
 });
 
 test("next weekly open/close matches a minute-by-minute search, across the US clock change", () => {

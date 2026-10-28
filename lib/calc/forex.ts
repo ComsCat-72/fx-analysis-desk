@@ -1,5 +1,5 @@
 // General forex arithmetic for the Calculators page. Pure functions, no data access.
-// These tools are separate from the analysis reports: nothing under lib/reports imports this module.
+// Trading arithmetic for the Calculators and Market hours pages.
 import { addDays, zoned } from "../dates.ts";
 import { dtf, partsOf } from "../fmt.ts";
 

@@ -1,19 +1,11 @@
-// Settings you change from the dashboard: publication mode, writer, display timezone and terminology edits.
+// Settings you change from the dashboard: the default display timezone (used when a browser sends none).
 import { CONFIG } from "./config.ts";
 import { isTimeZone, setDisplayZone } from "./dates.ts";
 import { getJSON, update } from "./store.ts";
 
-export interface TermEdit { kind: "approved" | "prohibited" | "abbreviation"; term: string; definition?: string | null; alternatives?: string[];
-  prohibited_alternatives?: string[]; suggest?: string | null; enabled: boolean; at: number }
-export interface Settings {
-  publication_mode: "manual" | "automatic";
-  writer: "template" | "claude"; // "claude" takes effect only when ANTHROPIC_API_KEY is set
-  display_timezone: string;
-  terms: TermEdit[];
-}
+export interface Settings { display_timezone: string }
 
-const defaults = (): Settings => ({ publication_mode: CONFIG.reports.publicationMode, writer: CONFIG.writer, display_timezone: CONFIG.display.timezone, terms: [] });
-
+const defaults = (): Settings => ({ display_timezone: CONFIG.display.timezone });
 const apply = (s: Settings) => {
   if (!isTimeZone(s.display_timezone)) s.display_timezone = CONFIG.display.timezone;
   setDisplayZone(s.display_timezone);

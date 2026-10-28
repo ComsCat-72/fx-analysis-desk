@@ -1,7 +1,7 @@
 // Economic calendar. Schedule, consensus (forecast) and previous come from the free weekly JSON export
-// published by Forex Factory's operator; that export has no actual results. Actuals are added by you
-// (dashboard) or found by the research step with a cited source URL. Every value ever recorded is kept in an
-// append-only history per event, so a report can be rebuilt exactly as of its data cutoff.
+// published by Forex Factory's operator; that export has no actual results. Actuals come from FXStreet and
+// biquote.io (lib/data/actuals.ts) or are entered by you. Every value ever recorded is kept in an append-only
+// history per event, so every value keeps its source and time.
 import { createHash } from "node:crypto";
 import { CONFIG } from "../config.ts";
 import { monday, dateIn } from "../dates.ts";

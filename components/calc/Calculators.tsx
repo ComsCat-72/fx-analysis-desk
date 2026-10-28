@@ -379,7 +379,7 @@ export function Calculators() {
   return (
     <div className="space-y-3">
       <div className="rounded-lg border border-line bg-surface-2 px-3 py-2 text-[12.5px] text-muted" role="note">
-        <strong className="text-fg">General trading arithmetic.</strong> These tools are separate from the analysis reports, which never use them. Nothing here is a recommendation to trade.
+        <strong className="text-fg">General trading arithmetic.</strong> Nothing here is a recommendation to trade.
       </div>
       <div className="grid gap-3 lg:grid-cols-[230px_minmax(0,1fr)]">
         <nav className="panel h-fit min-w-0 p-2 lg:sticky lg:top-24" aria-label="Calculators">

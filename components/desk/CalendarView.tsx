@@ -4,9 +4,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Filter, Play, RefreshCw } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { addDays } from "./App";
 import { api, friendlyError, useNow, type CalRow } from "./api";
 import { Badge, Button, Field, Spinner, cx, inputCls } from "./ui";
+
+const addDays = (s: string, n: number) => { const d = new Date(s + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
 
 type Mode = "day" | "week" | "month";
 const IMPACTS = ["High", "Medium", "Low", "Holiday"] as const;

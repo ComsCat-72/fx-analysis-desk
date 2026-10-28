@@ -1,4 +1,4 @@
-// Display timezone, headline feeds, scenario tables and writer selection.
+// Display timezone, headline feeds and the calendar range.
 import assert from "node:assert/strict";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -7,16 +7,11 @@ import { test } from "node:test";
 
 process.env.DATA_SOURCE = "fixture";
 delete process.env.BLOB_READ_WRITE_TOKEN;
-const { useLocalStore, putJSON } = await import("../lib/store.ts");
+const { useLocalStore } = await import("../lib/store.ts");
 useLocalStore(mkdtempSync(path.join(tmpdir(), "fxdesk-src-")));
 const { setDisplayZone, stamp, zoned, zoneLabel, displayZone, dateIn } = await import("../lib/dates.ts");
 const { parseHeadlines, tagCurrencies } = await import("../lib/data/headlines.ts");
-const { scenarioTables } = await import("../lib/reports/render.ts");
-const svc = await import("../lib/reports/service.ts");
 const { changeSettings, getSettings } = await import("../lib/settings.ts");
-const { dayWindow } = await import("../lib/core/sessions.ts");
-const { CONFIG } = await import("../lib/config.ts");
-const { addDays, monday, todayLocal } = await import("../lib/dates.ts");
 
 test("display timezone: Kampala (EAT) by default, Kigali (CAT) selectable, source instants unchanged", () => {
   const t = Date.parse("2026-10-20T06:30:00Z");
@@ -66,53 +61,6 @@ test("headline feeds: titles only, currency-tagged, untagged and timezone-less i
   assert.deepEqual(tagCurrencies("Eurotunnel results"), []);
 });
 
-test("a headline published after the data cutoff never enters the report; feed items are labelled headline-only", async () => {
-  const day = addDays(monday(todayLocal()), -5);
-  const w = dayWindow(CONFIG.instruments.GBP_USD.session, day), cutoff = w.start + 3 * 3600_000;
-  await putJSON("headlines.json", { refreshedAt: cutoff, errors: [], items: [
-    { id: "h1", sourceName: "Reuters", title: "Sterling firms before BoE remarks", url: "https://www.reuters.com/x", publishedAt: cutoff - 3600_000, summary: null, currencies: ["GBP"], enteredBy: "feed" },
-    { id: "h2", sourceName: "WSJ", title: "Dollar jumps after the open", url: "https://www.wsj.com/y", publishedAt: cutoff + 60_000, summary: null, currencies: ["USD"], enteredBy: "feed" },
-  ] });
-  const v = await svc.generateDraft("GBP_USD", "daily_analysis", day, { cutoff, writer: "template", save: false });
-  const news = Object.values(v.facts.policy).filter((p) => p.kind === "news");
-  assert.deepEqual(news.map((n) => n.title), ["Sterling firms before BoE remarks"]);
-  assert.match(news[0].text, /headline only; article content not verified/);
-  assert.match(v.body_md, /Sterling firms before BoE remarks/);
-  assert.equal(v.checks.blocking, 0, JSON.stringify(v.checks.findings.filter((f) => f.severity === "blocking"), null, 1));
-});
-
-test("scenario tables: verified consensus only, mutually exclusive outcomes, weights not estimated, inverse for unemployment", () => {
-  const e = (id: string, title: string, consensus: string | null, state = "scheduled", at = "2026-10-20T12:30:00.000Z") => ({ id, kind: "event", event_id: id, currency: "USD", title, impact: "High",
-    scheduled_at: at, scheduled_display: "", source_time: "", state, surprise: null, actual: null, consensus, previous: "4.1%", revised_previous: null, text: "", values: [] });
-  const b = { events: { E1: e("E1", "Unemployment Rate", "4.2%"), E2: e("E2", "Average Hourly Earnings m/m", "0.3%"), E3: e("E3", "CPI m/m", null), E4: e("E4", "GDP q/q", "0.5%", "released", "2026-10-19T12:30:00.000Z") } } as never;
-  const t = scenarioTables(b);
-  assert.match(t, /In line \(4\.2% at the published precision\) \| Not estimated/);
-  assert.match(t, /Above consensus \(above 4\.2%\) \| Not estimated \| Could weaken USD/);
-  assert.match(t, /Released at the same time as Average Hourly Earnings/);
-  assert.doesNotMatch(t, /CPI m\/m \[E3\]\*\*/, "no table without a verified consensus");
-  assert.doesNotMatch(t, /GDP/, "no table for a release that already happened");
-  assert.doesNotMatch(t, /\d+%\s*(?:chance|probability)/);
-});
-
-test("the free template writer is the default; Claude only when chosen and a key is set", () => {
-  const key = process.env.ANTHROPIC_API_KEY;
-  process.env.ANTHROPIC_API_KEY = "sk-ant-test";
-  assert.equal(svc.writerFor(null).name, "template");
-  assert.equal(svc.writerFor(null, "claude").name, "claude");
-  delete process.env.ANTHROPIC_API_KEY;
-  assert.equal(svc.writerFor(null, "claude").name, "template");
-  assert.equal(svc.writerFor("claude").name, "template");
-  if (key) process.env.ANTHROPIC_API_KEY = key;
-});
-
-test("a weekly review without a weekly analysis says so and invents no initial forecast", async () => {
-  const wk = addDays(monday(todayLocal()), -7);
-  const v = await svc.generateDraft("EUR_USD", "weekly_review", wk, { writer: "template", save: false });
-  assert.match(v.body_md, /No weekly analysis was published for this week/);
-  assert.doesNotMatch(v.body_md, /original weekly outlook was/i);
-  assert.equal(v.checks.findings.filter((f) => f.severity === "blocking" && f.check !== "data").length, 0);
-});
-
 test("calendar: green/red follows the currency (inverted for unemployment); range filters by currency and impact", async () => {
   const { resultTone } = await import("../lib/core/events.ts");
   assert.equal(resultTone("CPI y/y", "4.3%", "4.2%"), "better");
@@ -135,7 +83,7 @@ test("calendar: green/red follows the currency (inverted for unemployment); rang
   assert.equal((await calendarRange("2026-10-28", "2026-10-28", { impacts: ["High", "Medium"] })).rows.length, 2);
 });
 
-test("browser timezone: reads are shown in the viewer's zone, per request; writes keep the Configure zone", async () => {
+test("browser timezone: reads are shown in the viewer's zone, per request", async () => {
   const { withZone } = await import("../lib/zone.ts");
   const t = Date.parse("2026-10-20T06:30:00Z");
   const a = withZone("America/New_York", async () => { await new Promise((r) => setTimeout(r, 20)); return stamp(t); });
@@ -153,5 +101,5 @@ test("browser timezone: reads are shown in the viewer's zone, per request; write
   const viaQuery = await (await read(handler)(new Request("http://x/api/t?tz=Europe/London"), {})).json();
   assert.equal(viaQuery.tz, "Europe/London");
   const wrote = await (await write(handler)(new Request("http://x/api/t", { method: "POST", headers }), {})).json();
-  assert.equal(wrote.tz, "Africa/Kampala", "drafting and publishing use the report zone");
+  assert.equal(wrote.tz, "Africa/Kampala", "writes use the Configure zone");
 });

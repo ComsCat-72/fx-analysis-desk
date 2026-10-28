@@ -1,11 +1,7 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { ArrowDownRight, ArrowRight, ArrowUpRight, Loader2, MoveHorizontal } from "lucide-react";
-import { createContext, useContext, type ReactNode } from "react";
-
-/** Inside a tabbed container a panel drops its own frame and title; the tab names it. */
-export const BarePanel = createContext(false);
+import { Loader2 } from "lucide-react";
+import type { ReactNode } from "react";
 
 export function cx(...c: (string | false | null | undefined)[]) {
   return c.filter(Boolean).join(" ");
@@ -14,12 +10,6 @@ export function cx(...c: (string | false | null | undefined)[]) {
 export function Panel({ title, icon, actions, children, className, bodyClass }: {
   title?: ReactNode; icon?: ReactNode; actions?: ReactNode; children: ReactNode; className?: string; bodyClass?: string;
 }) {
-  if (useContext(BarePanel)) return (
-    <div className="flex min-w-0 flex-col">
-      {actions && <div className="flex items-center justify-end gap-1.5 border-b border-line px-3 py-1.5">{actions}</div>}
-      <div className={cx("min-h-0 flex-1", bodyClass ?? "p-4")}>{children}</div>
-    </div>
-  );
   return (
     <section className={cx("panel flex min-w-0 flex-col", className)}>
       {title && (
@@ -72,41 +62,12 @@ export function Button({ children, onClick, variant = "secondary", disabled, bus
   );
 }
 
-const DIR: Record<string, { label: string; icon: typeof ArrowRight }> = {
-  upward_lean: { label: "Upward lean", icon: ArrowUpRight },
-  downward_lean: { label: "Downward lean", icon: ArrowDownRight },
-  neutral: { label: "Neutral", icon: ArrowRight },
-  range_bound: { label: "Range-bound", icon: MoveHorizontal },
-};
-
-/** Direction is shown with an arrow and a word, never with buy/sell colours. */
-export function DirectionTag({ direction, compact }: { direction: string | null | undefined; compact?: boolean }) {
-  if (!direction) return <span className="text-faint">—</span>;
-  const d = DIR[direction] ?? { label: direction, icon: ArrowRight };
-  const Icon = d.icon;
-  return (
-    <span className="inline-flex items-center gap-1 text-fg" title={d.label}>
-      <Icon className="size-3.5 text-accent" aria-hidden />
-      {!compact && <span className="text-[13px]">{d.label}</span>}
-      {compact && <span className="sr-only">{d.label}</span>}
-    </span>
-  );
-}
-
 export function Spinner({ label = "Loading" }: { label?: string }) {
   return <div className="flex items-center gap-2 p-4 text-sm text-muted" role="status"><Loader2 className="size-4 animate-spin" aria-hidden />{label}…</div>;
 }
 
 export function Empty({ children }: { children: ReactNode }) {
   return <div className="rounded-lg border border-dashed border-line px-4 py-6 text-center text-sm text-muted">{children}</div>;
-}
-
-export function FadeIn({ children, k }: { children: ReactNode; k: string | number }) {
-  return (
-    <motion.div key={k} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.22, ease: "easeOut" }}>
-      {children}
-    </motion.div>
-  );
 }
 
 export function Field({ label, children, hint }: { label: string; children: ReactNode; hint?: string }) {
@@ -120,18 +81,6 @@ export function Field({ label, children, hint }: { label: string; children: Reac
 }
 
 export const inputCls = "h-9 rounded-lg border border-line bg-surface-2 px-2.5 text-sm text-fg placeholder:text-faint focus:border-accent focus:outline-none";
-
-/** Compact summary card for the overview strip. */
-export function Stat({ label, icon, children, foot, tone }: { label: string; icon: ReactNode; children: ReactNode; foot?: ReactNode; tone?: "warn" | "danger" | "fixture" }) {
-  return (
-    <div className={cx("stat panel relative flex min-w-0 flex-col gap-1 overflow-hidden px-4 py-3",
-      tone === "warn" && "stat-warn", tone === "danger" && "stat-danger", tone === "fixture" && "stat-fixture")}>
-      <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-faint"><span aria-hidden className="text-muted">{icon}</span>{label}</div>
-      <div className="min-w-0 text-[15px] font-medium leading-snug text-fg">{children}</div>
-      {foot && <div className="min-w-0 truncate text-[12px] text-muted">{foot}</div>}
-    </div>
-  );
-}
 
 /** Accessible tab strip (arrow keys move between tabs). */
 export function Tabs<T extends string>({ tabs, value, onChange, label, className }: {

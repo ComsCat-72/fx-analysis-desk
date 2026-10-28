@@ -41,18 +41,6 @@ export function reconcileActuals(values: Record<string, string>): { state: Event
   return { state: "released", actual: clean[0][1] };
 }
 
-export interface ScenarioRow { outcome: string; implication: string; weight?: number }
-
-export function validateScenarios(rows: ScenarioRow[], method?: string): void {
-  const w = rows.map((r) => r.weight);
-  if (w.every((x) => x == null)) return;
-  if (w.some((x) => x == null)) throw new Error("either all scenario weights are estimated or none are");
-  if (!method) throw new Error("numeric scenario weights require a stored method");
-  const sum = (w as number[]).reduce((s, v) => s + v, 0);
-  if (Math.abs(sum - 100) > 1e-6) throw new Error(`scenario weights sum to ${sum}, not 100`);
-  if (new Set(rows.map((r) => r.outcome)).size !== rows.length) throw new Error("scenario outcomes must be distinct");
-}
-
 /** Releases where a higher figure means a weaker economy (labour-market slack). */
 export const INVERSE = /\b(?:unemployment|jobless|claims|claimant)\b/i;
 

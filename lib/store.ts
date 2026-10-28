@@ -7,7 +7,7 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 
 export class ImmutableError extends Error {}
-export const STORAGE_MISSING = "No storage connected: reports cannot be saved. In Vercel open Storage → Create → Blob, connect the store to this project, then redeploy.";
+export const STORAGE_MISSING = "No storage connected: data cannot be saved. In Vercel open Storage → Create → Blob, connect the store to this project, then redeploy.";
 export class StorageMissing extends Error { constructor() { super(STORAGE_MISSING); } }
 
 /** The Blob token: BLOB_READ_WRITE_TOKEN, or <PREFIX>_READ_WRITE_TOKEN when the store was connected with a custom prefix. */
@@ -181,11 +181,6 @@ export async function putJSON(p: string, data: unknown): Promise<void> {
   await store().write(p, JSON.stringify(data), {});
 }
 
-/** Create-only write. Throws ImmutableError if the document already exists. */
-export async function putImmutable(p: string, data: unknown): Promise<void> {
-  await store().write(p, JSON.stringify(data), { create: true });
-}
-
 /** Read-modify-write with optimistic concurrency. `fn` may mutate and/or return the new value. */
 export async function update<T>(p: string, init: () => T, fn: (cur: T) => T | void): Promise<T> {
   let last = "";
@@ -205,13 +200,3 @@ export async function update<T>(p: string, init: () => T, fn: (cur: T) => T | vo
   throw new Error(`could not save ${p}: the store kept rejecting the update (${last}); please try again`);
 }
 
-export async function putFile(p: string, body: Buffer, contentType: string): Promise<string> {
-  return (await store().write(p, body, { create: true, contentType })).url;
-}
-export async function readFile(p: string): Promise<Buffer | null> {
-  if (blobToken()) {
-    const r = await readBlob(p);
-    return r ? Buffer.from(await r.body.arrayBuffer()) : null;
-  }
-  try { return await fs.readFile(/*turbopackIgnore: true*/ path.join(localRoot(), p)); } catch { return null; }
-}

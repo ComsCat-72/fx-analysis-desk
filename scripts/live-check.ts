@@ -1,134 +1,60 @@
-// Live check against the real free sources (Yahoo, Forex Factory export, central-bank and headline feeds), using the offline
-// template writer and a throwaway local store. Writes reports and a data summary to ./out. Run in CI:
+// Live check against the real free sources (Yahoo, Forex Factory export, FXStreet and biquote.io actuals, CFTC COT,
+// central-bank and headline feeds) with a throwaway local store. Writes a data summary to ./out. Run in CI:
 //   node --experimental-strip-types scripts/live-check.ts
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
 delete process.env.BLOB_READ_WRITE_TOKEN;
-delete process.env.ANTHROPIC_API_KEY;
 const { useLocalStore } = await import("../lib/store.ts");
 useLocalStore(mkdtempSync(path.join(tmpdir(), "live-")));
 const { CONFIG } = await import("../lib/config.ts");
 const { refreshCalendar, eventsBetween } = await import("../lib/data/calendar.ts");
 const { refreshPolicy, policyItems } = await import("../lib/data/policy.ts");
 const { refreshHeadlines, headlineItems } = await import("../lib/data/headlines.ts");
-const { fetchSeries } = await import("../lib/data/yahoo.ts");
-const { dayWindow } = await import("../lib/core/sessions.ts");
-const { addDays, monday, todayLocal, weekDays } = await import("../lib/dates.ts");
-const svc = await import("../lib/reports/service.ts");
+const { latestQuote } = await import("../lib/data/yahoo.ts");
+const { syncActuals } = await import("../lib/data/actuals.ts");
+const { strength } = await import("../lib/data/strength.ts");
+const { correlations } = await import("../lib/data/correlation.ts");
+const { refreshCot } = await import("../lib/data/cot.ts");
+const { banks } = await import("../lib/data/banks.ts");
 
 const out = "out";
 mkdirSync(out, { recursive: true });
+const write = (name: string, body: unknown) => writeFileSync(path.join(out, name), JSON.stringify(body, null, 1));
+const attempt = async <T>(fn: () => Promise<T>) => { try { return await fn(); } catch (e) { return { error: `${(e as Error).name}: ${(e as Error).message}` }; } };
+
 const summary: Record<string, unknown> = { at: new Date().toISOString() };
-summary.calendar = await refreshCalendar().catch((e) => `ERROR ${e.message}`);
-summary.policy = await refreshPolicy().catch((e) => `ERROR ${e.message}`);
-summary.headlines = await refreshHeadlines().catch((e) => `ERROR ${e.message}`);
+summary.calendar = await attempt(() => refreshCalendar());
+summary.policy = await attempt(() => refreshPolicy());
+summary.headlines = await attempt(() => refreshHeadlines());
 summary.headlines_sample = (await headlineItems()).slice(0, 8).map((h) => `${new Date(h.publishedAt).toISOString()} ${h.sourceName} [${h.currencies.join(",")}]: ${h.title}`);
 const pol = await policyItems();
 summary.policy_by_bank = Object.fromEntries(Object.keys(CONFIG.centralBanks).map((b) => [b, pol.filter((p) => p.bank === b).slice(0, 3).map((p) => `${new Date(p.publishedAt).toISOString()} ${p.kind}: ${p.title}`)]));
-summary.events_this_week = (await eventsBetween(Date.now() - 7 * 864e5, Date.now() + 7 * 864e5)).length;
+summary.quotes = Object.fromEntries(await Promise.all(Object.entries(CONFIG.instruments).map(async ([code, i]) => [code, await attempt(() => latestQuote(i.yahoo))] as const)));
 
-const lastWeek = addDays(monday(todayLocal()), -7);
-const write = (name: string, body: string) => writeFileSync(path.join(out, name), body);
-for (const code of Object.keys(CONFIG.instruments)) {
-  const s: Record<string, unknown> = {};
-  summary[code] = s;
-  try {
-    const series = await fetchSeries(code);
-    const rule = CONFIG.instruments[code].session;
-    s.bars = { H1: series.H1.length, D1: series.D1.length, W1: series.W1.length, quote: series.quote };
-    s.last_d1 = series.D1.slice(-6).map((b) => ({ date: b.date, start: new Date(b.start).toISOString(), close: b.close, complete: b.complete,
-      h1_in_window: series.H1.filter((h) => h.start >= b.start && h.start < b.end).length }));
-    s.last_w1 = series.W1.slice(-3).map((b) => ({ date: b.date, open: b.open, close: b.close, complete: b.complete }));
-    s.h1_outside_windows = series.H1.filter((h) => !series.D1.some((d) => h.start >= d.start && h.start < d.end)).length;
-    // Replay last week: weekly analysis -> daily analyses -> reviews -> weekly review, each with its own cutoff.
-    const wa = await svc.generateDraft(code, "weekly_analysis", lastWeek, { cutoff: dayWindow(rule, lastWeek).start - 6 * 3600e3, writer: "template", series });
-    write(`${code}_1_weekly_analysis.md`, wa.body_md);
-    const res: Record<string, unknown> = { weekly_analysis: wa.checks.blocking };
-    if (!wa.checks.blocking) await svc.publish(wa, null, false, Date.parse(wa.data_cutoff) + 60e3);
-    for (const d of weekDays(lastWeek)) {
-      const w = dayWindow(rule, d);
-      const da = await svc.generateDraft(code, "daily_analysis", d, { cutoff: w.start + 4 * 3600e3, writer: "template", series });
-      res[`da_${d}`] = da.checks.blocking ? da.checks.findings.filter((f) => f.severity === "blocking").map((f) => f.message) : 0;
-      if (!da.checks.blocking) await svc.publish(da, null, false, Date.parse(da.data_cutoff) + 60e3);
-      const rv = await svc.generateDraft(code, "daily_review", d, { cutoff: w.end + 3600e3, writer: "template", series });
-      res[`rv_${d}`] = rv.facts.evaluation?.directional?.outcome ?? rv.checks.findings.filter((f) => f.severity === "blocking").map((f) => f.message);
-      if (!rv.checks.blocking) await svc.publish(rv, null, false, Date.parse(rv.data_cutoff) + 60e3);
-      if (d === weekDays(lastWeek)[2]) { write(`${code}_2_daily_analysis_${d}.md`, da.body_md); write(`${code}_3_daily_review_${d}.md`, rv.body_md); }
-    }
-    const wr = await svc.generateDraft(code, "weekly_review", lastWeek, { writer: "template", series, cutoff: Date.now() });
-    write(`${code}_4_weekly_review.md`, wr.body_md);
-    res.weekly_review = wr.facts.evaluation?.weekly?.directional ?? wr.checks.findings.filter((f) => f.severity === "blocking").map((f) => f.message);
-    const now = await svc.generateDraft(code, "daily_analysis", todayLocal(), { writer: "template", series, cutoff: Date.now() });
-    write(`${code}_5_daily_analysis_now.md`, now.body_md);
-    res.now_blocking = now.checks.findings.filter((f) => f.severity !== "info").map((f) => `${f.severity}: ${f.message}`);
-    s.replay = res;
-  } catch (e) {
-    s.error = `${(e as Error).name}: ${(e as Error).message}`;
-  }
-}
-// biquote.io (actual results): the raw shape of a few events, which fields the adapter matched, and a real sync run.
-{
-  const A = await import("../lib/data/actuals.ts");
-  const q = new URLSearchParams({ from: addDays(todayLocal(), -2), to: todayLocal() });
-  const out: Record<string, unknown> = { url: `${A.BIQUOTE_URL}?${q}` };
-  try {
-    const r = await fetch(`${A.BIQUOTE_URL}?${q}`, { headers: { Accept: "application/json" } });
-    out.status = r.status;
-    const text = await r.text();
-    let body: unknown = null;
-    try { body = JSON.parse(text); } catch { out.raw_start = text.slice(0, 1500); }
-    if (body != null) {
-      const list = Array.isArray(body) ? body : Object.values(body as object).find(Array.isArray);
-      out.top_level = Array.isArray(body) ? "array" : Object.keys(body as object);
-      out.count = Array.isArray(list) ? list.length : null;
-      out.sample = Array.isArray(list) ? list.slice(0, 4) : body;
-      const fields: Record<string, string> = {};
-      const parsed = A.parseReleases(body, fields);
-      out.parsed_count = parsed.length; out.fields = fields; out.parsed_sample = parsed.slice(0, 4);
-    }
-  } catch (e) { out.error = (e as Error).message; }
-  // Paging probes: how many rows each parameter variant returns for one day, and the first/last times.
-  const probe = async (extra: Record<string, string>) => {
-    try {
-      const qq = new URLSearchParams({ from: todayLocal(), to: addDays(todayLocal(), 1), ...extra });
-      const r = await fetch(`${A.BIQUOTE_URL}?${qq}`);
-      const b = await r.json() as unknown;
-      if (!r.ok) return { status: r.status, body: b };
-      const list = (Array.isArray(b) ? b : Object.values(b as object).find(Array.isArray) ?? []) as { time?: string; currency?: string; actual?: unknown }[];
-      return { status: r.status, count: list.length, first: list[0]?.time ?? null, last: list.at(-1)?.time ?? null,
-        currencies: [...new Set(list.map((x) => x.currency))].slice(0, 20), with_actual: list.filter((x) => x.actual != null).length,
-        keys: Array.isArray(b) ? "array" : Object.keys(b as object) };
-    } catch (e) { return { error: (e as Error).message }; }
-  };
-  out.probes = {
-    day: await probe({}), limit500: await probe({ limit: "500" }), limit1000: await probe({ limit: "1000" }), offset100: await probe({ offset: "100" }),
-    page2: await probe({ page: "2" }), countries: await probe({ countries: "US,GB,EU" }), country: await probe({ country: "US" }), currency: await probe({ currency: "USD" }),
-    importance_high: await probe({ importance: "high" }), importance_list: await probe({ importance: "high,medium" }),
-    three_days: await probe({ from: addDays(todayLocal(), -2) }), sync_window: await probe({ from: addDays(todayLocal(), -3), countries: "US,EU,GB,JP,AU,NZ,CA,CH,CN,DE,FR,IT,ES" }),
-  };
-  // Second free source: financecalendar.com (keyless; attribution required). Record its shape and today's US/GB actuals.
-  for (const [name, url] of [["fc_calendar", `https://www.financecalendar.com/wp-json/fc/v1/calendar?from=${addDays(todayLocal(), -1)}&to=${addDays(todayLocal(), 1)}`],
-    ["fc_today", "https://www.financecalendar.com/wp-json/fc/v1/today"]] as const) {
-    try {
-      const r = await fetch(url, { headers: { Accept: "application/json" } });
-      const text = await r.text();
-      let b: unknown = null; try { b = JSON.parse(text); } catch { /* not JSON */ }
-      const list = (Array.isArray(b) ? b : b && typeof b === "object" ? Object.values(b as object).find(Array.isArray) ?? [] : []) as Record<string, unknown>[];
-      (out as Record<string, unknown>)[name] = { status: r.status, top: Array.isArray(b) ? "array" : b && typeof b === "object" ? Object.keys(b as object) : text.slice(0, 300),
-        count: list.length, sample: list.slice(0, 3), with_actual: list.filter((x) => x.actual != null && x.actual !== "").length,
-        us_gb: list.filter((x) => /US|GB|UK|United States|United Kingdom|USD|GBP/.test(JSON.stringify([x.country, x.currency, x.country_code]))).slice(0, 8) };
-    } catch (e) { (out as Record<string, unknown>)[name] = { error: (e as Error).message }; }
-  }
-  // biquote: today's US/GB rows in full, to see whether major actuals arrive.
-  try {
-    const r = await fetch(`${A.BIQUOTE_URL}?from=${todayLocal()}&to=${addDays(todayLocal(), 1)}&countries=US,GB`);
-    out.biquote_us_gb = ((await r.json()) as Record<string, unknown>[]).map((x) => ({ time: x.time, name: x.name, actual: x.actual, forecast: x.forecast, importance: x.importance, source: x.source }));
-  } catch (e) { out.biquote_us_gb = { error: (e as Error).message }; }
-  out.sync = await A.syncActuals(Date.now() - 3 * 86400_000, Date.now() + 86400_000, { minGapMs: 0 }).catch((e) => ({ error: String(e) }));
-  write("biquote.json", JSON.stringify(out, null, 1));
-  summary.biquote = { status: out.status, count: out.count, parsed: out.parsed_count, fields: out.fields, sync: out.sync, error: out.error };
-}
-write("summary.json", JSON.stringify(summary, null, 1));
-console.log(JSON.stringify(summary, null, 1).slice(0, 4000));
+// Actual results: a real sync, then which of the week's released events now have an actual, by source.
+summary.actuals_sync = await attempt(() => syncActuals(Date.now() - 3 * 86400_000, Date.now() + 86400_000, { minGapMs: 0 }));
+const { eventAsOf } = await import("../lib/data/calendar.ts");
+const released = (await eventsBetween(Date.now() - 3 * 86400_000, Date.now())).filter((e) => e.impact !== "Holiday" && (e.consensus || e.previous));
+const actuals = released.map((e) => { const s = eventAsOf(e, Date.now()); return { at: new Date(e.scheduledAt).toISOString(), currency: e.currency, title: e.title, actual: s.actual, sources: s.actualSources }; });
+write("actuals.json", actuals);
+summary.actuals = { released: actuals.length, with_actual: actuals.filter((a) => a.actual).length,
+  by_source: actuals.reduce<Record<string, number>>((m, a) => { for (const s of a.sources) { const k = s.replace(/ \(.*/, ""); m[k] = (m[k] ?? 0) + 1; } return m; }, {}),
+  missing: actuals.filter((a) => !a.actual).map((a) => `${a.at} ${a.currency} ${a.title}`).slice(0, 30) };
+
+const st = await attempt(() => strength());
+write("strength.json", st);
+summary.strength = "error" in st ? st : { today: st.today, week: st.week, errors: st.errors };
+const co = await attempt(() => correlations());
+write("correlation.json", co);
+summary.correlation = "error" in co ? co : { labels: co.labels.map((l) => l.display), m20_row0: co.m20[0], errors: co.errors };
+const cot = await attempt(() => refreshCot());
+write("cot.json", cot);
+summary.cot = !("rows" in cot) ? cot : { report_date: cot.report_date, rows: cot.rows.map((r) => `${r.label}: net ${r.spec_net} (${r.spec_net_change})`), error: cot.error };
+const bk = await attempt(() => banks());
+write("banks.json", bk);
+summary.banks = !("rows" in bk) ? bk : { error: bk.error, rows: bk.rows.map((r) => `${r.id}: ${r.rate} at ${r.rate_at && new Date(r.rate_at).toISOString()} next ${r.next_at && new Date(r.next_at).toISOString()} last ${JSON.stringify(r.last_change)}`) };
+
+write("summary.json", summary);
+console.log(JSON.stringify(summary, null, 1).slice(0, 6000));

@@ -1,7 +1,6 @@
 // Route helpers: JSON responses, auth guards and errors returned as JSON (never an HTML error page).
 import { authorized, canRead } from "./auth.ts";
 import { ImmutableError, StorageMissing } from "./store.ts";
-import { PublishError } from "./reports/service.ts";
 import { getSettings } from "./settings.ts";
 import { withZone } from "./zone.ts";
 
@@ -18,14 +17,12 @@ function wrap<C>(write: boolean, fn: Handler<C>): Handler<C> {
   return async (req, ctx) => {
     if (write ? !authorized(req) : !canRead(req)) return json({ detail: "admin token required" }, 401);
     try {
-      await getSettings(); // the Configure timezone: used for writing reports and by scheduled runs
-      // Reads are shown in the viewer's browser timezone; writes (drafts, publication) keep the Configure zone,
-      // so every report in a series is written in one fixed zone.
+      await getSettings(); // the Configure timezone: the default when the browser sends none
+      // Reads are shown in the viewer's browser timezone.
       const tz = req.method === "GET" ? req.headers.get("x-display-tz") ?? new URL(req.url).searchParams.get("tz") : null;
       return await withZone(tz, () => fn(req, ctx));
     } catch (e) {
       if (e instanceof HttpError) return json({ detail: e.detail }, e.status);
-      if (e instanceof PublishError) return json({ detail: { message: e.message, findings: e.findings } }, 409);
       if (e instanceof ImmutableError) return json({ detail: e.message }, 409);
       if (e instanceof StorageMissing) return json({ detail: e.message }, 503);
       console.error(e);
