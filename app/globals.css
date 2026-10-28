@@ -129,3 +129,8 @@ body { font-family: var(--font-sans); font-size: 15px; line-height: 1.5; -webkit
   .report { max-width: none; }
 }
 @media (min-width: 1024px) { .topbar { position: sticky; top: 8px; } }
+
+/* Tab strips scroll if they must, without a visible scrollbar; the context tabs show icons only when narrow. */
+.tabs-scroll { scrollbar-width: none; }
+.tabs-scroll::-webkit-scrollbar { display: none; }
+@media (min-width: 1536px) and (max-width: 1799px) { .ctx-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); } }

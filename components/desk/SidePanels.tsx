@@ -13,7 +13,7 @@ export function SystemAlerts() {
   if (!h.data || h.data.persistent_storage) return null;
   return (
     <div className="rounded-lg border border-[color-mix(in_srgb,var(--danger)_40%,transparent)] bg-danger-soft px-3 py-2 text-[13px] text-danger" role="alert">
-      <strong>No storage connected.</strong> BLOB_READ_WRITE_TOKEN is not set, so reports cannot be saved. In Vercel open
+      <strong>No storage connected.</strong> No Vercel Blob token was found (BLOB_READ_WRITE_TOKEN), so reports cannot be saved. In Vercel open
       Storage → Create → Blob, connect it to this project, then redeploy.
     </div>
   );

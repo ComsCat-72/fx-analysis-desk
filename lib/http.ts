@@ -1,6 +1,6 @@
 // Route helpers: JSON responses, auth guards and errors returned as JSON (never an HTML error page).
 import { authorized, canRead } from "./auth.ts";
-import { ImmutableError } from "./store.ts";
+import { ImmutableError, StorageMissing } from "./store.ts";
 import { PublishError } from "./reports/service.ts";
 import { getSettings } from "./settings.ts";
 
@@ -23,6 +23,7 @@ function wrap<C>(write: boolean, fn: Handler<C>): Handler<C> {
       if (e instanceof HttpError) return json({ detail: e.detail }, e.status);
       if (e instanceof PublishError) return json({ detail: { message: e.message, findings: e.findings } }, 409);
       if (e instanceof ImmutableError) return json({ detail: e.message }, 409);
+      if (e instanceof StorageMissing) return json({ detail: e.message }, 503);
       console.error(e);
       const msg = `${(e as Error).name}: ${(e as Error).message}`.replace(/(sk-ant-[\w-]{6})[\w-]+/g, "$1***");
       return json({ detail: msg.slice(0, 1500) }, 500);

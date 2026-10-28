@@ -135,7 +135,7 @@ export function Stat({ label, icon, children, foot, tone }: { label: string; ico
 
 /** Accessible tab strip (arrow keys move between tabs). */
 export function Tabs<T extends string>({ tabs, value, onChange, label, className }: {
-  tabs: { id: T; label: ReactNode; badge?: ReactNode }[]; value: T; onChange: (id: T) => void; label: string; className?: string;
+  tabs: { id: T; label: ReactNode; badge?: ReactNode; title?: string }[]; value: T; onChange: (id: T) => void; label: string; className?: string;
 }) {
   const move = (dir: number) => {
     const i = tabs.findIndex((t) => t.id === value);
@@ -144,10 +144,10 @@ export function Tabs<T extends string>({ tabs, value, onChange, label, className
     requestAnimationFrame(() => document.getElementById(`tab-${label}-${next.id}`)?.focus());
   };
   return (
-    <div role="tablist" aria-label={label} className={cx("flex items-center gap-0.5 overflow-x-auto", className)}
+    <div role="tablist" aria-label={label} className={cx("tabs-scroll flex items-center gap-0.5 overflow-x-auto", className)}
       onKeyDown={(e) => { if (e.key === "ArrowRight") { e.preventDefault(); move(1); } if (e.key === "ArrowLeft") { e.preventDefault(); move(-1); } }}>
       {tabs.map((t) => (
-        <button key={t.id} id={`tab-${label}-${t.id}`} role="tab" aria-selected={value === t.id} tabIndex={value === t.id ? 0 : -1} onClick={() => onChange(t.id)}
+        <button key={t.id} id={`tab-${label}-${t.id}`} role="tab" aria-selected={value === t.id} title={t.title} aria-label={t.title} tabIndex={value === t.id ? 0 : -1} onClick={() => onChange(t.id)}
           className={cx("relative inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-t-lg px-2.5 py-2.5 text-[13px] font-medium transition-colors",
             value === t.id ? "text-fg" : "text-muted hover:text-fg")}>
           {t.label}{t.badge}

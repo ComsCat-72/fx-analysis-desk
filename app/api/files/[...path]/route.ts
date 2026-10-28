@@ -1,11 +1,11 @@
 import { HttpError, read, type Ctx } from "@/lib/http.ts";
-import { readFile } from "@/lib/store.ts";
+import { readFile, storageMode } from "@/lib/store.ts";
 
 export const dynamic = "force-dynamic";
 
 /** Local development only: serves files from the .data/ store (deployments use Vercel Blob URLs). */
 export const GET = read<Ctx<{ path: string[] }>>(async (_req, { params }) => {
-  if (process.env.BLOB_READ_WRITE_TOKEN) throw new HttpError(404, "not found");
+  if (storageMode() === "vercel-blob") throw new HttpError(404, "not found");
   const p = (await params).path.join("/");
   if (p.includes("..")) throw new HttpError(400, "bad path");
   const data = await readFile(p);

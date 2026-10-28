@@ -7,6 +7,14 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 
 export class ImmutableError extends Error {}
+export const STORAGE_MISSING = "No storage connected: reports cannot be saved. In Vercel open Storage → Create → Blob, connect the store to this project, then redeploy.";
+export class StorageMissing extends Error { constructor() { super(STORAGE_MISSING); } }
+
+/** The Blob token: BLOB_READ_WRITE_TOKEN, or <PREFIX>_READ_WRITE_TOKEN when the store was connected with a custom prefix. */
+export function blobToken(): string | undefined {
+  if (process.env.BLOB_READ_WRITE_TOKEN) return process.env.BLOB_READ_WRITE_TOKEN;
+  return Object.entries(process.env).find(([k, v]) => k.endsWith("_READ_WRITE_TOKEN") && v?.startsWith("vercel_blob_rw_"))?.[1];
+}
 class PreconditionFailed extends Error {}
 
 interface Backend {
@@ -25,7 +33,7 @@ function blobBackend(): Backend {
   return {
     async read(p) {
       const { get } = await sdk;
-      const r = await get(p, { access: blobAccess(), useCache: false });
+      const r = await get(p, { access: blobAccess(), useCache: false, token: blobToken() });
       if (!r || !r.stream) return null;
       return { text: await new Response(r.stream).text(), etag: r.blob.etag };
     },
@@ -33,7 +41,7 @@ function blobBackend(): Backend {
       const { put } = await sdk;
       try {
         const r = await put(p, body, {
-          access: blobAccess(), addRandomSuffix: false, contentType: o.contentType ?? "application/json",
+          access: blobAccess(), token: blobToken(), addRandomSuffix: false, contentType: o.contentType ?? "application/json",
           cacheControlMaxAge: 60, ...(o.create ? { allowOverwrite: false } : o.etag ? { ifMatch: o.etag } : { allowOverwrite: true }),
         });
         return { url: r.url };
@@ -49,7 +57,7 @@ function blobBackend(): Backend {
       const out: string[] = [];
       let cursor: string | undefined;
       do {
-        const r = await list({ prefix, cursor, limit: 1000 });
+        const r = await list({ prefix, cursor, limit: 1000, token: blobToken() });
         out.push(...r.blobs.map((b) => b.pathname));
         cursor = r.hasMore ? r.cursor : undefined;
       } while (cursor);
@@ -57,12 +65,23 @@ function blobBackend(): Backend {
     },
     async del(p) {
       const { del } = await sdk;
-      await del(p);
+      await del(p, { token: blobToken() });
     },
     async url(p) {
       const { head } = await sdk;
-      try { return (await head(p)).url; } catch { return null; }
+      try { return (await head(p, { token: blobToken() })).url; } catch { return null; }
     },
+  };
+}
+
+/** On Vercel without Blob the filesystem is read-only: reads find nothing, writes explain what is missing. */
+function missingBackend(): Backend {
+  return {
+    async read() { return null; },
+    async write() { throw new StorageMissing(); },
+    async list() { return []; },
+    async del() { /* nothing stored */ },
+    async url() { return null; },
   };
 }
 
@@ -112,12 +131,12 @@ const localRoot = () => process.env.DATA_DIR || path.join(/*turbopackIgnore: tru
 
 let backend: Backend | null = null;
 export function store(): Backend {
-  if (!backend) backend = process.env.BLOB_READ_WRITE_TOKEN ? blobBackend() : fsBackend(localRoot());
+  if (!backend) backend = blobToken() ? blobBackend() : process.env.VERCEL ? missingBackend() : fsBackend(localRoot());
   return backend;
 }
 /** For tests: point the store at a fresh local directory. */
 export function useLocalStore(dir: string) { backend = fsBackend(dir); }
-export const storageMode = () => (process.env.BLOB_READ_WRITE_TOKEN ? "vercel-blob" : "local-files");
+export const storageMode = () => (blobToken() ? "vercel-blob" : process.env.VERCEL ? "none" : "local-files");
 
 export async function getJSON<T>(p: string): Promise<T | null> {
   const r = await store().read(p);
@@ -154,9 +173,9 @@ export async function putFile(p: string, body: Buffer, contentType: string): Pro
   return (await store().write(p, body, { create: true, contentType })).url;
 }
 export async function readFile(p: string): Promise<Buffer | null> {
-  if (process.env.BLOB_READ_WRITE_TOKEN) {
+  if (blobToken()) {
     const { get } = await import("@vercel/blob");
-    const r = await get(p, { access: blobAccess(), useCache: false });
+    const r = await get(p, { access: blobAccess(), useCache: false, token: blobToken() });
     return r?.stream ? Buffer.from(await new Response(r.stream).arrayBuffer()) : null;
   }
   try { return await fs.readFile(/*turbopackIgnore: true*/ path.join(localRoot(), p)); } catch { return null; }

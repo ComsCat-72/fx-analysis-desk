@@ -6,12 +6,12 @@ import { BarePanel, Tabs } from "./ui";
 
 export type ContextTab = "evidence" | "calendar" | "levels" | "evaluation" | "screenshot";
 
-const TABS: { id: ContextTab; label: React.ReactNode }[] = [
-  { id: "evidence", label: <><BookOpenCheck className="size-3.5" aria-hidden />Evidence</> },
-  { id: "calendar", label: <><CalendarClock className="size-3.5" aria-hidden />Calendar</> },
-  { id: "levels", label: <><Layers className="size-3.5" aria-hidden />Levels</> },
-  { id: "evaluation", label: <><Activity className="size-3.5" aria-hidden />Evaluation</> },
-  { id: "screenshot", label: <><ImageUp className="size-3.5" aria-hidden />Chart</> },
+const TABS: { id: ContextTab; label: React.ReactNode; title: string }[] = [
+  { id: "evidence", label: <><BookOpenCheck className="size-3.5" aria-hidden /><span className="ctx-label">Evidence</span></>, title: "Evidence" },
+  { id: "calendar", label: <><CalendarClock className="size-3.5" aria-hidden /><span className="ctx-label">Calendar</span></>, title: "Calendar" },
+  { id: "levels", label: <><Layers className="size-3.5" aria-hidden /><span className="ctx-label">Levels</span></>, title: "Levels" },
+  { id: "evaluation", label: <><Activity className="size-3.5" aria-hidden /><span className="ctx-label">Evaluation</span></>, title: "Evaluation" },
+  { id: "screenshot", label: <><ImageUp className="size-3.5" aria-hidden /><span className="ctx-label">Chart</span></>, title: "Chart" },
 ];
 
 /** Everything around the report in one tabbed panel: sources, calendar, reference levels, evaluation history, screenshots. */
