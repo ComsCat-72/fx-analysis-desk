@@ -10,6 +10,7 @@ import { parseValue } from "../core/events.ts";
 import { getJSON, putJSON } from "../store.ts";
 import { eventsBetween, recordValues, type CalendarEvent } from "./calendar.ts";
 import { addDays, dateIn, monday } from "../dates.ts";
+import { FXSTREET_HEADERS, fxstreetUrl, parseFxstreet } from "./fxstreet.ts";
 
 export const BIQUOTE_URL = process.env.BIQUOTE_URL || "https://biquote.io/api/calendar"; // overridable for local testing
 export const SOURCE = "biquote.io economic calendar";
@@ -18,7 +19,7 @@ const CURRENCY: Record<string, string> = { US: "USD", USA: "USD", EU: "EUR", EMU
   JP: "JPY", AU: "AUD", NZ: "NZD", CA: "CAD", CH: "CHF", CN: "CNY" };
 
 export interface Release { title: string; currency: string; at: number; actual: string | null; forecast: string | null; previous: string | null; revised: string | null; unit: string | null;
-  digits?: number | null; multiplier?: string | null }
+  digits?: number | null; multiplier?: string | null; source?: string; url?: string }
 
 const pick = (o: Record<string, unknown>, keys: string[]) => { for (const k of keys) if (o[k] != null && o[k] !== "") return { key: k, value: o[k] }; return null; };
 const str = (v: unknown) => (v == null || v === "" ? null : String(v));
@@ -83,9 +84,17 @@ const MULT: Record<string, string> = { thousands: "K", millions: "M", billions: 
  *  Without a Forex Factory figure to copy, biquote's own unit, multiplier and digits are used. */
 export function formatLike(value: string, like: (string | null)[], unit: string | null = null, digits: number | null = null, multiplier: string | null = null): string {
   const raw = String(value).trim();
-  if (/[%KMBT]$/i.test(raw)) return raw; // already carries its unit
-  const n = Number(raw.replace(/,/g, ""));
   const ref = like.map((x) => parseValue(x)).find(Boolean);
+  if (/%$/.test(raw)) return raw; // already carries its unit
+  const suf = raw.match(/^(-?[\d.,]+)\s*([KMBT])$/i);
+  if (suf) {
+    // A figure with its own multiplier (FXStreet "0.676M") rescaled to the Forex Factory unit ("676K").
+    const scale = ref ? SCALE[ref.unit] : undefined;
+    if (!ref || !scale) return raw;
+    const abs = Number(suf[1].replace(/,/g, "")) * SCALE[suf[2].toUpperCase()];
+    return `${(abs / scale).toFixed(ref.decimals)}${ref.unit}`;
+  }
+  const n = Number(raw.replace(/,/g, ""));
   if (!Number.isFinite(n)) return raw;
   if (!ref) {
     const suffix = unit === "%" || unit === "percent" ? "%" : MULT[multiplier ?? ""] ?? "";
@@ -123,18 +132,28 @@ export async function syncActuals(from: number, to: number, o: { now?: number; m
   await putJSON("actuals-sync.json", { at: last?.at ?? 0, result: last?.result ?? empty, running: now } satisfies SyncDoc).catch(() => undefined);
   const fields: Record<string, string> = {};
   let result: SyncResult;
+  let sourceErrors: string | null = null;
   try {
-    // One request per UTC day: a multi-day query is capped (it returned exactly 100 rows), which cut off today's releases.
+    // Both free sources at once; one failing never blocks the other. FXStreet first: it publishes US/UK actuals within
+    // minutes. biquote: one request per UTC day, because a multi-day query is capped at 100 rows.
     const days: string[] = [];
     for (let d = dateIn(from, "UTC"), end = dateIn(to, "UTC"); d <= end && days.length < 7; d = addDays(d, 1)) days.push(d);
-    const lists = await Promise.all(days.map(async (d) => {
-      const q = new URLSearchParams({ from: d, to: addDays(d, 1), countries: COUNTRIES.join(",") }); // biquote needs to > from
-      const r = await (o.fetcher ?? fetch)(`${BIQUOTE_URL}?${q}`, { headers: { Accept: "application/json", "User-Agent": "fx-analysis-desk/1.0" }, cache: "no-store", signal: AbortSignal.timeout(8000) });
+    const get = async (url: string, headers: Record<string, string>) => {
+      const r = await (o.fetcher ?? fetch)(url, { headers: { "User-Agent": "fx-analysis-desk/1.0", ...headers }, cache: "no-store", signal: AbortSignal.timeout(8000) });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      return parseReleases(await r.json(), fields);
-    }));
+      return r.json();
+    };
+    const [fxs, bq] = await Promise.allSettled([
+      get(fxstreetUrl(Date.parse(`${days[0]}T00:00:00Z`), Date.parse(`${days.at(-1)}T23:59:59Z`)), FXSTREET_HEADERS).then(parseFxstreet),
+      Promise.all(days.map((d) => get(`${BIQUOTE_URL}?${new URLSearchParams({ from: d, to: addDays(d, 1), countries: COUNTRIES.join(",") })}`, { Accept: "application/json" })
+        .then((b) => parseReleases(b, fields)))).then((l) => l.flat()), // biquote needs to > from
+    ]);
+    const failed = [fxs.status === "rejected" && `FXStreet unavailable: ${(fxs.reason as Error).message}`, bq.status === "rejected" && `biquote.io unavailable: ${(bq.reason as Error).message}`].filter(Boolean) as string[];
+    if (failed.length === 2) throw new Error(failed.join("; "));
     const seen = new Set<string>();
-    const releases = lists.flat().filter((x) => { const k = `${x.currency}|${x.at}|${x.title}`; return !seen.has(k) && (seen.add(k), true); });
+    const releases = [...(fxs.status === "fulfilled" ? fxs.value : []), ...(bq.status === "fulfilled" ? bq.value : [])]
+      .filter((x) => { const k = `${x.source ?? SOURCE}|${x.currency}|${x.at}|${x.title}`; return !seen.has(k) && (seen.add(k), true); });
+    sourceErrors = failed.length ? failed.join("; ") : null;
     const events = await eventsBetween(from - 86400_000, to + 86400_000);
     const byWeek = new Map<string, Parameters<typeof recordValues>[1]>();
     let matched = 0;
@@ -143,10 +162,15 @@ export async function syncActuals(from: number, to: number, o: { now?: number; m
       if (!e) continue;
       matched++;
       const wk = monday(dateIn(e.scheduledAt, "America/New_York"));
+      const src = rel.source ?? SOURCE;
       const put = (field: "actual" | "consensus" | "previous" | "revised_previous", v: string) => {
-        if (e.history.some((h) => h.field === field && h.source === SOURCE && h.value === v)) return;
+        if (e.history.some((h) => h.field === field && h.source === src && h.value === v)) return;
         const list = byWeek.get(wk) ?? [];
-        list.push({ id: e.id, field, value: v, source: SOURCE, url: BIQUOTE_URL, at: now });
+        // The same figure from the second source adds nothing; a different one is kept and shows as conflicting.
+        if (field === "actual" && list.some((x) => x.id === e.id && x.field === "actual" && same(x.value, v))) return;
+        if (field === "actual" && e.history.some((h) => h.field === "actual" && h.source !== src && same(h.value, v))) return;
+        if (field !== "actual" && list.some((x) => x.id === e.id && x.field === field)) return;
+        list.push({ id: e.id, field, value: v, source: src, url: rel.url ?? BIQUOTE_URL, at: now });
         byWeek.set(wk, list);
       };
       const fmt = (v: string) => formatLike(v, [e.consensus, e.previous], rel.unit, rel.digits, rel.multiplier);
@@ -157,9 +181,9 @@ export async function syncActuals(from: number, to: number, o: { now?: number; m
     }
     let recorded = 0;
     for (const [wk, entries] of byWeek) recorded += await recordValues(wk, entries);
-    result = { fetched: releases.length, matched, recorded, fields, error: null };
+    result = { fetched: releases.length, matched, recorded, fields, error: sourceErrors };
   } catch (e) {
-    result = { fetched: 0, matched: 0, recorded: 0, fields, error: `biquote.io unavailable: ${(e as Error).message}` };
+    result = { fetched: 0, matched: 0, recorded: 0, fields, error: (e as Error).message };
   }
   await putJSON("actuals-sync.json", { at: now, result, running: null } satisfies SyncDoc).catch(() => undefined);
   return result;

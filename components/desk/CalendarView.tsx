@@ -324,7 +324,7 @@ export function CalendarView({ today, instrumentCurrencies }: { today: string; i
           </div>
         )}
         <p className="border-t border-line px-4 py-2 text-[11.5px] text-faint">
-          Schedule, forecast and previous: Forex Factory weekly export. Actual results: biquote.io free economic calendar, refreshed every two minutes while the calendar is open (and editable in each row's details).
+          Schedule, forecast and previous: Forex Factory weekly export. Actual results: <a className="underline" href="https://www.fxstreet.com/economic-calendar" target="_blank" rel="noreferrer">FXStreet</a> and <a className="underline" href="https://biquote.io" target="_blank" rel="noreferrer">biquote.io</a> free economic calendars, checked every 20 seconds right after a release and every two minutes otherwise while the calendar is open (and editable in each row's details).
           {data.data?.actuals_synced_display && <> Last actuals update: {data.data.actuals_synced_display}.</>}
           {data.data?.actuals_sync?.error && <span className="text-warn"> {data.data.actuals_sync.error}.</span>}{" "}
           Forex Factory's free feed covers the current week; earlier weeks show what was stored while they were current.
