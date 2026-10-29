@@ -1,0 +1,223 @@
+{
+ "fetched_at": 1793260607885,
+ "error": null,
+ "rows": [
+  {
+   "id": "fed",
+   "name": "Federal Reserve",
+   "currency": "USD",
+   "rate_name": "Federal funds rate (upper bound)",
+   "rate": 4,
+   "rate_at": 1793210400000,
+   "rate_source": "calendar",
+   "awaiting_at": null,
+   "last_change": {
+    "at": 1789581600000,
+    "bp": 25
+   },
+   "next_at": 1796842800000,
+   "history": [
+    {
+     "at": 1793210400000,
+     "rate": 4
+    },
+    {
+     "at": 1789581600000,
+     "rate": 4
+    }
+   ]
+  },
+  {
+   "id": "ecb",
+   "name": "European Central Bank",
+   "currency": "EUR",
+   "rate_name": "Main refinancing rate",
+   "rate": 2.65,
+   "rate_at": 1789042500000,
+   "rate_source": "biquote.io",
+   "awaiting_at": null,
+   "last_change": {
+    "at": 1789042500000,
+    "bp": 25
+   },
+   "next_at": 1793279700000,
+   "history": [
+    {
+     "at": 1789042500000,
+     "rate": 2.65
+    }
+   ]
+  },
+  {
+   "id": "boe",
+   "name": "Bank of England",
+   "currency": "GBP",
+   "rate_name": "Bank Rate",
+   "rate": 4,
+   "rate_at": 1789642800000,
+   "rate_source": "biquote.io",
+   "awaiting_at": null,
+   "last_change": {
+    "at": 1789642800000,
+    "bp": 25
+   },
+   "next_at": 1793880000000,
+   "history": [
+    {
+     "at": 1789642800000,
+     "rate": 4
+    }
+   ]
+  },
+  {
+   "id": "boj",
+   "name": "Bank of Japan",
+   "currency": "JPY",
+   "rate_name": "Policy rate",
+   "rate": 1.25,
+   "rate_at": 1789700040000,
+   "rate_source": "biquote.io",
+   "awaiting_at": null,
+   "last_change": {
+    "at": 1789700040000,
+    "bp": 25
+   },
+   "next_at": 1793327400000,
+   "history": [
+    {
+     "at": 1789700040000,
+     "rate": 1.25
+    }
+   ]
+  },
+  {
+   "id": "rba",
+   "name": "Reserve Bank of Australia",
+   "currency": "AUD",
+   "rate_name": "Cash rate",
+   "rate": 4.6,
+   "rate_at": 1790656200000,
+   "rate_source": "biquote.io",
+   "awaiting_at": null,
+   "last_change": {
+    "at": 1790656200000,
+    "bp": 25
+   },
+   "next_at": 1793680200000,
+   "history": [
+    {
+     "at": 1790656200000,
+     "rate": 4.6
+    },
+    {
+     "at": 1786422600000,
+     "rate": 4.35
+    }
+   ]
+  },
+  {
+   "id": "rbnz",
+   "name": "Reserve Bank of New Zealand",
+   "currency": "NZD",
+   "rate_name": "Official cash rate",
+   "rate": 2.75,
+   "rate_at": 1793149200000,
+   "rate_source": "biquote.io",
+   "awaiting_at": null,
+   "last_change": {
+    "at": 1788314400000,
+    "bp": 25
+   },
+   "next_at": null,
+   "history": [
+    {
+     "at": 1793149200000,
+     "rate": 2.75
+    },
+    {
+     "at": 1788314400000,
+     "rate": 2.75
+    }
+   ]
+  },
+  {
+   "id": "boc",
+   "name": "Bank of Canada",
+   "currency": "CAD",
+   "rate_name": "Overnight rate",
+   "rate": 2.5,
+   "rate_at": 1793195100000,
+   "rate_source": "calendar",
+   "awaiting_at": null,
+   "last_change": {
+    "at": 1793195100000,
+    "bp": 25
+   },
+   "next_at": 1796827500000,
+   "history": [
+    {
+     "at": 1793195100000,
+     "rate": 2.5
+    },
+    {
+     "at": 1788356700000,
+     "rate": 2.25
+    }
+   ]
+  },
+  {
+   "id": "snb",
+   "name": "Swiss National Bank",
+   "currency": "CHF",
+   "rate_name": "SNB policy rate",
+   "rate": 0,
+   "rate_at": 1790236800000,
+   "rate_source": "biquote.io",
+   "awaiting_at": null,
+   "last_change": null,
+   "next_at": 1796891400000,
+   "history": [
+    {
+     "at": 1790236800000,
+     "rate": 0
+    },
+    {
+     "at": 1790235000000,
+     "rate": 0
+    }
+   ]
+  }
+ ],
+ "differentials": [
+  {
+   "pair": "GBP/USD",
+   "base": "GBP",
+   "quote": "USD",
+   "diff": 0
+  },
+  {
+   "pair": "EUR/USD",
+   "base": "EUR",
+   "quote": "USD",
+   "diff": -1.35
+  },
+  {
+   "pair": "AUD/USD",
+   "base": "AUD",
+   "quote": "USD",
+   "diff": 0.5999999999999996
+  },
+  {
+   "pair": "NZD/USD",
+   "base": "NZD",
+   "quote": "USD",
+   "diff": -1.25
+  },
+  {
+   "pair": "USD/CHF",
+   "base": "USD",
+   "quote": "CHF",
+   "diff": 4
+  }
+ ]
+}

@@ -1,0 +1,404 @@
+{
+ "at": "2026-10-29T07:56:34.809Z",
+ "base": "https://fx-analysis-desk.vercel.app",
+ "build": {
+  "buildId": null,
+  "bytes": 7577
+ },
+ "/api/health": [
+  {
+   "status": 200,
+   "ms": 125,
+   "headers": {
+    "server-timing": null,
+    "x-vercel-id": "iad1::iad1::jkj7b-1793260595091-a10e0716f949",
+    "x-vercel-cache": "MISS",
+    "age": "0",
+    "cache-control": "no-store",
+    "content-type": "application/json"
+   },
+   "bytes": 144,
+   "body": "{\"ok\":true,\"app_env\":\"production\",\"storage\":\"vercel-blob\",\"persistent_storage\":true,\"data_source\":\"yahoo\",\"admin_token\":true,\"cron_secret\":true}"
+  },
+  {
+   "status": 200,
+   "ms": 36,
+   "headers": {
+    "server-timing": null,
+    "x-vercel-id": "iad1::iad1::jkj7b-1793260595219-160059e84e14",
+    "x-vercel-cache": "MISS",
+    "age": "0",
+    "cache-control": "no-store",
+    "content-type": "application/json"
+   },
+   "bytes": 144,
+   "body": "{\"ok\":true,\"app_env\":\"production\",\"storage\":\"vercel-blob\",\"persistent_storage\":true,\"data_source\":\"yahoo\",\"admin_token\":true,\"cron_secret\":true}"
+  },
+  {
+   "status": 200,
+   "ms": 58,
+   "headers": {
+    "server-timing": null,
+    "x-vercel-id": "iad1::iad1::hnzlb-1793260595250-2c289945e7a5",
+    "x-vercel-cache": "MISS",
+    "age": "0",
+    "cache-control": "no-store",
+    "content-type": "application/json"
+   },
+   "bytes": 144,
+   "body": "{\"ok\":true,\"app_env\":\"production\",\"storage\":\"vercel-blob\",\"persistent_storage\":true,\"data_source\":\"yahoo\",\"admin_token\":true,\"cron_secret\":true}"
+  }
+ ],
+ "/api/health?probe=actuals-sync.json": [
+  {
+   "status": 200,
+   "ms": 324,
+   "headers": {
+    "server-timing": null,
+    "x-vercel-id": "iad1::iad1::pcszt-1793260595308-490a0309ea8a",
+    "x-vercel-cache": "MISS",
+    "age": "0",
+    "cache-control": "no-store",
+    "content-type": "application/json"
+   },
+   "bytes": 487,
+   "body": "{\"path\":\"actuals-sync.json\",\"access\":\"public\",\"steps\":[{\"name\":\"head\",\"ms\":142,\"ok\":true,\"result\":{\"etag\":\"\\\"8b6951d06cbc52a7a69d011a94fdbec4\\\"\",\"size\":275,\"uploadedAt\":\"2026-10-29T07:54:39.000Z\"}},{\"name\":\"fetch versioned\",\"ms\":54,\"ok\":true,\"result\":{\"status\":200,\"etag\":\"\\\"8b6951d06cbc52a7a69d011a94fdbec4\\\"\",\"age\":\"119\",\"cache\":\"MISS\",\"bytes\":275,\"matches\":true}},{\"name\":\"sdk get\",\"ms\":18,\"ok\":true,\"result\":{\"status\":200,\"etag\":\"\\\"8b6951d06cbc52a7a69d011a94fdbec4\\\"\",\"bytes\":275}}]}"
+  },
+  {
+   "status": 200,
+   "ms": 104,
+   "headers": {
+    "server-timing": null,
+    "x-vercel-id": "iad1::iad1::pcszt-1793260595632-a241cbdada44",
+    "x-vercel-cache": "MISS",
+    "age": "0",
+    "cache-control": "no-store",
+    "content-type": "application/json"
+   },
+   "bytes": 482,
+   "body": "{\"path\":\"actuals-sync.json\",\"access\":\"public\",\"steps\":[{\"name\":\"head\",\"ms\":48,\"ok\":true,\"result\":{\"etag\":\"\\\"8b6951d06cbc52a7a69d011a94fdbec4\\\"\",\"size\":275,\"uploadedAt\":\"2026-10-29T07:54:39.000Z\"}},{\"name\":\"fetch versioned\",\"ms\":12,\"ok\":true,\"result\":{\"status\":200,\"etag\":\"\\\"8b6951d06cbc52a7a69d011a94fdbec4\\\"\",\"age\":\"0\",\"cache\":\"HIT\",\"bytes\":275,\"matches\":true}},{\"name\":\"sdk get\",\"ms\":8,\"ok\":true,\"result\":{\"status\":200,\"etag\":\"\\\"8b6951d06cbc52a7a69d011a94fdbec4\\\"\",\"bytes\":275}}]}"
+  },
+  {
+   "status": 200,
+   "ms": 119,
+   "headers": {
+    "server-timing": null,
+    "x-vercel-id": "iad1::iad1::77qc7-1793260595736-dd2c7ae3c29c",
+    "x-vercel-cache": "MISS",
+    "age": "0",
+    "cache-control": "no-store",
+    "content-type": "application/json"
+   },
+   "bytes": 482,
+   "body": "{\"path\":\"actuals-sync.json\",\"access\":\"public\",\"steps\":[{\"name\":\"head\",\"ms\":40,\"ok\":true,\"result\":{\"etag\":\"\\\"8b6951d06cbc52a7a69d011a94fdbec4\\\"\",\"size\":275,\"uploadedAt\":\"2026-10-29T07:54:39.000Z\"}},{\"name\":\"fetch versioned\",\"ms\":12,\"ok\":true,\"result\":{\"status\":200,\"etag\":\"\\\"8b6951d06cbc52a7a69d011a94fdbec4\\\"\",\"age\":\"0\",\"cache\":\"HIT\",\"bytes\":275,\"matches\":true}},{\"name\":\"sdk get\",\"ms\":6,\"ok\":true,\"result\":{\"status\":200,\"etag\":\"\\\"8b6951d06cbc52a7a69d011a94fdbec4\\\"\",\"bytes\":275}}]}"
+  }
+ ],
+ "/api/health?probe=settings.json": [
+  {
+   "status": 200,
+   "ms": 99,
+   "headers": {
+    "server-timing": null,
+    "x-vercel-id": "iad1::iad1::77qc7-1793260595855-f95506299c23",
+    "x-vercel-cache": "MISS",
+    "age": "0",
+    "cache-control": "no-store",
+    "content-type": "application/json"
+   },
+   "bytes": 202,
+   "body": "{\"path\":\"settings.json\",\"access\":\"public\",\"steps\":[{\"name\":\"head\",\"ms\":40,\"ok\":false,\"error\":\"Error: Vercel Blob: The requested blob does not exist\"},{\"name\":\"sdk get\",\"ms\":26,\"ok\":true,\"result\":null}]}"
+  },
+  {
+   "status": 200,
+   "ms": 79,
+   "headers": {
+    "server-timing": null,
+    "x-vercel-id": "iad1::iad1::z6ljn-1793260595954-b0b13ea9eaa0",
+    "x-vercel-cache": "MISS",
+    "age": "0",
+    "cache-control": "no-store",
+    "content-type": "application/json"
+   },
+   "bytes": 201,
+   "body": "{\"path\":\"settings.json\",\"access\":\"public\",\"steps\":[{\"name\":\"head\",\"ms\":39,\"ok\":false,\"error\":\"Error: Vercel Blob: The requested blob does not exist\"},{\"name\":\"sdk get\",\"ms\":8,\"ok\":true,\"result\":null}]}"
+  },
+  {
+   "status": 200,
+   "ms": 87,
+   "headers": {
+    "server-timing": null,
+    "x-vercel-id": "iad1::iad1::z6ljn-1793260596034-0cd5b98ef502",
+    "x-vercel-cache": "MISS",
+    "age": "0",
+    "cache-control": "no-store",
+    "content-type": "application/json"
+   },
+   "bytes": 202,
+   "body": "{\"path\":\"settings.json\",\"access\":\"public\",\"steps\":[{\"name\":\"head\",\"ms\":38,\"ok\":false,\"error\":\"Error: Vercel Blob: The requested blob does not exist\"},{\"name\":\"sdk get\",\"ms\":24,\"ok\":true,\"result\":null}]}"
+  }
+ ],
+ "/api/config": [
+  {
+   "status": 200,
+   "ms": 312,
+   "headers": {
+    "server-timing": null,
+    "x-vercel-id": "iad1::iad1::z6ljn-1793260596120-f589dad8b151",
+    "x-vercel-cache": "MISS",
+    "age": "0",
+    "cache-control": "no-store",
+    "content-type": "application/json"
+   },
+   "bytes": 2065,
+   "body": "{\"app_env\":\"production\",\"display\":{\"timezone\":\"Africa/Kampala\",\"timezone_label\":\"EAT\",\"choices\":[{\"tz\":\"Africa/Kampala\",\"label\":\"EAT\"},{\"tz\":\"Africa/Kigali\",\"label\":\"CAT\"},{\"tz\":\"Africa/Nairobi\",\"label\":\"EAT\"},{\"tz\":\"UTC\",\"label\":\"UTC\"},{\"tz\":\"Europe/London\",\"label\":\"GMT\"},{\"tz\":\"America/New_York\",\"label\":\"EDT\"}],\"default_timezone\":\"Africa/Kampala\",\"default_label\":\"EAT\"},\"instruments\":[{\"code\":\"GBP_USD\",\"display\":\"GBP/USD\",\"base\":\"GBP\",\"quote\":\"USD\",\"kind\":\"fx_spot\",\"label\":null,\"decimals\":5,\"symbol\":\"GBPUSD=X\"},{\"code\":\"EUR_USD\",\"display\":\"EUR/USD\",\"base\":\"EUR\",\"quote\":\"USD\",\"kind\":\"fx_spot\",\"label\":null,\"decimals\":5,\"symbol\":\"EURUSD=X\"},{\"code\":\"AUD_USD\",\"display\":\"AUD/USD\",\"base\":\"AUD\",\"quote\":\"USD\",\"kind\":\"fx_spot\",\"label\":null,\"decimals\":5,\"symbol\":\"AUDUSD=X\"},{\"code\":\"NZD_USD\",\"displ"
+  },
+  {
+   "status": 200,
+   "ms": 32,
+   "headers": {
+    "server-timing": null,
+    "x-vercel-id": "iad1::iad1::gpcfh-1793260596432-c2c12f3b2749",
+    "x-vercel-cache": "MISS",
+    "age": "0",
+    "cache-control": "no-store",
+    "content-type": "application/json"
+   },
+   "bytes": 2065,
+   "body": "{\"app_env\":\"production\",\"display\":{\"timezone\":\"Africa/Kampala\",\"timezone_label\":\"EAT\",\"choices\":[{\"tz\":\"Africa/Kampala\",\"label\":\"EAT\"},{\"tz\":\"Africa/Kigali\",\"label\":\"CAT\"},{\"tz\":\"Africa/Nairobi\",\"label\":\"EAT\"},{\"tz\":\"UTC\",\"label\":\"UTC\"},{\"tz\":\"Europe/London\",\"label\":\"GMT\"},{\"tz\":\"America/New_York\",\"label\":\"EDT\"}],\"default_timezone\":\"Africa/Kampala\",\"default_label\":\"EAT\"},\"instruments\":[{\"code\":\"GBP_USD\",\"display\":\"GBP/USD\",\"base\":\"GBP\",\"quote\":\"USD\",\"kind\":\"fx_spot\",\"label\":null,\"decimals\":5,\"symbol\":\"GBPUSD=X\"},{\"code\":\"EUR_USD\",\"display\":\"EUR/USD\",\"base\":\"EUR\",\"quote\":\"USD\",\"kind\":\"fx_spot\",\"label\":null,\"decimals\":5,\"symbol\":\"EURUSD=X\"},{\"code\":\"AUD_USD\",\"display\":\"AUD/USD\",\"base\":\"AUD\",\"quote\":\"USD\",\"kind\":\"fx_spot\",\"label\":null,\"decimals\":5,\"symbol\":\"AUDUSD=X\"},{\"code\":\"NZD_USD\",\"displ"
+  },
+  {
+   "status": 200,
+   "ms": 38,
+   "headers": {
+    "server-timing": null,
+    "x-vercel-id": "iad1::iad1::wpqt6-1793260596464-dc1f3df3b61d",
+    "x-vercel-cache": "MISS",
+    "age": "0",
+    "cache-control": "no-store",
+    "content-type": "application/json"
+   },
+   "bytes": 2065,
+   "body": "{\"app_env\":\"production\",\"display\":{\"timezone\":\"Africa/Kampala\",\"timezone_label\":\"EAT\",\"choices\":[{\"tz\":\"Africa/Kampala\",\"label\":\"EAT\"},{\"tz\":\"Africa/Kigali\",\"label\":\"CAT\"},{\"tz\":\"Africa/Nairobi\",\"label\":\"EAT\"},{\"tz\":\"UTC\",\"label\":\"UTC\"},{\"tz\":\"Europe/London\",\"label\":\"GMT\"},{\"tz\":\"America/New_York\",\"label\":\"EDT\"}],\"default_timezone\":\"Africa/Kampala\",\"default_label\":\"EAT\"},\"instruments\":[{\"code\":\"GBP_USD\",\"display\":\"GBP/USD\",\"base\":\"GBP\",\"quote\":\"USD\",\"kind\":\"fx_spot\",\"label\":null,\"decimals\":5,\"symbol\":\"GBPUSD=X\"},{\"code\":\"EUR_USD\",\"display\":\"EUR/USD\",\"base\":\"EUR\",\"quote\":\"USD\",\"kind\":\"fx_spot\",\"label\":null,\"decimals\":5,\"symbol\":\"EURUSD=X\"},{\"code\":\"AUD_USD\",\"display\":\"AUD/USD\",\"base\":\"AUD\",\"quote\":\"USD\",\"kind\":\"fx_spot\",\"label\":null,\"decimals\":5,\"symbol\":\"AUDUSD=X\"},{\"code\":\"NZD_USD\",\"displ"
+  }
+ ],
+ "/api/calendar/range?from=2026-10-25&to=2026-10-31&currencies=&impacts=": [
+  {
+   "status": 200,
+   "ms": 242,
+   "headers": {
+    "server-timing": "calendar;dur=128",
+    "x-vercel-id": "iad1::iad1::wpqt6-1793260596502-eb80af53386c",
+    "x-vercel-cache": "MISS",
+    "age": "0",
+    "cache-control": "no-store",
+    "content-type": "application/json"
+   },
+   "bytes": 48406,
+   "body": "{\"from\":\"2026-10-25\",\"to\":\"2026-10-31\",\"timezone\":\"Africa/Kampala\",\"timezone_label\":\"EAT\",\"now\":\"2026-10-29T07:56:36.608Z\",\"currencies\":[\"AUD\",\"CAD\",\"CHF\",\"CNY\",\"EUR\",\"GBP\",\"JPY\",\"NZD\",\"USD\"],\"coverage\":[{\"week\":\"2026-10-19\",\"stored\":true,\"refreshed_display\":\"Thu 29 Oct 2026 10:04 EAT\"},{\"week\":\"2026-10-26\",\"stored\":true,\"refreshed_display\":\"Thu 29 Oct 2026 10:04 EAT\"}],\"rows\":[{\"id\":\"2026-10-19:b28f50f53764917f9dbcef06\",\"date\":\"2026-10-25\",\"time\":\"22:00\",\"at\":\"2026-10-25T19:00:00.000Z\",\"all_day\":true,\"source_time\":\"2026-10-25T15:00:00-04:00\",\"currency\":\"NZD\",\"impact\":\"Holiday\",\"title\":\"Bank Holiday\",\"actual\":null,\"forecast\":null,\"previous\":null,\"revised_previous\":null,\"revision\":null,\"state\":\"unavailable\",\"tone\":null,\"actual_sources\":[],\"conflicting\":null,\"source\":\"Forex Factory weekly ex"
+  },
+  {
+   "status": 200,
+   "ms": 22,
+   "headers": {
+    "server-timing": "calendar;dur=5",
+    "x-vercel-id": "iad1::iad1::wpqt6-1793260596744-71bbaf718e36",
+    "x-vercel-cache": "MISS",
+    "age": "0",
+    "cache-control": "no-store",
+    "content-type": "application/json"
+   },
+   "bytes": 48406,
+   "body": "{\"from\":\"2026-10-25\",\"to\":\"2026-10-31\",\"timezone\":\"Africa/Kampala\",\"timezone_label\":\"EAT\",\"now\":\"2026-10-29T07:56:36.751Z\",\"currencies\":[\"AUD\",\"CAD\",\"CHF\",\"CNY\",\"EUR\",\"GBP\",\"JPY\",\"NZD\",\"USD\"],\"coverage\":[{\"week\":\"2026-10-19\",\"stored\":true,\"refreshed_display\":\"Thu 29 Oct 2026 10:04 EAT\"},{\"week\":\"2026-10-26\",\"stored\":true,\"refreshed_display\":\"Thu 29 Oct 2026 10:04 EAT\"}],\"rows\":[{\"id\":\"2026-10-19:b28f50f53764917f9dbcef06\",\"date\":\"2026-10-25\",\"time\":\"22:00\",\"at\":\"2026-10-25T19:00:00.000Z\",\"all_day\":true,\"source_time\":\"2026-10-25T15:00:00-04:00\",\"currency\":\"NZD\",\"impact\":\"Holiday\",\"title\":\"Bank Holiday\",\"actual\":null,\"forecast\":null,\"previous\":null,\"revised_previous\":null,\"revision\":null,\"state\":\"unavailable\",\"tone\":null,\"actual_sources\":[],\"conflicting\":null,\"source\":\"Forex Factory weekly ex"
+  },
+  {
+   "status": 200,
+   "ms": 21,
+   "headers": {
+    "server-timing": "calendar;dur=8",
+    "x-vercel-id": "iad1::iad1::wpqt6-1793260596766-c238a31459ad",
+    "x-vercel-cache": "MISS",
+    "age": "0",
+    "cache-control": "no-store",
+    "content-type": "application/json"
+   },
+   "bytes": 48406,
+   "body": "{\"from\":\"2026-10-25\",\"to\":\"2026-10-31\",\"timezone\":\"Africa/Kampala\",\"timezone_label\":\"EAT\",\"now\":\"2026-10-29T07:56:36.772Z\",\"currencies\":[\"AUD\",\"CAD\",\"CHF\",\"CNY\",\"EUR\",\"GBP\",\"JPY\",\"NZD\",\"USD\"],\"coverage\":[{\"week\":\"2026-10-19\",\"stored\":true,\"refreshed_display\":\"Thu 29 Oct 2026 10:04 EAT\"},{\"week\":\"2026-10-26\",\"stored\":true,\"refreshed_display\":\"Thu 29 Oct 2026 10:04 EAT\"}],\"rows\":[{\"id\":\"2026-10-19:b28f50f53764917f9dbcef06\",\"date\":\"2026-10-25\",\"time\":\"22:00\",\"at\":\"2026-10-25T19:00:00.000Z\",\"all_day\":true,\"source_time\":\"2026-10-25T15:00:00-04:00\",\"currency\":\"NZD\",\"impact\":\"Holiday\",\"title\":\"Bank Holiday\",\"actual\":null,\"forecast\":null,\"previous\":null,\"revised_previous\":null,\"revision\":null,\"state\":\"unavailable\",\"tone\":null,\"actual_sources\":[],\"conflicting\":null,\"source\":\"Forex Factory weekly ex"
+  }
+ ],
+ "/api/calendar/range?from=2026-10-29&to=2026-10-29&currencies=&impacts=": [
+  {
+   "status": 200,
+   "ms": 44,
+   "headers": {
+    "server-timing": "calendar;dur=3",
+    "x-vercel-id": "iad1::iad1::f7vzb-1793260596786-8e6912ff3297",
+    "x-vercel-cache": "MISS",
+    "age": "0",
+    "cache-control": "no-store",
+    "content-type": "application/json"
+   },
+   "bytes": 10730,
+   "body": "{\"from\":\"2026-10-29\",\"to\":\"2026-10-29\",\"timezone\":\"Africa/Kampala\",\"timezone_label\":\"EAT\",\"now\":\"2026-10-29T07:56:36.821Z\",\"currencies\":[\"AUD\",\"CAD\",\"CHF\",\"EUR\",\"GBP\",\"JPY\",\"NZD\",\"USD\"],\"coverage\":[{\"week\":\"2026-10-26\",\"stored\":true,\"refreshed_display\":\"Thu 29 Oct 2026 10:04 EAT\"}],\"rows\":[{\"id\":\"2026-10-26:35807f8bda1254ade1af4d11\",\"date\":\"2026-10-29\",\"time\":\"03:00\",\"at\":\"2026-10-29T00:00:00.000Z\",\"all_day\":false,\"source_time\":\"2026-10-28T20:00:00-04:00\",\"currency\":\"NZD\",\"impact\":\"Low\",\"title\":\"ANZ Business Confidence\",\"actual\":\"52.5\",\"forecast\":\"48.1\",\"previous\":\"51.9\",\"revised_previous\":null,\"revision\":null,\"state\":\"released\",\"tone\":\"better\",\"actual_sources\":[\"FXStreet economic calendar (https://www.fxstreet.com/economic-calendar)\"],\"conflicting\":null,\"source\":\"Forex Factory weekly expo"
+  },
+  {
+   "status": 200,
+   "ms": 17,
+   "headers": {
+    "server-timing": "calendar;dur=3",
+    "x-vercel-id": "iad1::iad1::f7vzb-1793260596830-26b47e3c797c",
+    "x-vercel-cache": "MISS",
+    "age": "0",
+    "cache-control": "no-store",
+    "content-type": "application/json"
+   },
+   "bytes": 10730,
+   "body": "{\"from\":\"2026-10-29\",\"to\":\"2026-10-29\",\"timezone\":\"Africa/Kampala\",\"timezone_label\":\"EAT\",\"now\":\"2026-10-29T07:56:36.839Z\",\"currencies\":[\"AUD\",\"CAD\",\"CHF\",\"EUR\",\"GBP\",\"JPY\",\"NZD\",\"USD\"],\"coverage\":[{\"week\":\"2026-10-26\",\"stored\":true,\"refreshed_display\":\"Thu 29 Oct 2026 10:04 EAT\"}],\"rows\":[{\"id\":\"2026-10-26:35807f8bda1254ade1af4d11\",\"date\":\"2026-10-29\",\"time\":\"03:00\",\"at\":\"2026-10-29T00:00:00.000Z\",\"all_day\":false,\"source_time\":\"2026-10-28T20:00:00-04:00\",\"currency\":\"NZD\",\"impact\":\"Low\",\"title\":\"ANZ Business Confidence\",\"actual\":\"52.5\",\"forecast\":\"48.1\",\"previous\":\"51.9\",\"revised_previous\":null,\"revision\":null,\"state\":\"released\",\"tone\":\"better\",\"actual_sources\":[\"FXStreet economic calendar (https://www.fxstreet.com/economic-calendar)\"],\"conflicting\":null,\"source\":\"Forex Factory weekly expo"
+  },
+  {
+   "status": 200,
+   "ms": 18,
+   "headers": {
+    "server-timing": "calendar;dur=2",
+    "x-vercel-id": "iad1::iad1::f7vzb-1793260596848-0b869aeac998",
+    "x-vercel-cache": "MISS",
+    "age": "0",
+    "cache-control": "no-store",
+    "content-type": "application/json"
+   },
+   "bytes": 10730,
+   "body": "{\"from\":\"2026-10-29\",\"to\":\"2026-10-29\",\"timezone\":\"Africa/Kampala\",\"timezone_label\":\"EAT\",\"now\":\"2026-10-29T07:56:36.855Z\",\"currencies\":[\"AUD\",\"CAD\",\"CHF\",\"EUR\",\"GBP\",\"JPY\",\"NZD\",\"USD\"],\"coverage\":[{\"week\":\"2026-10-26\",\"stored\":true,\"refreshed_display\":\"Thu 29 Oct 2026 10:04 EAT\"}],\"rows\":[{\"id\":\"2026-10-26:35807f8bda1254ade1af4d11\",\"date\":\"2026-10-29\",\"time\":\"03:00\",\"at\":\"2026-10-29T00:00:00.000Z\",\"all_day\":false,\"source_time\":\"2026-10-28T20:00:00-04:00\",\"currency\":\"NZD\",\"impact\":\"Low\",\"title\":\"ANZ Business Confidence\",\"actual\":\"52.5\",\"forecast\":\"48.1\",\"previous\":\"51.9\",\"revised_previous\":null,\"revision\":null,\"state\":\"released\",\"tone\":\"better\",\"actual_sources\":[\"FXStreet economic calendar (https://www.fxstreet.com/economic-calendar)\"],\"conflicting\":null,\"source\":\"Forex Factory weekly expo"
+  }
+ ],
+ "/api/calendar/range?from=2026-10-01&to=2026-11-01&currencies=&impacts=&shape=dates": [
+  {
+   "status": 200,
+   "ms": 135,
+   "headers": {
+    "server-timing": "calendar;dur=118",
+    "x-vercel-id": "iad1::iad1::f7vzb-1793260596866-7485c1e5f7c0",
+    "x-vercel-cache": "MISS",
+    "age": "0",
+    "cache-control": "no-store",
+    "content-type": "application/json"
+   },
+   "bytes": 171,
+   "body": "{\"dates\":[\"2026-10-25\",\"2026-10-26\",\"2026-10-27\",\"2026-10-28\",\"2026-10-29\",\"2026-10-30\",\"2026-10-31\"],\"currencies\":[\"AUD\",\"CAD\",\"CHF\",\"CNY\",\"EUR\",\"GBP\",\"JPY\",\"NZD\",\"USD\"]}"
+  },
+  {
+   "status": 200,
+   "ms": 32,
+   "headers": {
+    "server-timing": "calendar;dur=6",
+    "x-vercel-id": "iad1::iad1::f7vzb-1793260597002-a439f29e6ab9",
+    "x-vercel-cache": "MISS",
+    "age": "0",
+    "cache-control": "no-store",
+    "content-type": "application/json"
+   },
+   "bytes": 171,
+   "body": "{\"dates\":[\"2026-10-25\",\"2026-10-26\",\"2026-10-27\",\"2026-10-28\",\"2026-10-29\",\"2026-10-30\",\"2026-10-31\"],\"currencies\":[\"AUD\",\"CAD\",\"CHF\",\"CNY\",\"EUR\",\"GBP\",\"JPY\",\"NZD\",\"USD\"]}"
+  },
+  {
+   "status": 200,
+   "ms": 18,
+   "headers": {
+    "server-timing": "calendar;dur=5",
+    "x-vercel-id": "iad1::iad1::f7vzb-1793260597032-c80620e7c20f",
+    "x-vercel-cache": "MISS",
+    "age": "0",
+    "cache-control": "no-store",
+    "content-type": "application/json"
+   },
+   "bytes": 171,
+   "body": "{\"dates\":[\"2026-10-25\",\"2026-10-26\",\"2026-10-27\",\"2026-10-28\",\"2026-10-29\",\"2026-10-30\",\"2026-10-31\"],\"currencies\":[\"AUD\",\"CAD\",\"CHF\",\"CNY\",\"EUR\",\"GBP\",\"JPY\",\"NZD\",\"USD\"]}"
+  }
+ ],
+ "/api/markets/strength": [
+  {
+   "status": 200,
+   "ms": 189,
+   "headers": {
+    "server-timing": null,
+    "x-vercel-id": "iad1::iad1::f7vzb-1793260597051-109f1d3b3202",
+    "x-vercel-cache": "MISS",
+    "age": "0",
+    "cache-control": "no-store",
+    "content-type": "application/json"
+   },
+   "bytes": 3103,
+   "body": "{\"as_of\":1793260597086,\"today_start\":1793221200000,\"week_start\":1792962000000,\"today\":[{\"currency\":\"CAD\",\"pct\":0.07617494127193271},{\"currency\":\"USD\",\"pct\":0.05575152230718769},{\"currency\":\"GBP\",\"pct\":0.04868657900602405},{\"currency\":\"JPY\",\"pct\":0.038366807940395334},{\"currency\":\"NZD\",\"pct\":-0.027438457078284413},{\"currency\":\"EUR\",\"pct\":-0.041261888476749095},{\"currency\":\"CHF\",\"pct\":-0.057458490768635365},{\"currency\":\"AUD\",\"pct\":-0.0928210142018709}],\"week\":[{\"currency\":\"AUD\",\"pct\":0.7100034039256777},{\"currency\":\"CAD\",\"pct\":0.6397394844949282},{\"currency\":\"USD\",\"pct\":0.45608198462865546},{\"currency\":\"GBP\",\"pct\":0.015612616585617637},{\"currency\":\"CHF\",\"pct\":-0.14854234002237404},{\"currency\":\"EUR\",\"pct\":-0.267576306442967},{\"currency\":\"JPY\",\"pct\":-0.2696110843067784},{\"currency\":\"NZD\",\"pct\""
+  },
+  {
+   "status": 200,
+   "ms": 28,
+   "headers": {
+    "server-timing": null,
+    "x-vercel-id": "iad1::iad1::77qc7-1793260597239-42fff91e64e1",
+    "x-vercel-cache": "MISS",
+    "age": "0",
+    "cache-control": "no-store",
+    "content-type": "application/json"
+   },
+   "bytes": 3103,
+   "body": "{\"as_of\":1793260597086,\"today_start\":1793221200000,\"week_start\":1792962000000,\"today\":[{\"currency\":\"CAD\",\"pct\":0.07617494127193271},{\"currency\":\"USD\",\"pct\":0.05575152230718769},{\"currency\":\"GBP\",\"pct\":0.04868657900602405},{\"currency\":\"JPY\",\"pct\":0.038366807940395334},{\"currency\":\"NZD\",\"pct\":-0.027438457078284413},{\"currency\":\"EUR\",\"pct\":-0.041261888476749095},{\"currency\":\"CHF\",\"pct\":-0.057458490768635365},{\"currency\":\"AUD\",\"pct\":-0.0928210142018709}],\"week\":[{\"currency\":\"AUD\",\"pct\":0.7100034039256777},{\"currency\":\"CAD\",\"pct\":0.6397394844949282},{\"currency\":\"USD\",\"pct\":0.45608198462865546},{\"currency\":\"GBP\",\"pct\":0.015612616585617637},{\"currency\":\"CHF\",\"pct\":-0.14854234002237404},{\"currency\":\"EUR\",\"pct\":-0.267576306442967},{\"currency\":\"JPY\",\"pct\":-0.2696110843067784},{\"currency\":\"NZD\",\"pct\""
+  },
+  {
+   "status": 200,
+   "ms": 29,
+   "headers": {
+    "server-timing": null,
+    "x-vercel-id": "iad1::iad1::77qc7-1793260597268-0f754f659ce0",
+    "x-vercel-cache": "MISS",
+    "age": "0",
+    "cache-control": "no-store",
+    "content-type": "application/json"
+   },
+   "bytes": 3103,
+   "body": "{\"as_of\":1793260597086,\"today_start\":1793221200000,\"week_start\":1792962000000,\"today\":[{\"currency\":\"CAD\",\"pct\":0.07617494127193271},{\"currency\":\"USD\",\"pct\":0.05575152230718769},{\"currency\":\"GBP\",\"pct\":0.04868657900602405},{\"currency\":\"JPY\",\"pct\":0.038366807940395334},{\"currency\":\"NZD\",\"pct\":-0.027438457078284413},{\"currency\":\"EUR\",\"pct\":-0.041261888476749095},{\"currency\":\"CHF\",\"pct\":-0.057458490768635365},{\"currency\":\"AUD\",\"pct\":-0.0928210142018709}],\"week\":[{\"currency\":\"AUD\",\"pct\":0.7100034039256777},{\"currency\":\"CAD\",\"pct\":0.6397394844949282},{\"currency\":\"USD\",\"pct\":0.45608198462865546},{\"currency\":\"GBP\",\"pct\":0.015612616585617637},{\"currency\":\"CHF\",\"pct\":-0.14854234002237404},{\"currency\":\"EUR\",\"pct\":-0.267576306442967},{\"currency\":\"JPY\",\"pct\":-0.2696110843067784},{\"currency\":\"NZD\",\"pct\""
+  }
+ ],
+ "/api/banks": [
+  {
+   "status": 200,
+   "ms": 171,
+   "headers": {
+    "server-timing": null,
+    "x-vercel-id": "iad1::iad1::f7vzb-1793260597297-bc81ba03c814",
+    "x-vercel-cache": "MISS",
+    "age": "0",
+    "cache-control": "no-store",
+    "content-type": "application/json"
+   },
+   "bytes": 4422,
+   "body": "{\"fetched_at\":1793257498172,\"error\":null,\"rows\":[{\"id\":\"fed\",\"name\":\"Federal Reserve\",\"currency\":\"USD\",\"rate_name\":\"Federal funds rate (upper bound)\",\"rate\":4,\"rate_at\":1793210400000,\"rate_source\":\"calendar\",\"awaiting_at\":null,\"last_change\":{\"at\":1789581600000,\"bp\":25,\"display\":\"Wed 16 Sept 2026 21:00 EAT\"},\"next_at\":1796842800000,\"history\":[{\"at\":1793210400000,\"rate\":4,\"display\":\"Wed 28 Oct 2026 21:00 EAT\"},{\"at\":1789581600000,\"rate\":4,\"display\":\"Wed 16 Sept 2026 21:00 EAT\"}],\"rate_display\":\"Wed 28 Oct 2026 21:00 EAT\",\"awaiting_display\":null,\"next_display\":\"Wed 09 Dec 2026 22:00 EAT\"},{\"id\":\"ecb\",\"name\":\"European Central Bank\",\"currency\":\"EUR\",\"rate_name\":\"Main refinancing rate\",\"rate\":2.65,\"rate_at\":1789042500000,\"rate_source\":\"biquote.io\",\"awaiting_at\":null,\"last_change\":{\"at\":178904250"
+  },
+  {
+   "status": 200,
+   "ms": 26,
+   "headers": {
+    "server-timing": null,
+    "x-vercel-id": "iad1::iad1::f7vzb-1793260597467-7f9bb619ab5e",
+    "x-vercel-cache": "MISS",
+    "age": "0",
+    "cache-control": "no-store",
+    "content-type": "application/json"
+   },
+   "bytes": 4422,
+   "body": "{\"fetched_at\":1793257498172,\"error\":null,\"rows\":[{\"id\":\"fed\",\"name\":\"Federal Reserve\",\"currency\":\"USD\",\"rate_name\":\"Federal funds rate (upper bound)\",\"rate\":4,\"rate_at\":1793210400000,\"rate_source\":\"calendar\",\"awaiting_at\":null,\"last_change\":{\"at\":1789581600000,\"bp\":25,\"display\":\"Wed 16 Sept 2026 21:00 EAT\"},\"next_at\":1796842800000,\"history\":[{\"at\":1793210400000,\"rate\":4,\"display\":\"Wed 28 Oct 2026 21:00 EAT\"},{\"at\":1789581600000,\"rate\":4,\"display\":\"Wed 16 Sept 2026 21:00 EAT\"}],\"rate_display\":\"Wed 28 Oct 2026 21:00 EAT\",\"awaiting_display\":null,\"next_display\":\"Wed 09 Dec 2026 22:00 EAT\"},{\"id\":\"ecb\",\"name\":\"European Central Bank\",\"currency\":\"EUR\",\"rate_name\":\"Main refinancing rate\",\"rate\":2.65,\"rate_at\":1789042500000,\"rate_source\":\"biquote.io\",\"awaiting_at\":null,\"last_change\":{\"at\":178904250"
+  },
+  {
+   "status": 200,
+   "ms": 37,
+   "headers": {
+    "server-timing": null,
+    "x-vercel-id": "iad1::iad1::2ws2b-1793260597497-afc1ec2b1dfd",
+    "x-vercel-cache": "MISS",
+    "age": "0",
+    "cache-control": "no-store",
+    "content-type": "application/json"
+   },
+   "bytes": 4422,
+   "body": "{\"fetched_at\":1793257498172,\"error\":null,\"rows\":[{\"id\":\"fed\",\"name\":\"Federal Reserve\",\"currency\":\"USD\",\"rate_name\":\"Federal funds rate (upper bound)\",\"rate\":4,\"rate_at\":1793210400000,\"rate_source\":\"calendar\",\"awaiting_at\":null,\"last_change\":{\"at\":1789581600000,\"bp\":25,\"display\":\"Wed 16 Sept 2026 21:00 EAT\"},\"next_at\":1796842800000,\"history\":[{\"at\":1793210400000,\"rate\":4,\"display\":\"Wed 28 Oct 2026 21:00 EAT\"},{\"at\":1789581600000,\"rate\":4,\"display\":\"Wed 16 Sept 2026 21:00 EAT\"}],\"rate_display\":\"Wed 28 Oct 2026 21:00 EAT\",\"awaiting_display\":null,\"next_display\":\"Wed 09 Dec 2026 22:00 EAT\"},{\"id\":\"ecb\",\"name\":\"European Central Bank\",\"currency\":\"EUR\",\"rate_name\":\"Main refinancing rate\",\"rate\":2.65,\"rate_at\":1789042500000,\"rate_source\":\"biquote.io\",\"awaiting_at\":null,\"last_change\":{\"at\":178904250"
+  }
+ ]
+}

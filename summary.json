@@ -1,0 +1,237 @@
+{
+ "at": "2026-10-29T07:56:43.901Z",
+ "calendar": {
+  "stored": 97,
+  "week": "2026-10-26"
+ },
+ "policy": {
+  "stored": 171,
+  "errors": []
+ },
+ "headlines": {
+  "stored": 249,
+  "errors": []
+ },
+ "headlines_sample": [
+  "2026-10-29T05:04:00.000Z Reuters [USD]: Fed highlights economic strength but muddies outlook for Treasuries",
+  "2026-10-29T04:25:00.000Z Reuters [USD,XAU]: Gold drops 1% as markets assess Fed signals, await US inflation data",
+  "2026-10-29T04:14:57.000Z Reuters [USD,NAS100]: Wall Street ends higher as Fed holds key rate steady",
+  "2026-10-29T02:12:00.000Z Reuters [USD]: Reliance, IT lead Indian shares higher; Fed holds rates steady as expected",
+  "2026-10-29T01:55:00.000Z Reuters [USD,EUR]: Euro steady before ECB decision, dollar holds ground as Fed stands pat",
+  "2026-10-29T00:22:00.000Z Reuters [NZD]: New Zealand central bank governor says chances of December hike are 'high'",
+  "2026-10-29T00:20:00.000Z Reuters [GBP]: UK vehicle production rises sharply in September against cyber-hit comparison",
+  "2026-10-28T23:53:34.000Z Reuters [USD,NAS100]: Wall Street ends higher as Fed holds key rate steady, focus turns to earnings"
+ ],
+ "policy_by_bank": {
+  "fed": [
+   "2026-10-28T18:00:00.000Z decision: Federal Reserve issues FOMC statement",
+   "2026-10-16T15:00:00.000Z press: Federal Reserve Board announces termination of enforcement actions with Gardner Bancshares, Inc. and Small Business Bank",
+   "2026-10-15T02:55:00.000Z speech: Bowman, Supervisory Modernization After Silicon Valley Bank"
+  ],
+  "ecb": [
+   "2026-10-27T00:00:00.000Z press: October 2026 euro area bank lending survey",
+   "2026-10-26T09:00:00.000Z press: Survey on the Access to Finance of Enterprises: lending conditions tightened",
+   "2026-10-26T05:00:00.000Z press: Frank Elderson: Taking action for nature – investing in economic resilience and prosperity"
+  ],
+  "boe": [
+   "2026-10-28T14:16:49.000Z press: Remit for the Monetary Policy Committee - October 2026",
+   "2026-10-22T20:00:00.000Z press: Regulators unveil plans to simplify Senior Manager and Certification Regime",
+   "2026-10-22T15:35:53.000Z minutes: Minutes of the Securities Lending Committee meeting – September 2026"
+  ],
+  "rba": [
+   "2026-10-14T03:00:00.000Z press: Appointment of Chief Risk Officer"
+  ],
+  "rbnz": [
+   "2026-10-27T11:00:00.000Z press: OCR held at 2.75%",
+   "2026-10-18T11:00:00.000Z press: New framework supports access to basic transaction services",
+   "2026-10-14T11:00:00.000Z press: APRA and RBNZ complete joint bank stress test to promote trans-Tasman resilience"
+  ],
+  "snb": [
+   "2026-10-01T16:00:00.000Z press: 2026-10-01 - FDF and SNB enter into new profit distribution agreement",
+   "2026-09-24T07:30:00.000Z press: 2026-09-24 - Monetary policy assessment of 24 September 2026",
+   "2026-09-22T07:00:00.000Z press: 2026-09-22 - Swiss balance of payments and international investment position"
+  ]
+ },
+ "quotes": {
+  "GBP_USD": {
+   "price": 1.3327,
+   "time": 1793260603000
+  },
+  "EUR_USD": {
+   "price": 1.115,
+   "time": 1793260603000
+  },
+  "AUD_USD": {
+   "price": 0.7046,
+   "time": 1793260603000
+  },
+  "NZD_USD": {
+   "price": 0.5622,
+   "time": 1793260603000
+  },
+  "USD_CHF": {
+   "price": 0.8282,
+   "time": 1793260605000
+  },
+  "XAU_USD": {
+   "price": 4039.1,
+   "time": 1793260003000
+  },
+  "DXY": {
+   "price": 102.204,
+   "time": 1793260005000
+  },
+  "NAS100": {
+   "price": 29813.156,
+   "time": 1793222159000
+  }
+ },
+ "actuals_sync": {
+  "fetched": 445,
+  "matched": 127,
+  "recorded": 39,
+  "fields": {
+   "title": "name",
+   "currency": "currency",
+   "country": "countryCode",
+   "time": "time",
+   "unit": "unit",
+   "actual": "actual",
+   "forecast": "forecast",
+   "previous": "previous",
+   "revised": "revisedPrevious"
+  },
+  "error": null
+ },
+ "actuals": {
+  "released": 32,
+  "with_actual": 29,
+  "by_source": {
+   "FXStreet economic calendar": 27,
+   "biquote.io economic calendar": 2
+  },
+  "missing": [
+   "2026-10-26T11:00:00.000Z GBP CBI Realized Sales",
+   "2026-10-28T10:32:00.000Z EUR German 10-y Bond Auction",
+   "2026-10-28T13:00:00.000Z CNY CB Leading Index m/m"
+  ]
+ },
+ "strength": {
+  "today": [
+   {
+    "currency": "CAD",
+    "pct": 0.08328346198426242
+   },
+   {
+    "currency": "USD",
+    "pct": 0.0628600430195174
+   },
+   {
+    "currency": "GBP",
+    "pct": 0.055795099718353766
+   },
+   {
+    "currency": "JPY",
+    "pct": 0.04547532865272505
+   },
+   {
+    "currency": "EUR",
+    "pct": -0.03415336776441938
+   },
+   {
+    "currency": "CHF",
+    "pct": -0.05034997005630565
+   },
+   {
+    "currency": "NZD",
+    "pct": -0.06097931054007866
+   },
+   {
+    "currency": "AUD",
+    "pct": -0.10193128501405496
+   }
+  ],
+  "week": [
+   {
+    "currency": "AUD",
+    "pct": 0.7008931331134937
+   },
+   {
+    "currency": "CAD",
+    "pct": 0.6468480052072579
+   },
+   {
+    "currency": "USD",
+    "pct": 0.46319050534098516
+   },
+   {
+    "currency": "GBP",
+    "pct": 0.022721137297947343
+   },
+   {
+    "currency": "CHF",
+    "pct": -0.14143381931004434
+   },
+   {
+    "currency": "EUR",
+    "pct": -0.2604677857306372
+   },
+   {
+    "currency": "JPY",
+    "pct": -0.2625025635944487
+   },
+   {
+    "currency": "NZD",
+    "pct": -1.1692486123245538
+   }
+  ],
+  "errors": []
+ },
+ "correlation": {
+  "labels": [
+   "GBP/USD",
+   "EUR/USD",
+   "AUD/USD",
+   "NZD/USD",
+   "USD/CHF",
+   "Gold"
+  ],
+  "m20_row0": [
+   1,
+   0.8581846917552257,
+   0.321999318181619,
+   0.7662791616413819,
+   -0.4054395437144444,
+   0.0492207320586629
+  ],
+  "errors": []
+ },
+ "cot": {
+  "report_date": "2026-10-20",
+  "rows": [
+   "US Dollar Index: net 15044 (2125)",
+   "Euro: net -134524 (3049)",
+   "British pound: net -80420 (26544)",
+   "Japanese yen: net 69878 (19671)",
+   "Australian dollar: net -127292 (-9993)",
+   "New Zealand dollar: net -58149 (-11148)",
+   "Canadian dollar: net -74709 (20056)",
+   "Swiss franc: net -18150 (3928)",
+   "Gold (COMEX): net 199865 (-8014)"
+  ],
+  "error": null
+ },
+ "banks": {
+  "error": null,
+  "rows": [
+   "fed: 4 at 2026-10-28T18:00:00.000Z next 2026-12-09T19:00:00.000Z last {\"at\":1789581600000,\"bp\":25}",
+   "ecb: 2.65 at 2026-09-10T12:15:00.000Z next 2026-10-29T13:15:00.000Z last {\"at\":1789042500000,\"bp\":25}",
+   "boe: 4 at 2026-09-17T11:00:00.000Z next 2026-11-05T12:00:00.000Z last {\"at\":1789642800000,\"bp\":25}",
+   "boj: 1.25 at 2026-09-18T02:54:00.000Z next 2026-10-30T02:30:00.000Z last {\"at\":1789700040000,\"bp\":25}",
+   "rba: 4.6 at 2026-09-29T04:30:00.000Z next 2026-11-03T04:30:00.000Z last {\"at\":1790656200000,\"bp\":25}",
+   "rbnz: 2.75 at 2026-10-28T01:00:00.000Z next null last {\"at\":1788314400000,\"bp\":25}",
+   "boc: 2.5 at 2026-10-28T13:45:00.000Z next 2026-12-09T14:45:00.000Z last {\"at\":1793195100000,\"bp\":25}",
+   "snb: 0 at 2026-09-24T08:00:00.000Z next 2026-12-10T08:30:00.000Z last null"
+  ]
+ }
+}

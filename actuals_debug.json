@@ -1,0 +1,2376 @@
+[
+ {
+  "actual": "90.2",
+  "event": {
+   "title": "German ifo Business Climate",
+   "currency": "EUR",
+   "at": "2026-10-26T09:00:00.000Z",
+   "consensus": "90.0",
+   "previous": "89.9",
+   "history": [
+    {
+     "field": "actual",
+     "value": "90.2",
+     "source": "FXStreet economic calendar",
+     "url": "https://www.fxstreet.com/economic-calendar",
+     "at": 1793260606554
+    }
+   ]
+  },
+  "candidates": [
+   {
+    "title": "IFO – Business Climate",
+    "source": "FXStreet economic calendar",
+    "actual": "90.2",
+    "forecast": "89.8",
+    "previous": "89.9",
+    "unit": "none",
+    "match": 5
+   },
+   {
+    "title": "IFO – Current Assessment",
+    "source": "FXStreet economic calendar",
+    "actual": "88.8",
+    "forecast": null,
+    "previous": "89.5",
+    "unit": "none",
+    "match": null
+   },
+   {
+    "title": "IFO – Expectations",
+    "source": "FXStreet economic calendar",
+    "actual": "91.6",
+    "forecast": null,
+    "previous": "90.4",
+    "unit": "none",
+    "match": 1
+   }
+  ]
+ },
+ {
+  "actual": null,
+  "event": {
+   "title": "CBI Realized Sales",
+   "currency": "GBP",
+   "at": "2026-10-26T11:00:00.000Z",
+   "consensus": "-47",
+   "previous": "-55",
+   "history": []
+  },
+  "candidates": []
+ },
+ {
+  "actual": "3.7%",
+  "event": {
+   "title": "SPPI y/y",
+   "currency": "JPY",
+   "at": "2026-10-26T23:50:00.000Z",
+   "consensus": "3.7%",
+   "previous": "3.7%",
+   "history": [
+    {
+     "field": "actual",
+     "value": "3.7%",
+     "source": "FXStreet economic calendar",
+     "url": "https://www.fxstreet.com/economic-calendar",
+     "at": 1793260606554
+    }
+   ]
+  },
+  "candidates": [
+   {
+    "title": "Corporate Service Price Index (YoY)",
+    "source": "FXStreet economic calendar",
+    "actual": "3.7%",
+    "forecast": null,
+    "previous": "3.7%",
+    "unit": "percent",
+    "match": 4
+   },
+   {
+    "title": "BoJ Corporate Services Price Index y/y",
+    "source": "biquote",
+    "actual": "3.7",
+    "forecast": "3.6",
+    "previous": "3.7",
+    "unit": "percent",
+    "match": 4
+   }
+  ]
+ },
+ {
+  "actual": "2.1%",
+  "event": {
+   "title": "BRC Shop Price Index y/y",
+   "currency": "GBP",
+   "at": "2026-10-27T00:01:00.000Z",
+   "consensus": "1.6%",
+   "previous": "1.4%",
+   "history": [
+    {
+     "field": "actual",
+     "value": "2.1%",
+     "source": "FXStreet economic calendar",
+     "url": "https://www.fxstreet.com/economic-calendar",
+     "at": 1793260606554
+    }
+   ]
+  },
+  "candidates": [
+   {
+    "title": "BRC Shop Price Index (YoY)",
+    "source": "FXStreet economic calendar",
+    "actual": "2.1%",
+    "forecast": "1.6%",
+    "previous": "1.4%",
+    "unit": "percent",
+    "match": 7
+   }
+  ]
+ },
+ {
+  "actual": "2.5%",
+  "event": {
+   "title": "BOJ Core CPI y/y",
+   "currency": "JPY",
+   "at": "2026-10-27T05:00:00.000Z",
+   "consensus": "1.9%",
+   "previous": "1.8%",
+   "history": [
+    {
+     "field": "actual",
+     "value": "2.5%",
+     "source": "biquote.io economic calendar",
+     "url": "https://biquote.io/api/calendar",
+     "at": 1793260606554
+    }
+   ]
+  },
+  "candidates": [
+   {
+    "title": "BoJ Trimmed Mean Core CPI y/y",
+    "source": "biquote",
+    "actual": "2.5",
+    "forecast": "2.1",
+    "previous": "2.2",
+    "unit": "percent",
+    "match": 2
+   },
+   {
+    "title": "BoJ Weighted Median Core CPI y/y",
+    "source": "biquote",
+    "actual": "1.6",
+    "forecast": "1.5",
+    "previous": "1.5",
+    "unit": "percent",
+    "match": 2
+   }
+  ]
+ },
+ {
+  "actual": "10.18%",
+  "event": {
+   "title": "Spanish Unemployment Rate",
+   "currency": "EUR",
+   "at": "2026-10-27T08:00:00.000Z",
+   "consensus": "9.9%",
+   "previous": "9.9%",
+   "history": [
+    {
+     "field": "actual",
+     "value": "10.18%",
+     "source": "FXStreet economic calendar",
+     "url": "https://www.fxstreet.com/economic-calendar",
+     "at": 1793260606554
+    }
+   ]
+  },
+  "candidates": [
+   {
+    "title": "Unemployment Survey",
+    "source": "FXStreet economic calendar",
+    "actual": "10.18%",
+    "forecast": null,
+    "previous": "9.87%",
+    "unit": "percent",
+    "match": 1
+   },
+   {
+    "title": "Unemployment Rate",
+    "source": "biquote",
+    "actual": "10.18",
+    "forecast": "9.78",
+    "previous": "9.87",
+    "unit": "percent",
+    "match": 2
+   }
+  ]
+ },
+ {
+  "actual": "3.5%",
+  "event": {
+   "title": "M3 Money Supply y/y",
+   "currency": "EUR",
+   "at": "2026-10-27T09:00:00.000Z",
+   "consensus": "3.5%",
+   "previous": "3.5%",
+   "history": [
+    {
+     "field": "actual",
+     "value": "3.5%",
+     "source": "FXStreet economic calendar",
+     "url": "https://www.fxstreet.com/economic-calendar",
+     "at": 1793260606554
+    }
+   ]
+  },
+  "candidates": [
+   {
+    "title": "M3 Money Supply (3m)",
+    "source": "FXStreet economic calendar",
+    "actual": "3.5%",
+    "forecast": null,
+    "previous": "3.4%",
+    "unit": "percent",
+    "match": 1.5
+   },
+   {
+    "title": "M3 Money Supply (YoY)",
+    "source": "FXStreet economic calendar",
+    "actual": "3.5%",
+    "forecast": "3.6%",
+    "previous": "3.5%",
+    "unit": "percent",
+    "match": 5
+   },
+   {
+    "title": "Private Loans (YoY)",
+    "source": "FXStreet economic calendar",
+    "actual": "3.1%",
+    "forecast": "3.1%",
+    "previous": "3.1%",
+    "unit": "percent",
+    "match": null
+   },
+   {
+    "title": "ECB M3 Money Supply y/y",
+    "source": "biquote",
+    "actual": "3.5",
+    "forecast": "3.1",
+    "previous": "3.5",
+    "unit": "percent",
+    "match": 5
+   },
+   {
+    "title": "ECB Households Loans y/y",
+    "source": "biquote",
+    "actual": "3.1",
+    "forecast": "3",
+    "previous": "3.1",
+    "unit": "percent",
+    "match": null
+   },
+   {
+    "title": "ECB Non-Financial Corporations Loans y/y",
+    "source": "biquote",
+    "actual": "4.2",
+    "forecast": "4.4",
+    "previous": "4.2",
+    "unit": "percent",
+    "match": null
+   },
+   {
+    "title": "ECB Private Sector Loans y/y",
+    "source": "biquote",
+    "actual": "4.3",
+    "forecast": "4.5",
+    "previous": "4.3",
+    "unit": "percent",
+    "match": null
+   },
+   {
+    "title": "ECB Bank Lending Survey",
+    "source": "biquote",
+    "actual": null,
+    "forecast": null,
+    "previous": null,
+    "unit": "none",
+    "match": null
+   },
+   {
+    "title": "ECB Bank Lending Survey",
+    "source": "biquote",
+    "actual": null,
+    "forecast": null,
+    "previous": null,
+    "unit": "none",
+    "match": null
+   }
+  ]
+ },
+ {
+  "actual": "3.1%",
+  "event": {
+   "title": "Private Loans y/y",
+   "currency": "EUR",
+   "at": "2026-10-27T09:00:00.000Z",
+   "consensus": "3.1%",
+   "previous": "3.1%",
+   "history": [
+    {
+     "field": "actual",
+     "value": "3.1%",
+     "source": "FXStreet economic calendar",
+     "url": "https://www.fxstreet.com/economic-calendar",
+     "at": 1793260606554
+    }
+   ]
+  },
+  "candidates": [
+   {
+    "title": "M3 Money Supply (3m)",
+    "source": "FXStreet economic calendar",
+    "actual": "3.5%",
+    "forecast": null,
+    "previous": "3.4%",
+    "unit": "percent",
+    "match": null
+   },
+   {
+    "title": "M3 Money Supply (YoY)",
+    "source": "FXStreet economic calendar",
+    "actual": "3.5%",
+    "forecast": "3.6%",
+    "previous": "3.5%",
+    "unit": "percent",
+    "match": null
+   },
+   {
+    "title": "Private Loans (YoY)",
+    "source": "FXStreet economic calendar",
+    "actual": "3.1%",
+    "forecast": "3.1%",
+    "previous": "3.1%",
+    "unit": "percent",
+    "match": 7
+   },
+   {
+    "title": "ECB M3 Money Supply y/y",
+    "source": "biquote",
+    "actual": "3.5",
+    "forecast": "3.1",
+    "previous": "3.5",
+    "unit": "percent",
+    "match": 2.6666666666666665
+   },
+   {
+    "title": "ECB Households Loans y/y",
+    "source": "biquote",
+    "actual": "3.1",
+    "forecast": "3",
+    "previous": "3.1",
+    "unit": "percent",
+    "match": 4.333333333333333
+   },
+   {
+    "title": "ECB Non-Financial Corporations Loans y/y",
+    "source": "biquote",
+    "actual": "4.2",
+    "forecast": "4.4",
+    "previous": "4.2",
+    "unit": "percent",
+    "match": 1.3333333333333333
+   },
+   {
+    "title": "ECB Private Sector Loans y/y",
+    "source": "biquote",
+    "actual": "4.3",
+    "forecast": "4.5",
+    "previous": "4.3",
+    "unit": "percent",
+    "match": 2
+   },
+   {
+    "title": "ECB Bank Lending Survey",
+    "source": "biquote",
+    "actual": null,
+    "forecast": null,
+    "previous": null,
+    "unit": "none",
+    "match": null
+   },
+   {
+    "title": "ECB Bank Lending Survey",
+    "source": "biquote",
+    "actual": null,
+    "forecast": null,
+    "previous": null,
+    "unit": "none",
+    "match": null
+   }
+  ]
+ },
+ {
+  "actual": "16.8K",
+  "event": {
+   "title": "ADP Weekly Employment Change",
+   "currency": "USD",
+   "at": "2026-10-27T12:15:00.000Z",
+   "consensus": null,
+   "previous": "18.5K",
+   "history": [
+    {
+     "field": "actual",
+     "value": "16.8K",
+     "source": "FXStreet economic calendar",
+     "url": "https://www.fxstreet.com/economic-calendar",
+     "at": 1793260606554
+    }
+   ]
+  },
+  "candidates": [
+   {
+    "title": "ADP Employment Change 4-week average",
+    "source": "FXStreet economic calendar",
+    "actual": "16.8K",
+    "forecast": null,
+    "previous": "18.5K",
+    "unit": "none",
+    "match": 4.5
+   }
+  ]
+ },
+ {
+  "actual": "0.5%",
+  "event": {
+   "title": "Core Durable Goods Orders m/m",
+   "currency": "USD",
+   "at": "2026-10-27T12:30:00.000Z",
+   "consensus": "0.6%",
+   "previous": "0.3%",
+   "history": [
+    {
+     "field": "actual",
+     "value": "0.5%",
+     "source": "FXStreet economic calendar",
+     "url": "https://www.fxstreet.com/economic-calendar",
+     "at": 1793260606554
+    }
+   ]
+  },
+  "candidates": [
+   {
+    "title": "Durable Goods Orders",
+    "source": "FXStreet economic calendar",
+    "actual": "1.8%",
+    "forecast": "0.6%",
+    "previous": "0%",
+    "unit": "percent",
+    "match": 4
+   },
+   {
+    "title": "Durable Goods Orders ex Defense",
+    "source": "FXStreet economic calendar",
+    "actual": "2.2%",
+    "forecast": null,
+    "previous": "0.1%",
+    "unit": "percent",
+    "match": 1.2
+   },
+   {
+    "title": "Durable Goods Orders ex Transportation",
+    "source": "FXStreet economic calendar",
+    "actual": "0.5%",
+    "forecast": "0.6%",
+    "previous": "0.3%",
+    "unit": "percent",
+    "match": 6.2
+   },
+   {
+    "title": "Nondefense Capital Goods Orders ex Aircraft",
+    "source": "FXStreet economic calendar",
+    "actual": "0.5%",
+    "forecast": null,
+    "previous": "1.6%",
+    "unit": "percent",
+    "match": null
+   },
+   {
+    "title": "Durable Goods Orders m/m",
+    "source": "biquote",
+    "actual": "1.8",
+    "forecast": "0.7",
+    "previous": "0",
+    "unit": "percent",
+    "match": 2
+   },
+   {
+    "title": "Core Durable Goods Orders m/m",
+    "source": "biquote",
+    "actual": "0.5",
+    "forecast": "1",
+    "previous": "0.3",
+    "unit": "percent",
+    "match": 5
+   },
+   {
+    "title": "Durable Goods Orders excl. Defense m/m",
+    "source": "biquote",
+    "actual": "2.2",
+    "forecast": "-0.4",
+    "previous": "0.1",
+    "unit": "percent",
+    "match": 1.6
+   },
+   {
+    "title": "Nondefense Capital Goods Orders excl. Aircraft m/m",
+    "source": "biquote",
+    "actual": "0.5",
+    "forecast": "0.8",
+    "previous": "1.6",
+    "unit": "percent",
+    "match": 1.2
+   },
+   {
+    "title": "Nondefense Capital Goods Shipments excl. Aircraft m/m",
+    "source": "biquote",
+    "actual": "1.2",
+    "forecast": "0.8",
+    "previous": "0.5",
+    "unit": "percent",
+    "match": null
+   }
+  ]
+ },
+ {
+  "actual": "1.8%",
+  "event": {
+   "title": "Durable Goods Orders m/m",
+   "currency": "USD",
+   "at": "2026-10-27T12:30:00.000Z",
+   "consensus": "2.0%",
+   "previous": "0.0%",
+   "history": [
+    {
+     "field": "actual",
+     "value": "1.8%",
+     "source": "FXStreet economic calendar",
+     "url": "https://www.fxstreet.com/economic-calendar",
+     "at": 1793260606554
+    }
+   ]
+  },
+  "candidates": [
+   {
+    "title": "Durable Goods Orders",
+    "source": "FXStreet economic calendar",
+    "actual": "1.8%",
+    "forecast": "0.6%",
+    "previous": "0%",
+    "unit": "percent",
+    "match": 5
+   },
+   {
+    "title": "Durable Goods Orders ex Defense",
+    "source": "FXStreet economic calendar",
+    "actual": "2.2%",
+    "forecast": null,
+    "previous": "0.1%",
+    "unit": "percent",
+    "match": 1.5
+   },
+   {
+    "title": "Durable Goods Orders ex Transportation",
+    "source": "FXStreet economic calendar",
+    "actual": "0.5%",
+    "forecast": "0.6%",
+    "previous": "0.3%",
+    "unit": "percent",
+    "match": 1.5
+   },
+   {
+    "title": "Nondefense Capital Goods Orders ex Aircraft",
+    "source": "FXStreet economic calendar",
+    "actual": "0.5%",
+    "forecast": null,
+    "previous": "1.6%",
+    "unit": "percent",
+    "match": 1
+   },
+   {
+    "title": "Durable Goods Orders m/m",
+    "source": "biquote",
+    "actual": "1.8",
+    "forecast": "0.7",
+    "previous": "0",
+    "unit": "percent",
+    "match": 5
+   },
+   {
+    "title": "Core Durable Goods Orders m/m",
+    "source": "biquote",
+    "actual": "0.5",
+    "forecast": "1",
+    "previous": "0.3",
+    "unit": "percent",
+    "match": 2
+   },
+   {
+    "title": "Durable Goods Orders excl. Defense m/m",
+    "source": "biquote",
+    "actual": "2.2",
+    "forecast": "-0.4",
+    "previous": "0.1",
+    "unit": "percent",
+    "match": 2
+   },
+   {
+    "title": "Nondefense Capital Goods Orders excl. Aircraft m/m",
+    "source": "biquote",
+    "actual": "0.5",
+    "forecast": "0.8",
+    "previous": "1.6",
+    "unit": "percent",
+    "match": 1.5
+   },
+   {
+    "title": "Nondefense Capital Goods Shipments excl. Aircraft m/m",
+    "source": "biquote",
+    "actual": "1.2",
+    "forecast": "0.8",
+    "previous": "0.5",
+    "unit": "percent",
+    "match": 1
+   }
+  ]
+ },
+ {
+  "actual": "0.3%",
+  "event": {
+   "title": "HPI m/m",
+   "currency": "USD",
+   "at": "2026-10-27T13:00:00.000Z",
+   "consensus": "0.2%",
+   "previous": "0.3%",
+   "history": [
+    {
+     "field": "actual",
+     "value": "0.3%",
+     "source": "FXStreet economic calendar",
+     "url": "https://www.fxstreet.com/economic-calendar",
+     "at": 1793260606554
+    }
+   ]
+  },
+  "candidates": [
+   {
+    "title": "Redbook Index (YoY)",
+    "source": "FXStreet economic calendar",
+    "actual": "9.3%",
+    "forecast": null,
+    "previous": "9%",
+    "unit": "percent",
+    "match": null
+   },
+   {
+    "title": "Housing Price Index (MoM)",
+    "source": "FXStreet economic calendar",
+    "actual": "0.3%",
+    "forecast": "0.1%",
+    "previous": "0.3%",
+    "unit": "percent",
+    "match": 4
+   },
+   {
+    "title": "S&P/Case-Shiller Home Price Indices (YoY)",
+    "source": "FXStreet economic calendar",
+    "actual": "2.7%",
+    "forecast": "2.6%",
+    "previous": "2.5%",
+    "unit": "percent",
+    "match": null
+   },
+   {
+    "title": "HPI m/m",
+    "source": "biquote",
+    "actual": "0.3",
+    "forecast": "0.1",
+    "previous": "0.3",
+    "unit": "percent",
+    "match": 5
+   },
+   {
+    "title": "HPI y/y",
+    "source": "biquote",
+    "actual": "2.4",
+    "forecast": "2.6",
+    "previous": "2.6",
+    "unit": "percent",
+    "match": 1
+   },
+   {
+    "title": "HPI",
+    "source": "biquote",
+    "actual": "444.6",
+    "forecast": "444.4",
+    "previous": "443.5",
+    "unit": "none",
+    "match": null
+   },
+   {
+    "title": "S&P/CS HPI Composite-20 y/y",
+    "source": "biquote",
+    "actual": null,
+    "forecast": null,
+    "previous": null,
+    "unit": "percent",
+    "match": 1
+   },
+   {
+    "title": "S&P/CS HPI Composite-20 n.s.a. m/m",
+    "source": "biquote",
+    "actual": null,
+    "forecast": null,
+    "previous": null,
+    "unit": "percent",
+    "match": 2
+   },
+   {
+    "title": "S&P/CS HPI Composite-20 s.a. m/m",
+    "source": "biquote",
+    "actual": null,
+    "forecast": null,
+    "previous": null,
+    "unit": "percent",
+    "match": 2
+   }
+  ]
+ },
+ {
+  "actual": "2.7%",
+  "event": {
+   "title": "S&P/CS Composite-20 HPI y/y",
+   "currency": "USD",
+   "at": "2026-10-27T13:00:00.000Z",
+   "consensus": "2.6%",
+   "previous": "2.5%",
+   "history": [
+    {
+     "field": "actual",
+     "value": "2.7%",
+     "source": "FXStreet economic calendar",
+     "url": "https://www.fxstreet.com/economic-calendar",
+     "at": 1793260606554
+    }
+   ]
+  },
+  "candidates": [
+   {
+    "title": "Redbook Index (YoY)",
+    "source": "FXStreet economic calendar",
+    "actual": "9.3%",
+    "forecast": null,
+    "previous": "9%",
+    "unit": "percent",
+    "match": null
+   },
+   {
+    "title": "Housing Price Index (MoM)",
+    "source": "FXStreet economic calendar",
+    "actual": "0.3%",
+    "forecast": "0.1%",
+    "previous": "0.3%",
+    "unit": "percent",
+    "match": null
+   },
+   {
+    "title": "S&P/Case-Shiller Home Price Indices (YoY)",
+    "source": "FXStreet economic calendar",
+    "actual": "2.7%",
+    "forecast": "2.6%",
+    "previous": "2.5%",
+    "unit": "percent",
+    "match": 5.4
+   },
+   {
+    "title": "HPI m/m",
+    "source": "biquote",
+    "actual": "0.3",
+    "forecast": "0.1",
+    "previous": "0.3",
+    "unit": "percent",
+    "match": 1
+   },
+   {
+    "title": "HPI y/y",
+    "source": "biquote",
+    "actual": "2.4",
+    "forecast": "2.6",
+    "previous": "2.6",
+    "unit": "percent",
+    "match": 4
+   },
+   {
+    "title": "HPI",
+    "source": "biquote",
+    "actual": "444.6",
+    "forecast": "444.4",
+    "previous": "443.5",
+    "unit": "none",
+    "match": null
+   },
+   {
+    "title": "S&P/CS HPI Composite-20 y/y",
+    "source": "biquote",
+    "actual": null,
+    "forecast": null,
+    "previous": null,
+    "unit": "percent",
+    "match": 2
+   },
+   {
+    "title": "S&P/CS HPI Composite-20 n.s.a. m/m",
+    "source": "biquote",
+    "actual": null,
+    "forecast": null,
+    "previous": null,
+    "unit": "percent",
+    "match": 1.6
+   },
+   {
+    "title": "S&P/CS HPI Composite-20 s.a. m/m",
+    "source": "biquote",
+    "actual": null,
+    "forecast": null,
+    "previous": null,
+    "unit": "percent",
+    "match": 1.6
+   }
+  ]
+ },
+ {
+  "actual": "91.7",
+  "event": {
+   "title": "CB Consumer Confidence",
+   "currency": "USD",
+   "at": "2026-10-27T14:00:00.000Z",
+   "consensus": "81.2",
+   "previous": "81.9",
+   "history": [
+    {
+     "field": "actual",
+     "value": "91.7",
+     "source": "biquote.io economic calendar",
+     "url": "https://biquote.io/api/calendar",
+     "at": 1793260606554
+    }
+   ]
+  },
+  "candidates": [
+   {
+    "title": "Consumer Confidence",
+    "source": "FXStreet economic calendar",
+    "actual": null,
+    "forecast": null,
+    "previous": null,
+    "unit": "none",
+    "match": 2
+   },
+   {
+    "title": "New Home Sales (MoM)",
+    "source": "FXStreet economic calendar",
+    "actual": "0.676M",
+    "forecast": "0.66M",
+    "previous": "0.684M",
+    "unit": "none",
+    "match": null
+   },
+   {
+    "title": "New Home Sales Change (MoM)",
+    "source": "FXStreet economic calendar",
+    "actual": "-0.6%",
+    "forecast": null,
+    "previous": "6.4%",
+    "unit": "percent",
+    "match": null
+   },
+   {
+    "title": "Richmond Fed Manufacturing Index",
+    "source": "FXStreet economic calendar",
+    "actual": "-2",
+    "forecast": "1",
+    "previous": "-2",
+    "unit": "none",
+    "match": null
+   },
+   {
+    "title": "New Home Sales",
+    "source": "biquote",
+    "actual": "0.676",
+    "forecast": "0.708",
+    "previous": "0.684",
+    "unit": "none",
+    "match": null
+   },
+   {
+    "title": "New Home Sales m/m",
+    "source": "biquote",
+    "actual": "-0.6",
+    "forecast": "-1.4",
+    "previous": "6.4",
+    "unit": "percent",
+    "match": null
+   },
+   {
+    "title": "CB Consumer Confidence Index",
+    "source": "biquote",
+    "actual": "91.7",
+    "forecast": "81.5",
+    "previous": "81.9",
+    "unit": "none",
+    "match": 5
+   },
+   {
+    "title": "Richmond Fed Manufacturing Index",
+    "source": "biquote",
+    "actual": "-2",
+    "forecast": "-1",
+    "previous": "-2",
+    "unit": "none",
+    "match": null
+   },
+   {
+    "title": "Richmond Fed Manufacturing Shipments",
+    "source": "biquote",
+    "actual": "0",
+    "forecast": null,
+    "previous": "-5",
+    "unit": "none",
+    "match": null
+   },
+   {
+    "title": "Richmond Fed Services Revenues",
+    "source": "biquote",
+    "actual": "2",
+    "forecast": "-3",
+    "previous": "0",
+    "unit": "none",
+    "match": null
+   }
+  ]
+ },
+ {
+  "actual": "676K",
+  "event": {
+   "title": "New Home Sales",
+   "currency": "USD",
+   "at": "2026-10-27T14:00:00.000Z",
+   "consensus": "651K",
+   "previous": "684K",
+   "history": [
+    {
+     "field": "actual",
+     "value": "676K",
+     "source": "FXStreet economic calendar",
+     "url": "https://www.fxstreet.com/economic-calendar",
+     "at": 1793260606554
+    }
+   ]
+  },
+  "candidates": [
+   {
+    "title": "Consumer Confidence",
+    "source": "FXStreet economic calendar",
+    "actual": null,
+    "forecast": null,
+    "previous": null,
+    "unit": "none",
+    "match": null
+   },
+   {
+    "title": "New Home Sales (MoM)",
+    "source": "FXStreet economic calendar",
+    "actual": "0.676M",
+    "forecast": "0.66M",
+    "previous": "0.684M",
+    "unit": "none",
+    "match": 5
+   },
+   {
+    "title": "New Home Sales Change (MoM)",
+    "source": "FXStreet economic calendar",
+    "actual": "-0.6%",
+    "forecast": null,
+    "previous": "6.4%",
+    "unit": "percent",
+    "match": null
+   },
+   {
+    "title": "Richmond Fed Manufacturing Index",
+    "source": "FXStreet economic calendar",
+    "actual": "-2",
+    "forecast": "1",
+    "previous": "-2",
+    "unit": "none",
+    "match": null
+   },
+   {
+    "title": "New Home Sales",
+    "source": "biquote",
+    "actual": "0.676",
+    "forecast": "0.708",
+    "previous": "0.684",
+    "unit": "none",
+    "match": 2
+   },
+   {
+    "title": "New Home Sales m/m",
+    "source": "biquote",
+    "actual": "-0.6",
+    "forecast": "-1.4",
+    "previous": "6.4",
+    "unit": "percent",
+    "match": null
+   },
+   {
+    "title": "CB Consumer Confidence Index",
+    "source": "biquote",
+    "actual": "91.7",
+    "forecast": "81.5",
+    "previous": "81.9",
+    "unit": "none",
+    "match": null
+   },
+   {
+    "title": "Richmond Fed Manufacturing Index",
+    "source": "biquote",
+    "actual": "-2",
+    "forecast": "-1",
+    "previous": "-2",
+    "unit": "none",
+    "match": null
+   },
+   {
+    "title": "Richmond Fed Manufacturing Shipments",
+    "source": "biquote",
+    "actual": "0",
+    "forecast": null,
+    "previous": "-5",
+    "unit": "none",
+    "match": null
+   },
+   {
+    "title": "Richmond Fed Services Revenues",
+    "source": "biquote",
+    "actual": "2",
+    "forecast": "-3",
+    "previous": "0",
+    "unit": "none",
+    "match": null
+   }
+  ]
+ },
+ {
+  "actual": "-2",
+  "event": {
+   "title": "Richmond Manufacturing Index",
+   "currency": "USD",
+   "at": "2026-10-27T14:00:00.000Z",
+   "consensus": "0",
+   "previous": "-2",
+   "history": [
+    {
+     "field": "actual",
+     "value": "-2",
+     "source": "FXStreet economic calendar",
+     "url": "https://www.fxstreet.com/economic-calendar",
+     "at": 1793260606554
+    }
+   ]
+  },
+  "candidates": [
+   {
+    "title": "Consumer Confidence",
+    "source": "FXStreet economic calendar",
+    "actual": null,
+    "forecast": null,
+    "previous": null,
+    "unit": "none",
+    "match": null
+   },
+   {
+    "title": "New Home Sales (MoM)",
+    "source": "FXStreet economic calendar",
+    "actual": "0.676M",
+    "forecast": "0.66M",
+    "previous": "0.684M",
+    "unit": "none",
+    "match": null
+   },
+   {
+    "title": "New Home Sales Change (MoM)",
+    "source": "FXStreet economic calendar",
+    "actual": "-0.6%",
+    "forecast": null,
+    "previous": "6.4%",
+    "unit": "percent",
+    "match": null
+   },
+   {
+    "title": "Richmond Fed Manufacturing Index",
+    "source": "FXStreet economic calendar",
+    "actual": "-2",
+    "forecast": "1",
+    "previous": "-2",
+    "unit": "none",
+    "match": 5
+   },
+   {
+    "title": "New Home Sales",
+    "source": "biquote",
+    "actual": "0.676",
+    "forecast": "0.708",
+    "previous": "0.684",
+    "unit": "none",
+    "match": null
+   },
+   {
+    "title": "New Home Sales m/m",
+    "source": "biquote",
+    "actual": "-0.6",
+    "forecast": "-1.4",
+    "previous": "6.4",
+    "unit": "percent",
+    "match": null
+   },
+   {
+    "title": "CB Consumer Confidence Index",
+    "source": "biquote",
+    "actual": "91.7",
+    "forecast": "81.5",
+    "previous": "81.9",
+    "unit": "none",
+    "match": null
+   },
+   {
+    "title": "Richmond Fed Manufacturing Index",
+    "source": "biquote",
+    "actual": "-2",
+    "forecast": "-1",
+    "previous": "-2",
+    "unit": "none",
+    "match": 5
+   },
+   {
+    "title": "Richmond Fed Manufacturing Shipments",
+    "source": "biquote",
+    "actual": "0",
+    "forecast": null,
+    "previous": "-5",
+    "unit": "none",
+    "match": 1.3333333333333333
+   },
+   {
+    "title": "Richmond Fed Services Revenues",
+    "source": "biquote",
+    "actual": "2",
+    "forecast": "-3",
+    "previous": "0",
+    "unit": "none",
+    "match": null
+   }
+  ]
+ },
+ {
+  "actual": "0.8%",
+  "event": {
+   "title": "CPI m/m",
+   "currency": "AUD",
+   "at": "2026-10-28T00:30:00.000Z",
+   "consensus": "0.7%",
+   "previous": "0.4%",
+   "history": [
+    {
+     "field": "actual",
+     "value": "0.8%",
+     "source": "FXStreet economic calendar",
+     "url": "https://www.fxstreet.com/economic-calendar",
+     "at": 1793260606554
+    }
+   ]
+  },
+  "candidates": [
+   {
+    "title": "Consumer Price Index (MoM)",
+    "source": "FXStreet economic calendar",
+    "actual": "0.8%",
+    "forecast": "0.7%",
+    "previous": "0.4%",
+    "unit": "percent",
+    "match": 7
+   },
+   {
+    "title": "Consumer Price Index (YoY)",
+    "source": "FXStreet economic calendar",
+    "actual": "4.3%",
+    "forecast": "4.2%",
+    "previous": "4%",
+    "unit": "percent",
+    "match": 1
+   },
+   {
+    "title": "Quarterly Consumer Price Index (QoQ)",
+    "source": "FXStreet economic calendar",
+    "actual": "1.3%",
+    "forecast": "1.3%",
+    "previous": "0.6%",
+    "unit": "percent",
+    "match": 1
+   },
+   {
+    "title": "Quarterly Consumer Price Index (YoY)",
+    "source": "FXStreet economic calendar",
+    "actual": "3.9%",
+    "forecast": "3.9%",
+    "previous": "3.9%",
+    "unit": "percent",
+    "match": 1
+   },
+   {
+    "title": "Quarterly RBA Trimmed Mean CPI (QoQ)",
+    "source": "FXStreet economic calendar",
+    "actual": "1%",
+    "forecast": null,
+    "previous": "0.8%",
+    "unit": "percent",
+    "match": 1
+   },
+   {
+    "title": "Quarterly RBA Trimmed Mean CPI (YoY)",
+    "source": "FXStreet economic calendar",
+    "actual": "3.7%",
+    "forecast": null,
+    "previous": "3.6%",
+    "unit": "percent",
+    "match": 1
+   },
+   {
+    "title": "Trimmed Mean CPI (MoM)",
+    "source": "FXStreet economic calendar",
+    "actual": "0.3%",
+    "forecast": "0.3%",
+    "previous": "0.2%",
+    "unit": "percent",
+    "match": 2
+   },
+   {
+    "title": "Trimmed Mean CPI (YoY)",
+    "source": "FXStreet economic calendar",
+    "actual": "3.6%",
+    "forecast": null,
+    "previous": "3.6%",
+    "unit": "percent",
+    "match": 1
+   },
+   {
+    "title": "CPI q/q",
+    "source": "biquote",
+    "actual": "1.3",
+    "forecast": "1.1",
+    "previous": "0.6",
+    "unit": "percent",
+    "match": 1
+   },
+   {
+    "title": "CPI y/y",
+    "source": "biquote",
+    "actual": "3.9",
+    "forecast": "4.7",
+    "previous": "3.9",
+    "unit": "percent",
+    "match": 1
+   },
+   {
+    "title": "CPI",
+    "source": "biquote",
+    "actual": "103.64",
+    "forecast": "138.2",
+    "previous": "102.31",
+    "unit": "none",
+    "match": null
+   },
+   {
+    "title": "RBA Weighted Median CPI q/q",
+    "source": "biquote",
+    "actual": "0.9",
+    "forecast": "0.8",
+    "previous": "0.9",
+    "unit": "percent",
+    "match": 1
+   },
+   {
+    "title": "RBA Weighted Median CPI y/y",
+    "source": "biquote",
+    "actual": "3.4",
+    "forecast": "3.6",
+    "previous": "3.7",
+    "unit": "percent",
+    "match": 1
+   },
+   {
+    "title": "RBA Trimmed Mean CPI q/q",
+    "source": "biquote",
+    "actual": "1",
+    "forecast": "0.9",
+    "previous": "1",
+    "unit": "percent",
+    "match": 1
+   },
+   {
+    "title": "RBA Trimmed Mean CPI y/y",
+    "source": "biquote",
+    "actual": "3.6",
+    "forecast": "3.6",
+    "previous": "3.6",
+    "unit": "percent",
+    "match": 1
+   }
+  ]
+ },
+ {
+  "actual": "4.3%",
+  "event": {
+   "title": "CPI y/y",
+   "currency": "AUD",
+   "at": "2026-10-28T00:30:00.000Z",
+   "consensus": "4.2%",
+   "previous": "4.0%",
+   "history": [
+    {
+     "field": "actual",
+     "value": "4.3%",
+     "source": "FXStreet economic calendar",
+     "url": "https://www.fxstreet.com/economic-calendar",
+     "at": 1793260606554
+    }
+   ]
+  },
+  "candidates": [
+   {
+    "title": "Consumer Price Index (MoM)",
+    "source": "FXStreet economic calendar",
+    "actual": "0.8%",
+    "forecast": "0.7%",
+    "previous": "0.4%",
+    "unit": "percent",
+    "match": 1
+   },
+   {
+    "title": "Consumer Price Index (YoY)",
+    "source": "FXStreet economic calendar",
+    "actual": "4.3%",
+    "forecast": "4.2%",
+    "previous": "4%",
+    "unit": "percent",
+    "match": 7
+   },
+   {
+    "title": "Quarterly Consumer Price Index (QoQ)",
+    "source": "FXStreet economic calendar",
+    "actual": "1.3%",
+    "forecast": "1.3%",
+    "previous": "0.6%",
+    "unit": "percent",
+    "match": 1
+   },
+   {
+    "title": "Quarterly Consumer Price Index (YoY)",
+    "source": "FXStreet economic calendar",
+    "actual": "3.9%",
+    "forecast": "3.9%",
+    "previous": "3.9%",
+    "unit": "percent",
+    "match": 2
+   },
+   {
+    "title": "Quarterly RBA Trimmed Mean CPI (QoQ)",
+    "source": "FXStreet economic calendar",
+    "actual": "1%",
+    "forecast": null,
+    "previous": "0.8%",
+    "unit": "percent",
+    "match": 1
+   },
+   {
+    "title": "Quarterly RBA Trimmed Mean CPI (YoY)",
+    "source": "FXStreet economic calendar",
+    "actual": "3.7%",
+    "forecast": null,
+    "previous": "3.6%",
+    "unit": "percent",
+    "match": 2
+   },
+   {
+    "title": "Trimmed Mean CPI (MoM)",
+    "source": "FXStreet economic calendar",
+    "actual": "0.3%",
+    "forecast": "0.3%",
+    "previous": "0.2%",
+    "unit": "percent",
+    "match": 1
+   },
+   {
+    "title": "Trimmed Mean CPI (YoY)",
+    "source": "FXStreet economic calendar",
+    "actual": "3.6%",
+    "forecast": null,
+    "previous": "3.6%",
+    "unit": "percent",
+    "match": 2
+   },
+   {
+    "title": "CPI q/q",
+    "source": "biquote",
+    "actual": "1.3",
+    "forecast": "1.1",
+    "previous": "0.6",
+    "unit": "percent",
+    "match": 1
+   },
+   {
+    "title": "CPI y/y",
+    "source": "biquote",
+    "actual": "3.9",
+    "forecast": "4.7",
+    "previous": "3.9",
+    "unit": "percent",
+    "match": 2
+   },
+   {
+    "title": "CPI",
+    "source": "biquote",
+    "actual": "103.64",
+    "forecast": "138.2",
+    "previous": "102.31",
+    "unit": "none",
+    "match": null
+   },
+   {
+    "title": "RBA Weighted Median CPI q/q",
+    "source": "biquote",
+    "actual": "0.9",
+    "forecast": "0.8",
+    "previous": "0.9",
+    "unit": "percent",
+    "match": 1
+   },
+   {
+    "title": "RBA Weighted Median CPI y/y",
+    "source": "biquote",
+    "actual": "3.4",
+    "forecast": "3.6",
+    "previous": "3.7",
+    "unit": "percent",
+    "match": 2
+   },
+   {
+    "title": "RBA Trimmed Mean CPI q/q",
+    "source": "biquote",
+    "actual": "1",
+    "forecast": "0.9",
+    "previous": "1",
+    "unit": "percent",
+    "match": 1
+   },
+   {
+    "title": "RBA Trimmed Mean CPI y/y",
+    "source": "biquote",
+    "actual": "3.6",
+    "forecast": "3.6",
+    "previous": "3.6",
+    "unit": "percent",
+    "match": 2
+   }
+  ]
+ },
+ {
+  "actual": "0.3%",
+  "event": {
+   "title": "Trimmed Mean CPI m/m",
+   "currency": "AUD",
+   "at": "2026-10-28T00:30:00.000Z",
+   "consensus": "0.3%",
+   "previous": "0.2%",
+   "history": [
+    {
+     "field": "actual",
+     "value": "0.3%",
+     "source": "FXStreet economic calendar",
+     "url": "https://www.fxstreet.com/economic-calendar",
+     "at": 1793260606554
+    }
+   ]
+  },
+  "candidates": [
+   {
+    "title": "Consumer Price Index (MoM)",
+    "source": "FXStreet economic calendar",
+    "actual": "0.8%",
+    "forecast": "0.7%",
+    "previous": "0.4%",
+    "unit": "percent",
+    "match": 2
+   },
+   {
+    "title": "Consumer Price Index (YoY)",
+    "source": "FXStreet economic calendar",
+    "actual": "4.3%",
+    "forecast": "4.2%",
+    "previous": "4%",
+    "unit": "percent",
+    "match": 1
+   },
+   {
+    "title": "Quarterly Consumer Price Index (QoQ)",
+    "source": "FXStreet economic calendar",
+    "actual": "1.3%",
+    "forecast": "1.3%",
+    "previous": "0.6%",
+    "unit": "percent",
+    "match": null
+   },
+   {
+    "title": "Quarterly Consumer Price Index (YoY)",
+    "source": "FXStreet economic calendar",
+    "actual": "3.9%",
+    "forecast": "3.9%",
+    "previous": "3.9%",
+    "unit": "percent",
+    "match": null
+   },
+   {
+    "title": "Quarterly RBA Trimmed Mean CPI (QoQ)",
+    "source": "FXStreet economic calendar",
+    "actual": "1%",
+    "forecast": null,
+    "previous": "0.8%",
+    "unit": "percent",
+    "match": 1.5
+   },
+   {
+    "title": "Quarterly RBA Trimmed Mean CPI (YoY)",
+    "source": "FXStreet economic calendar",
+    "actual": "3.7%",
+    "forecast": null,
+    "previous": "3.6%",
+    "unit": "percent",
+    "match": 1.5
+   },
+   {
+    "title": "Trimmed Mean CPI (MoM)",
+    "source": "FXStreet economic calendar",
+    "actual": "0.3%",
+    "forecast": "0.3%",
+    "previous": "0.2%",
+    "unit": "percent",
+    "match": 7
+   },
+   {
+    "title": "Trimmed Mean CPI (YoY)",
+    "source": "FXStreet economic calendar",
+    "actual": "3.6%",
+    "forecast": null,
+    "previous": "3.6%",
+    "unit": "percent",
+    "match": 1.5
+   },
+   {
+    "title": "CPI q/q",
+    "source": "biquote",
+    "actual": "1.3",
+    "forecast": "1.1",
+    "previous": "0.6",
+    "unit": "percent",
+    "match": 1
+   },
+   {
+    "title": "CPI y/y",
+    "source": "biquote",
+    "actual": "3.9",
+    "forecast": "4.7",
+    "previous": "3.9",
+    "unit": "percent",
+    "match": 1
+   },
+   {
+    "title": "CPI",
+    "source": "biquote",
+    "actual": "103.64",
+    "forecast": "138.2",
+    "previous": "102.31",
+    "unit": "none",
+    "match": null
+   },
+   {
+    "title": "RBA Weighted Median CPI q/q",
+    "source": "biquote",
+    "actual": "0.9",
+    "forecast": "0.8",
+    "previous": "0.9",
+    "unit": "percent",
+    "match": null
+   },
+   {
+    "title": "RBA Weighted Median CPI y/y",
+    "source": "biquote",
+    "actual": "3.4",
+    "forecast": "3.6",
+    "previous": "3.7",
+    "unit": "percent",
+    "match": null
+   },
+   {
+    "title": "RBA Trimmed Mean CPI q/q",
+    "source": "biquote",
+    "actual": "1",
+    "forecast": "0.9",
+    "previous": "1",
+    "unit": "percent",
+    "match": 1.5
+   },
+   {
+    "title": "RBA Trimmed Mean CPI y/y",
+    "source": "biquote",
+    "actual": "3.6",
+    "forecast": "3.6",
+    "previous": "3.6",
+    "unit": "percent",
+    "match": 1.5
+   }
+  ]
+ },
+ {
+  "actual": "2.75%",
+  "event": {
+   "title": "Official Cash Rate",
+   "currency": "NZD",
+   "at": "2026-10-28T01:00:00.000Z",
+   "consensus": "3.00%",
+   "previous": "2.75%",
+   "history": [
+    {
+     "field": "actual",
+     "value": "2.75%",
+     "source": "FXStreet economic calendar",
+     "url": "https://www.fxstreet.com/economic-calendar",
+     "at": 1793260606554
+    }
+   ]
+  },
+  "candidates": [
+   {
+    "title": "RBNZ Interest Rate Decision",
+    "source": "FXStreet economic calendar",
+    "actual": "2.75%",
+    "forecast": "3%",
+    "previous": "2.75%",
+    "unit": "percent",
+    "match": 6
+   },
+   {
+    "title": "RBNZ Rate Statement",
+    "source": "biquote",
+    "actual": null,
+    "forecast": null,
+    "previous": null,
+    "unit": "none",
+    "match": null
+   },
+   {
+    "title": "RBNZ Interest Rate Decision",
+    "source": "biquote",
+    "actual": "2.75",
+    "forecast": null,
+    "previous": "2.75",
+    "unit": "percent",
+    "match": 4
+   }
+  ]
+ },
+ {
+  "actual": "-30.8",
+  "event": {
+   "title": "German GfK Consumer Climate",
+   "currency": "EUR",
+   "at": "2026-10-28T07:00:00.000Z",
+   "consensus": "-30.1",
+   "previous": "-30.6",
+   "history": [
+    {
+     "field": "actual",
+     "value": "-30.8",
+     "source": "FXStreet economic calendar",
+     "url": "https://www.fxstreet.com/economic-calendar",
+     "at": 1793260606554
+    }
+   ]
+  },
+  "candidates": [
+   {
+    "title": "GfK Consumer Confidence Survey",
+    "source": "FXStreet economic calendar",
+    "actual": "-30.8",
+    "forecast": "-31",
+    "previous": "-30.6",
+    "unit": "none",
+    "match": 4
+   },
+   {
+    "title": "GfK Consumer Climate",
+    "source": "biquote",
+    "actual": null,
+    "forecast": "-29",
+    "previous": "-30.6",
+    "unit": "none",
+    "match": 5
+   }
+  ]
+ },
+ {
+  "actual": "-15.3",
+  "event": {
+   "title": "UBS Economic Expectations",
+   "currency": "CHF",
+   "at": "2026-10-28T09:00:00.000Z",
+   "consensus": null,
+   "previous": "2.6",
+   "history": [
+    {
+     "field": "actual",
+     "value": "-15.3",
+     "source": "FXStreet economic calendar",
+     "url": "https://www.fxstreet.com/economic-calendar",
+     "at": 1793260606554
+    }
+   ]
+  },
+  "candidates": [
+   {
+    "title": "ZEW Survey – Expectations",
+    "source": "FXStreet economic calendar",
+    "actual": "-15.3",
+    "forecast": null,
+    "previous": "2.6",
+    "unit": "none",
+    "match": 3.6666666666666665
+   },
+   {
+    "title": "Credit Suisse Economic Expectations",
+    "source": "biquote",
+    "actual": null,
+    "forecast": null,
+    "previous": null,
+    "unit": "none",
+    "match": 1.3333333333333333
+   }
+  ]
+ },
+ {
+  "actual": null,
+  "event": {
+   "title": "German 10-y Bond Auction",
+   "currency": "EUR",
+   "at": "2026-10-28T10:32:00.000Z",
+   "consensus": null,
+   "previous": "3.58|1.2",
+   "history": []
+  },
+  "candidates": [
+   {
+    "title": "10-Year Bond Auction",
+    "source": "biquote",
+    "actual": null,
+    "forecast": null,
+    "previous": null,
+    "unit": "percent",
+    "match": 1.5
+   },
+   {
+    "title": "6-Month BOT Auction",
+    "source": "biquote",
+    "actual": null,
+    "forecast": null,
+    "previous": "2.873",
+    "unit": "percent",
+    "match": null
+   }
+  ]
+ },
+ {
+  "actual": "-134.9B",
+  "event": {
+   "title": "Goods Trade Balance",
+   "currency": "USD",
+   "at": "2026-10-28T12:30:00.000Z",
+   "consensus": "-130.4B",
+   "previous": "-132.6B",
+   "history": [
+    {
+     "field": "actual",
+     "value": "-134.9B",
+     "source": "FXStreet economic calendar",
+     "url": "https://www.fxstreet.com/economic-calendar",
+     "at": 1793260606554
+    }
+   ]
+  },
+  "candidates": [
+   {
+    "title": "Goods Trade Balance",
+    "source": "FXStreet economic calendar",
+    "actual": "-134.9B",
+    "forecast": "-128.7B",
+    "previous": "-132.1B",
+    "unit": "none",
+    "match": 2
+   },
+   {
+    "title": "Wholesale Inventories",
+    "source": "FXStreet economic calendar",
+    "actual": "0.6%",
+    "forecast": "0.4%",
+    "previous": "0.5%",
+    "unit": "percent",
+    "match": null
+   },
+   {
+    "title": "Wholesale Inventories m/m",
+    "source": "biquote",
+    "actual": null,
+    "forecast": "1.3",
+    "previous": "0.5",
+    "unit": "percent",
+    "match": null
+   },
+   {
+    "title": "Goods Trade Balance",
+    "source": "biquote",
+    "actual": null,
+    "forecast": "-114.307",
+    "previous": "-132.636",
+    "unit": "currency",
+    "match": 2
+   },
+   {
+    "title": "Retail Inventories m/m",
+    "source": "biquote",
+    "actual": null,
+    "forecast": "0.4",
+    "previous": "0.2",
+    "unit": "percent",
+    "match": null
+   },
+   {
+    "title": "Retail Inventories excl. Autos m/m",
+    "source": "biquote",
+    "actual": null,
+    "forecast": null,
+    "previous": "0",
+    "unit": "percent",
+    "match": null
+   }
+  ]
+ },
+ {
+  "actual": "0.6%",
+  "event": {
+   "title": "Prelim Wholesale Inventories m/m",
+   "currency": "USD",
+   "at": "2026-10-28T12:30:00.000Z",
+   "consensus": "0.5%",
+   "previous": "0.7%",
+   "history": [
+    {
+     "field": "actual",
+     "value": "0.6%",
+     "source": "FXStreet economic calendar",
+     "url": "https://www.fxstreet.com/economic-calendar",
+     "at": 1793260606554
+    }
+   ]
+  },
+  "candidates": [
+   {
+    "title": "Goods Trade Balance",
+    "source": "FXStreet economic calendar",
+    "actual": "-134.9B",
+    "forecast": "-128.7B",
+    "previous": "-132.1B",
+    "unit": "none",
+    "match": null
+   },
+   {
+    "title": "Wholesale Inventories",
+    "source": "FXStreet economic calendar",
+    "actual": "0.6%",
+    "forecast": "0.4%",
+    "previous": "0.5%",
+    "unit": "percent",
+    "match": 2
+   },
+   {
+    "title": "Wholesale Inventories m/m",
+    "source": "biquote",
+    "actual": null,
+    "forecast": "1.3",
+    "previous": "0.5",
+    "unit": "percent",
+    "match": 2
+   },
+   {
+    "title": "Goods Trade Balance",
+    "source": "biquote",
+    "actual": null,
+    "forecast": "-114.307",
+    "previous": "-132.636",
+    "unit": "currency",
+    "match": null
+   },
+   {
+    "title": "Retail Inventories m/m",
+    "source": "biquote",
+    "actual": null,
+    "forecast": "0.4",
+    "previous": "0.2",
+    "unit": "percent",
+    "match": 1.3333333333333333
+   },
+   {
+    "title": "Retail Inventories excl. Autos m/m",
+    "source": "biquote",
+    "actual": null,
+    "forecast": null,
+    "previous": "0",
+    "unit": "percent",
+    "match": 1
+   }
+  ]
+ },
+ {
+  "actual": null,
+  "event": {
+   "title": "CB Leading Index m/m",
+   "currency": "CNY",
+   "at": "2026-10-28T13:00:00.000Z",
+   "consensus": null,
+   "previous": "-0.2%",
+   "history": []
+  },
+  "candidates": []
+ },
+ {
+  "actual": "2.5%",
+  "event": {
+   "title": "Overnight Rate",
+   "currency": "CAD",
+   "at": "2026-10-28T13:45:00.000Z",
+   "consensus": "2.50%",
+   "previous": "2.25%",
+   "history": [
+    {
+     "field": "actual",
+     "value": "2.5%",
+     "source": "FXStreet economic calendar",
+     "url": "https://www.fxstreet.com/economic-calendar",
+     "at": 1793260606554
+    }
+   ]
+  },
+  "candidates": [
+   {
+    "title": "BoC Interest Rate Decision",
+    "source": "FXStreet economic calendar",
+    "actual": "2.5%",
+    "forecast": "2.5%",
+    "previous": "2.25%",
+    "unit": "percent",
+    "match": 6
+   },
+   {
+    "title": "BoC Monetary Policy Report",
+    "source": "biquote",
+    "actual": null,
+    "forecast": null,
+    "previous": null,
+    "unit": "none",
+    "match": null
+   },
+   {
+    "title": "BoC Interest Rate Decision",
+    "source": "biquote",
+    "actual": null,
+    "forecast": null,
+    "previous": "2.25",
+    "unit": "percent",
+    "match": 4
+   },
+   {
+    "title": "BoC Rate Statement",
+    "source": "biquote",
+    "actual": null,
+    "forecast": null,
+    "previous": null,
+    "unit": "none",
+    "match": null
+   }
+  ]
+ },
+ {
+  "actual": "-1.5M",
+  "event": {
+   "title": "Crude Oil Inventories",
+   "currency": "USD",
+   "at": "2026-10-28T14:30:00.000Z",
+   "consensus": "0.1M",
+   "previous": "-3.1M",
+   "history": [
+    {
+     "field": "actual",
+     "value": "-1.5M",
+     "source": "FXStreet economic calendar",
+     "url": "https://www.fxstreet.com/economic-calendar",
+     "at": 1793260606554
+    }
+   ]
+  },
+  "candidates": [
+   {
+    "title": "EIA Crude Oil Stocks Change",
+    "source": "FXStreet economic calendar",
+    "actual": "-1.462M",
+    "forecast": "-0.3M",
+    "previous": "-3.061M",
+    "unit": "none",
+    "match": 1.3333333333333333
+   },
+   {
+    "title": "EIA Distillate Stocks Change",
+    "source": "FXStreet economic calendar",
+    "actual": "-1.462M",
+    "forecast": null,
+    "previous": "1.675M",
+    "unit": "none",
+    "match": null
+   },
+   {
+    "title": "EIA Gasoline Stocks Change",
+    "source": "FXStreet economic calendar",
+    "actual": "3.87M",
+    "forecast": null,
+    "previous": "-2.952M",
+    "unit": "none",
+    "match": null
+   },
+   {
+    "title": "EIA Heating Oil Stocks Change",
+    "source": "FXStreet economic calendar",
+    "actual": "0.164M",
+    "forecast": null,
+    "previous": "0.652M",
+    "unit": "none",
+    "match": null
+   },
+   {
+    "title": "EIA Crude Oil Stocks Change",
+    "source": "biquote",
+    "actual": null,
+    "forecast": "-2.067",
+    "previous": "-3.06",
+    "unit": "barrel",
+    "match": 1.3333333333333333
+   },
+   {
+    "title": "EIA Cushing Crude Oil Stocks Change",
+    "source": "biquote",
+    "actual": null,
+    "forecast": "-0.103",
+    "previous": "0.987",
+    "unit": "barrel",
+    "match": 1.3333333333333333
+   },
+   {
+    "title": "EIA Crude Oil Imports Change",
+    "source": "biquote",
+    "actual": null,
+    "forecast": "0.216",
+    "previous": "0.837",
+    "unit": "barrel",
+    "match": 1.3333333333333333
+   },
+   {
+    "title": "EIA Distillate Fuel Production Change",
+    "source": "biquote",
+    "actual": null,
+    "forecast": "0.022",
+    "previous": "0.043",
+    "unit": "barrel",
+    "match": null
+   },
+   {
+    "title": "EIA Distillates Stocks Change",
+    "source": "biquote",
+    "actual": null,
+    "forecast": "1.393",
+    "previous": "1.675",
+    "unit": "barrel",
+    "match": null
+   },
+   {
+    "title": "EIA Gasoline Production Change",
+    "source": "biquote",
+    "actual": null,
+    "forecast": "-0.001",
+    "previous": "0.518",
+    "unit": "barrel",
+    "match": null
+   },
+   {
+    "title": "EIA Heating Oil Stocks Change",
+    "source": "biquote",
+    "actual": null,
+    "forecast": "0.001",
+    "previous": "0.652",
+    "unit": "barrel",
+    "match": null
+   },
+   {
+    "title": "EIA Gasoline Stocks Change",
+    "source": "biquote",
+    "actual": null,
+    "forecast": "0.125",
+    "previous": "-2.952",
+    "unit": "barrel",
+    "match": null
+   },
+   {
+    "title": "EIA Refinery Crude Oil Daily Inputs Change",
+    "source": "biquote",
+    "actual": null,
+    "forecast": null,
+    "previous": "0.034",
+    "unit": "barrel",
+    "match": 1.3333333333333333
+   },
+   {
+    "title": "EIA Refinery Utilization Rate Change",
+    "source": "biquote",
+    "actual": null,
+    "forecast": null,
+    "previous": "-0.1",
+    "unit": "percent",
+    "match": null
+   }
+  ]
+ },
+ {
+  "actual": "4%",
+  "event": {
+   "title": "Federal Funds Rate",
+   "currency": "USD",
+   "at": "2026-10-28T18:00:00.000Z",
+   "consensus": "4.00%",
+   "previous": "4.00%",
+   "history": [
+    {
+     "field": "actual",
+     "value": "4%",
+     "source": "FXStreet economic calendar",
+     "url": "https://www.fxstreet.com/economic-calendar",
+     "at": 1793260606554
+    }
+   ]
+  },
+  "candidates": [
+   {
+    "title": "Fed Interest Rate Decision",
+    "source": "FXStreet economic calendar",
+    "actual": "4%",
+    "forecast": "4%",
+    "previous": "4%",
+    "unit": "percent",
+    "match": 6
+   },
+   {
+    "title": "FOMC Statement",
+    "source": "biquote",
+    "actual": null,
+    "forecast": null,
+    "previous": null,
+    "unit": "none",
+    "match": null
+   },
+   {
+    "title": "Fed Interest Rate Decision",
+    "source": "biquote",
+    "actual": null,
+    "forecast": null,
+    "previous": "4",
+    "unit": "percent",
+    "match": 4
+   }
+  ]
+ },
+ {
+  "actual": "52.5",
+  "event": {
+   "title": "ANZ Business Confidence",
+   "currency": "NZD",
+   "at": "2026-10-29T00:00:00.000Z",
+   "consensus": null,
+   "previous": "51.9",
+   "history": [
+    {
+     "field": "actual",
+     "value": "52.5",
+     "source": "FXStreet economic calendar",
+     "url": "https://www.fxstreet.com/economic-calendar",
+     "at": 1793260606554
+    }
+   ]
+  },
+  "candidates": [
+   {
+    "title": "ANZ Activity Outlook",
+    "source": "FXStreet economic calendar",
+    "actual": "46.2",
+    "forecast": null,
+    "previous": "47.9",
+    "unit": "none",
+    "match": null
+   },
+   {
+    "title": "ANZ Business Confidence",
+    "source": "FXStreet economic calendar",
+    "actual": "52.5",
+    "forecast": null,
+    "previous": "51.9",
+    "unit": "none",
+    "match": 5
+   },
+   {
+    "title": "ANZ Business Confidence",
+    "source": "biquote",
+    "actual": null,
+    "forecast": "48.1",
+    "previous": "51.9",
+    "unit": "none",
+    "match": 5
+   },
+   {
+    "title": "ANZ Activity Outlook",
+    "source": "biquote",
+    "actual": null,
+    "forecast": "64.4",
+    "previous": "47.9",
+    "unit": "none",
+    "match": null
+   },
+   {
+    "title": "ANZ Business Confidence",
+    "source": "biquote",
+    "actual": null,
+    "forecast": "48.1",
+    "previous": "51.9",
+    "unit": "none",
+    "match": 5
+   },
+   {
+    "title": "ANZ Activity Outlook",
+    "source": "biquote",
+    "actual": null,
+    "forecast": "64.4",
+    "previous": "47.9",
+    "unit": "none",
+    "match": null
+   }
+  ]
+ },
+ {
+  "actual": "-1.1%",
+  "event": {
+   "title": "Import Prices q/q",
+   "currency": "AUD",
+   "at": "2026-10-29T00:30:00.000Z",
+   "consensus": "1.3%",
+   "previous": "5.7%",
+   "history": [
+    {
+     "field": "actual",
+     "value": "-1.1%",
+     "source": "FXStreet economic calendar",
+     "url": "https://www.fxstreet.com/economic-calendar",
+     "at": 1793260606554
+    }
+   ]
+  },
+  "candidates": [
+   {
+    "title": "Export Price Index (QoQ)",
+    "source": "FXStreet economic calendar",
+    "actual": "1.4%",
+    "forecast": null,
+    "previous": "1.1%",
+    "unit": "percent",
+    "match": null
+   },
+   {
+    "title": "Import Price Index (QoQ)",
+    "source": "FXStreet economic calendar",
+    "actual": "-1.1%",
+    "forecast": "1.8%",
+    "previous": "5.7%",
+    "unit": "percent",
+    "match": 4.333333333333333
+   }
+  ]
+ },
+ {
+  "actual": "35.0",
+  "event": {
+   "title": "Consumer Confidence",
+   "currency": "JPY",
+   "at": "2026-10-29T05:00:00.000Z",
+   "consensus": "35.1",
+   "previous": "35.4",
+   "history": [
+    {
+     "field": "actual",
+     "value": "35.0",
+     "source": "FXStreet economic calendar",
+     "url": "https://www.fxstreet.com/economic-calendar",
+     "at": 1793260606554
+    }
+   ]
+  },
+  "candidates": [
+   {
+    "title": "Consumer Confidence Index",
+    "source": "FXStreet economic calendar",
+    "actual": "35",
+    "forecast": "35.1",
+    "previous": "35.4",
+    "unit": "none",
+    "match": 7
+   },
+   {
+    "title": "Consumer Confidence Index",
+    "source": "biquote",
+    "actual": null,
+    "forecast": "34.8",
+    "previous": "35.4",
+    "unit": "none",
+    "match": 5
+   }
+  ]
+ }
+]

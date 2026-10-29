@@ -1,0 +1,284 @@
+[
+ {
+  "at": "2026-10-26T09:00:00.000Z",
+  "currency": "EUR",
+  "title": "German ifo Business Climate",
+  "actual": "90.2",
+  "sources": [
+   "FXStreet economic calendar (https://www.fxstreet.com/economic-calendar)"
+  ]
+ },
+ {
+  "at": "2026-10-26T11:00:00.000Z",
+  "currency": "GBP",
+  "title": "CBI Realized Sales",
+  "actual": null,
+  "sources": []
+ },
+ {
+  "at": "2026-10-26T23:50:00.000Z",
+  "currency": "JPY",
+  "title": "SPPI y/y",
+  "actual": "3.7%",
+  "sources": [
+   "FXStreet economic calendar (https://www.fxstreet.com/economic-calendar)"
+  ]
+ },
+ {
+  "at": "2026-10-27T00:01:00.000Z",
+  "currency": "GBP",
+  "title": "BRC Shop Price Index y/y",
+  "actual": "2.1%",
+  "sources": [
+   "FXStreet economic calendar (https://www.fxstreet.com/economic-calendar)"
+  ]
+ },
+ {
+  "at": "2026-10-27T05:00:00.000Z",
+  "currency": "JPY",
+  "title": "BOJ Core CPI y/y",
+  "actual": "2.5%",
+  "sources": [
+   "biquote.io economic calendar (https://biquote.io/api/calendar)"
+  ]
+ },
+ {
+  "at": "2026-10-27T08:00:00.000Z",
+  "currency": "EUR",
+  "title": "Spanish Unemployment Rate",
+  "actual": "10.18%",
+  "sources": [
+   "FXStreet economic calendar (https://www.fxstreet.com/economic-calendar)"
+  ]
+ },
+ {
+  "at": "2026-10-27T09:00:00.000Z",
+  "currency": "EUR",
+  "title": "M3 Money Supply y/y",
+  "actual": "3.5%",
+  "sources": [
+   "FXStreet economic calendar (https://www.fxstreet.com/economic-calendar)"
+  ]
+ },
+ {
+  "at": "2026-10-27T09:00:00.000Z",
+  "currency": "EUR",
+  "title": "Private Loans y/y",
+  "actual": "3.1%",
+  "sources": [
+   "FXStreet economic calendar (https://www.fxstreet.com/economic-calendar)"
+  ]
+ },
+ {
+  "at": "2026-10-27T12:15:00.000Z",
+  "currency": "USD",
+  "title": "ADP Weekly Employment Change",
+  "actual": "16.8K",
+  "sources": [
+   "FXStreet economic calendar (https://www.fxstreet.com/economic-calendar)"
+  ]
+ },
+ {
+  "at": "2026-10-27T12:30:00.000Z",
+  "currency": "USD",
+  "title": "Core Durable Goods Orders m/m",
+  "actual": "0.5%",
+  "sources": [
+   "FXStreet economic calendar (https://www.fxstreet.com/economic-calendar)"
+  ]
+ },
+ {
+  "at": "2026-10-27T12:30:00.000Z",
+  "currency": "USD",
+  "title": "Durable Goods Orders m/m",
+  "actual": "1.8%",
+  "sources": [
+   "FXStreet economic calendar (https://www.fxstreet.com/economic-calendar)"
+  ]
+ },
+ {
+  "at": "2026-10-27T13:00:00.000Z",
+  "currency": "USD",
+  "title": "HPI m/m",
+  "actual": "0.3%",
+  "sources": [
+   "FXStreet economic calendar (https://www.fxstreet.com/economic-calendar)"
+  ]
+ },
+ {
+  "at": "2026-10-27T13:00:00.000Z",
+  "currency": "USD",
+  "title": "S&P/CS Composite-20 HPI y/y",
+  "actual": "2.7%",
+  "sources": [
+   "FXStreet economic calendar (https://www.fxstreet.com/economic-calendar)"
+  ]
+ },
+ {
+  "at": "2026-10-27T14:00:00.000Z",
+  "currency": "USD",
+  "title": "CB Consumer Confidence",
+  "actual": "91.7",
+  "sources": [
+   "biquote.io economic calendar (https://biquote.io/api/calendar)"
+  ]
+ },
+ {
+  "at": "2026-10-27T14:00:00.000Z",
+  "currency": "USD",
+  "title": "New Home Sales",
+  "actual": "676K",
+  "sources": [
+   "FXStreet economic calendar (https://www.fxstreet.com/economic-calendar)"
+  ]
+ },
+ {
+  "at": "2026-10-27T14:00:00.000Z",
+  "currency": "USD",
+  "title": "Richmond Manufacturing Index",
+  "actual": "-2",
+  "sources": [
+   "FXStreet economic calendar (https://www.fxstreet.com/economic-calendar)"
+  ]
+ },
+ {
+  "at": "2026-10-28T00:30:00.000Z",
+  "currency": "AUD",
+  "title": "CPI m/m",
+  "actual": "0.8%",
+  "sources": [
+   "FXStreet economic calendar (https://www.fxstreet.com/economic-calendar)"
+  ]
+ },
+ {
+  "at": "2026-10-28T00:30:00.000Z",
+  "currency": "AUD",
+  "title": "CPI y/y",
+  "actual": "4.3%",
+  "sources": [
+   "FXStreet economic calendar (https://www.fxstreet.com/economic-calendar)"
+  ]
+ },
+ {
+  "at": "2026-10-28T00:30:00.000Z",
+  "currency": "AUD",
+  "title": "Trimmed Mean CPI m/m",
+  "actual": "0.3%",
+  "sources": [
+   "FXStreet economic calendar (https://www.fxstreet.com/economic-calendar)"
+  ]
+ },
+ {
+  "at": "2026-10-28T01:00:00.000Z",
+  "currency": "NZD",
+  "title": "Official Cash Rate",
+  "actual": "2.75%",
+  "sources": [
+   "FXStreet economic calendar (https://www.fxstreet.com/economic-calendar)"
+  ]
+ },
+ {
+  "at": "2026-10-28T07:00:00.000Z",
+  "currency": "EUR",
+  "title": "German GfK Consumer Climate",
+  "actual": "-30.8",
+  "sources": [
+   "FXStreet economic calendar (https://www.fxstreet.com/economic-calendar)"
+  ]
+ },
+ {
+  "at": "2026-10-28T09:00:00.000Z",
+  "currency": "CHF",
+  "title": "UBS Economic Expectations",
+  "actual": "-15.3",
+  "sources": [
+   "FXStreet economic calendar (https://www.fxstreet.com/economic-calendar)"
+  ]
+ },
+ {
+  "at": "2026-10-28T10:32:00.000Z",
+  "currency": "EUR",
+  "title": "German 10-y Bond Auction",
+  "actual": null,
+  "sources": []
+ },
+ {
+  "at": "2026-10-28T12:30:00.000Z",
+  "currency": "USD",
+  "title": "Goods Trade Balance",
+  "actual": "-134.9B",
+  "sources": [
+   "FXStreet economic calendar (https://www.fxstreet.com/economic-calendar)"
+  ]
+ },
+ {
+  "at": "2026-10-28T12:30:00.000Z",
+  "currency": "USD",
+  "title": "Prelim Wholesale Inventories m/m",
+  "actual": "0.6%",
+  "sources": [
+   "FXStreet economic calendar (https://www.fxstreet.com/economic-calendar)"
+  ]
+ },
+ {
+  "at": "2026-10-28T13:00:00.000Z",
+  "currency": "CNY",
+  "title": "CB Leading Index m/m",
+  "actual": null,
+  "sources": []
+ },
+ {
+  "at": "2026-10-28T13:45:00.000Z",
+  "currency": "CAD",
+  "title": "Overnight Rate",
+  "actual": "2.5%",
+  "sources": [
+   "FXStreet economic calendar (https://www.fxstreet.com/economic-calendar)"
+  ]
+ },
+ {
+  "at": "2026-10-28T14:30:00.000Z",
+  "currency": "USD",
+  "title": "Crude Oil Inventories",
+  "actual": "-1.5M",
+  "sources": [
+   "FXStreet economic calendar (https://www.fxstreet.com/economic-calendar)"
+  ]
+ },
+ {
+  "at": "2026-10-28T18:00:00.000Z",
+  "currency": "USD",
+  "title": "Federal Funds Rate",
+  "actual": "4%",
+  "sources": [
+   "FXStreet economic calendar (https://www.fxstreet.com/economic-calendar)"
+  ]
+ },
+ {
+  "at": "2026-10-29T00:00:00.000Z",
+  "currency": "NZD",
+  "title": "ANZ Business Confidence",
+  "actual": "52.5",
+  "sources": [
+   "FXStreet economic calendar (https://www.fxstreet.com/economic-calendar)"
+  ]
+ },
+ {
+  "at": "2026-10-29T00:30:00.000Z",
+  "currency": "AUD",
+  "title": "Import Prices q/q",
+  "actual": "-1.1%",
+  "sources": [
+   "FXStreet economic calendar (https://www.fxstreet.com/economic-calendar)"
+  ]
+ },
+ {
+  "at": "2026-10-29T05:00:00.000Z",
+  "currency": "JPY",
+  "title": "Consumer Confidence",
+  "actual": "35.0",
+  "sources": [
+   "FXStreet economic calendar (https://www.fxstreet.com/economic-calendar)"
+  ]
+ }
+]
