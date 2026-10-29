@@ -2,6 +2,10 @@
 name: live-check
 on:
   workflow_dispatch:
+    inputs:
+      site_url:
+        description: Deployed site to measure
+        default: https://fx-analysis-desk.vercel.app
   push:
     branches: [live-check-run]
 permissions:
@@ -14,6 +18,9 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm }
       - run: npm ci
+      - run: node --experimental-strip-types scripts/site-check.ts
+        continue-on-error: true
+        env: { SITE_URL: "${{ inputs.site_url }}" }
       - run: node --experimental-strip-types scripts/probe-sources.ts
       - run: node --experimental-strip-types scripts/live-check.ts
         continue-on-error: true
