@@ -9,7 +9,7 @@ const today = day(0), wd = new Date().getUTCDay();
 const weekFrom = day(-wd), weekTo = day(6 - wd);
 const monthFrom = `${today.slice(0, 8)}01`, monthTo = day(30).slice(0, 8) + "01";
 const paths = [
-  "/api/health", "/api/config",
+  "/api/health", "/api/health?probe=actuals-sync.json", "/api/health?probe=settings.json", "/api/config",
   `/api/calendar/range?from=${weekFrom}&to=${weekTo}&currencies=&impacts=`,
   `/api/calendar/range?from=${today}&to=${today}&currencies=&impacts=`,
   `/api/calendar/range?from=${monthFrom}&to=${monthTo}&currencies=&impacts=&shape=dates`,

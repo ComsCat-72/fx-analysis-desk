@@ -136,7 +136,7 @@ interface SyncDoc { at: number; result: SyncResult; running?: number | null }
  *  All values for one calendar week are written in a single update. Failures are returned, never thrown. */
 export async function syncActuals(from: number, to: number, o: { now?: number; minGapMs?: number; fetcher?: typeof fetch } = {}): Promise<SyncResult> {
   const now = o.now ?? Date.now(), gap = o.minGapMs ?? 120_000;
-  const last = await getJSON<SyncDoc>("actuals-sync.json");
+  const last = await readStatus();
   if (last?.running && now - last.running < 90_000) return { ...last.result, skipped: "sync already running" };
   if (last && !last.running && now - last.at < gap) {
     // Right after a release (within 30 minutes, with figures but no actual yet) sync every 20 s instead.
@@ -218,8 +218,21 @@ async function runSync(from: number, to: number, now: number, o: { fetcher?: typ
   } catch (e) {
     result = { fetched: 0, matched: 0, recorded: 0, fields, error: (e as Error).message };
   }
-  await putJSON("actuals-sync.json", { at: now, result } satisfies SyncDoc).catch(() => undefined);
+  memo = { at: now, result };
+  await putJSON("actuals-sync.json", memo).catch(() => undefined);
   return result;
 }
 
-export const lastSync = async () => (await getJSON<SyncDoc>("actuals-sync.json")) ?? null;
+// The status document is rewritten after every run, and on Vercel Blob a read of such a document can stall. The
+// calendar page and the throttle therefore never wait more than 1.5 s for it: they fall back to this instance's own
+// last status.
+let memo: SyncDoc | null = null;
+async function readStatus(): Promise<SyncDoc | null> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const limit = new Promise<null>((res) => { timer = setTimeout(() => res(null), 1500); });
+  try {
+    const doc = await Promise.race([getJSON<SyncDoc>("actuals-sync.json").catch(() => null), limit]);
+    return doc ?? memo;
+  } finally { clearTimeout(timer); }
+}
+export const lastSync = readStatus;

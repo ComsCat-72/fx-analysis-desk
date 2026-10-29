@@ -211,3 +211,15 @@ test("source ranking: FXStreet's figure beats biquote's mismatched sibling; your
   e = (await eventsBetween(rel - 1, rel + 1)).find((x) => x.id === cpi.id)!;
   assert.equal(eventAsOf(e, rel + 300_000).actual, "4.4%", "an entry you make yourself wins");
 });
+
+test("a stalled status read never holds the calendar: after 1.5 s the instance's own last status is used", async () => {
+  const S = await import("../lib/store.ts");
+  const orig = S.store().read;
+  (S.store() as { read: typeof orig }).read = async (p: string) => (p === "actuals-sync.json" ? new Promise(() => {}) : orig.call(S.store(), p));
+  S.clearReadCache();
+  const t = Date.now();
+  const s = await A.lastSync();
+  assert.ok(Date.now() - t < 2500, "answered within the limit");
+  assert.ok(s === null || typeof s.at === "number");
+  (S.store() as { read: typeof orig }).read = orig;
+});

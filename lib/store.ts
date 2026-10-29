@@ -64,6 +64,38 @@ async function readBlob(p: string): Promise<{ body: Response; etag: string } | n
   return r?.stream ? { body: new Response(r.stream), etag: r.blob.etag } : null;
 }
 
+/** Diagnostics: each step of a Blob read (head, version-specific fetch, SDK get) with its time and outcome, each step
+ *  limited to 8 s. Reads only. */
+export async function probeRead(p: string) {
+  if (!blobToken()) return { storage: storageMode() };
+  const { get, head } = await import("@vercel/blob");
+  const step = async (name: string, fn: () => Promise<unknown>) => {
+    const t = Date.now();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      const v = await Promise.race([fn(), new Promise((_, rej) => { timer = setTimeout(() => rej(new Error("no answer within 8 s")), 8000); })]);
+      return { name, ms: Date.now() - t, ok: true, result: v };
+    } catch (e) { return { name, ms: Date.now() - t, ok: false, error: `${(e as Error).name}: ${(e as Error).message}`.slice(0, 300) }; }
+    finally { clearTimeout(timer); }
+  };
+  const steps = [];
+  let meta: { url: string; etag: string } | null = null;
+  steps.push(await step("head", async () => { const m = await head(p, { token: blobToken() }); meta = { url: m.url, etag: m.etag }; return { etag: m.etag, size: m.size, uploadedAt: m.uploadedAt }; }));
+  const m = meta as { url: string; etag: string } | null;
+  if (m) {
+    steps.push(await step("fetch versioned", async () => {
+      const r = await fetch(`${m.url}?v=${encodeURIComponent(m.etag)}`, { cache: "no-store" });
+      const text = await r.text();
+      return { status: r.status, etag: r.headers.get("etag"), age: r.headers.get("age"), cache: r.headers.get("x-vercel-cache"), bytes: text.length, matches: sameTag(r.headers.get("etag") ?? "", m.etag) };
+    }));
+  }
+  steps.push(await step("sdk get", async () => {
+    const r = await get(p, { access: blobAccess(), useCache: false, token: blobToken() });
+    return r ? { status: r.statusCode, etag: r.blob.etag, bytes: r.stream ? (await new Response(r.stream).text()).length : null } : null;
+  }));
+  return { path: p, access: blobAccess(), steps };
+}
+
 function blobBackend(): Backend {
   // Imported lazily so local development and tests never need the SDK configured.
   const sdk = import("@vercel/blob");
