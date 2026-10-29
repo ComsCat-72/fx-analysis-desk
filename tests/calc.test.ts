@@ -86,10 +86,14 @@ test("compounding and drawdown", () => {
 });
 
 test("market hours follow each centre's daylight saving; FX is closed at the weekend", () => {
-  // London on Tuesday 20 Oct 2026 (BST): opens 07:00 UTC; on Tuesday 27 Oct (GMT): opens 08:00 UTC.
+  // London 07:00–16:00 London time: on Tuesday 20 Oct 2026 (BST) opens 06:00 UTC; on Tuesday 27 Oct (GMT) 07:00 UTC.
   const lon = (t: number) => C.sessionsAt(t).find((s) => s.name === "London")!;
-  assert.equal(new Date(lon(Date.parse("2026-10-20T10:00:00Z")).current!.start).toISOString(), "2026-10-20T07:00:00.000Z");
-  assert.equal(new Date(lon(Date.parse("2026-10-27T10:00:00Z")).current!.start).toISOString(), "2026-10-27T08:00:00.000Z");
+  assert.equal(new Date(lon(Date.parse("2026-10-20T10:00:00Z")).current!.start).toISOString(), "2026-10-20T06:00:00.000Z");
+  assert.equal(new Date(lon(Date.parse("2026-10-27T10:00:00Z")).current!.start).toISOString(), "2026-10-27T07:00:00.000Z");
+  // Thursday 29 Oct, 07:15 UTC (10:15 EAT; UK on GMT, US still on EDT): London is open and closes at 16:00 UTC.
+  const now = lon(Date.parse("2026-10-29T07:15:00Z"));
+  assert.equal(now.open_now, true); assert.equal(new Date(now.current!.end).toISOString(), "2026-10-29T16:00:00.000Z");
+  assert.equal(lon(Date.parse("2026-10-29T06:59:00Z")).open_now, false, "not before 07:00 London");
   assert.equal(C.fxMarketOpen(Date.parse("2026-10-31T12:00:00Z")), false); // Saturday
   assert.equal(C.sessionsAt(Date.parse("2026-10-31T12:00:00Z")).some((s) => s.open_now), false);
 });

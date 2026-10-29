@@ -20,7 +20,7 @@ test("session windows follow the chosen zone's day", () => {
   assert.equal(new Date(kla.start).toISOString(), "2026-10-27T21:00:00.000Z");
   assert.equal(new Date(ny.start).toISOString(), "2026-10-28T04:00:00.000Z");
   const lonK = C.sessionsInDay(kla.start, kla.end).find((s) => s.name === "London")!;
-  assert.deepEqual(lonK.windows.map((w) => new Date(w.start).toISOString()), ["2026-10-28T08:00:00.000Z"]); // 11:00 in Kampala
+  assert.deepEqual(lonK.windows.map((w) => new Date(w.start).toISOString()), ["2026-10-28T07:00:00.000Z"]); // 10:00 in Kampala
   const sydK = C.sessionsInDay(kla.start, kla.end).find((s) => s.name === "Sydney")!;
   assert.ok(sydK.windows.every((w) => w.start >= kla.start && w.end <= kla.end), "clipped to the day");
   assert.equal(sydK.windows.length, 2, "the overnight session appears at both ends of the day");

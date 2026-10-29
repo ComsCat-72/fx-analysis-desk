@@ -173,10 +173,12 @@ export const recoveryNeeded = (lossPercent: number) => (lossPercent >= 100 ? Inf
 
 // ---------------------------------------------------------------- market hours
 
+// Each centre's business hours in its own local time, so every daylight-saving change (and the weeks when the UK, US
+// and Australia are out of step) is followed automatically. London uses the common FX convention, 07:00–16:00.
 export const SESSIONS = [
   { name: "Sydney", tz: "Australia/Sydney", open: "07:00", close: "16:00" },
   { name: "Tokyo", tz: "Asia/Tokyo", open: "09:00", close: "18:00" },
-  { name: "London", tz: "Europe/London", open: "08:00", close: "17:00" },
+  { name: "London", tz: "Europe/London", open: "07:00", close: "16:00" },
   { name: "New York", tz: "America/New_York", open: "08:00", close: "17:00" },
 ] as const;
 

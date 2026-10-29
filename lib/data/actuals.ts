@@ -132,7 +132,7 @@ export interface SyncResult { fetched: number; matched: number; recorded: number
 interface SyncDoc { at: number; result: SyncResult; running?: number | null }
 
 /** Fetch releases for the range and attach actuals (and missing forecast/previous) to Forex Factory events.
- *  Runs at most once every `minGapMs`, and never twice at once: a run first claims the sync document.
+ *  Runs at most once every `minGapMs` (every 20 s right after a release), one run at a time per server instance.
  *  All values for one calendar week are written in a single update. Failures are returned, never thrown. */
 export async function syncActuals(from: number, to: number, o: { now?: number; minGapMs?: number; fetcher?: typeof fetch } = {}): Promise<SyncResult> {
   const now = o.now ?? Date.now(), gap = o.minGapMs ?? 120_000;
@@ -142,8 +142,15 @@ export async function syncActuals(from: number, to: number, o: { now?: number; m
     // Right after a release (within 30 minutes, with figures but no actual yet) sync every 20 s instead.
     if (now - last.at < HOT_GAP_MS || !(await releaseAwaiting(now))) return { ...last.result, skipped: "synced recently" };
   }
-  const empty: SyncResult = { fetched: 0, matched: 0, recorded: 0, fields: {}, error: null };
-  await putJSON("actuals-sync.json", { at: last?.at ?? 0, result: last?.result ?? empty, running: now } satisfies SyncDoc).catch(() => undefined);
+  // One run at a time per server instance, with no extra storage write to claim it (each run writes its status
+  // once, at the end). Two instances running at once only repeat work: recordValues skips values already recorded.
+  if (inFlight) return { ...(last?.result ?? { fetched: 0, matched: 0, recorded: 0, fields: {}, error: null }), skipped: "sync already running" };
+  inFlight = true;
+  try { return await runSync(from, to, now, o); } finally { inFlight = false; }
+}
+let inFlight = false;
+
+async function runSync(from: number, to: number, now: number, o: { fetcher?: typeof fetch }): Promise<SyncResult> {
   const fields: Record<string, string> = {};
   let result: SyncResult;
   let sourceErrors: string | null = null;
@@ -211,7 +218,7 @@ export async function syncActuals(from: number, to: number, o: { now?: number; m
   } catch (e) {
     result = { fetched: 0, matched: 0, recorded: 0, fields, error: (e as Error).message };
   }
-  await putJSON("actuals-sync.json", { at: now, result, running: null } satisfies SyncDoc).catch(() => undefined);
+  await putJSON("actuals-sync.json", { at: now, result } satisfies SyncDoc).catch(() => undefined);
   return result;
 }
 

@@ -8,8 +8,9 @@ const blobs = new Map<string, { body: string; etag: string; url: string }>();
 const cdn = new Map<string, { body: string; etag: string }>(); // what the CDN still serves per url
 let n = 0;
 let failNext: Error | null = null;
+let heads = 0, hangHead = false;
 mock.module("@vercel/blob", { namedExports: {
-  head: async (p: string) => { const b = blobs.get(p); if (!b) throw new BlobNotFoundError("The requested blob does not exist"); return { url: b.url, etag: b.etag }; },
+  head: async (p: string) => { heads++; if (hangHead) return new Promise(() => {}); const b = blobs.get(p); if (!b) throw new BlobNotFoundError("The requested blob does not exist"); return { url: b.url, etag: b.etag }; },
   get: async (p: string) => { const b = blobs.get(p); return b ? { stream: new Response(b.body).body, blob: { etag: b.etag } } : null; },
   put: async (p: string, body: string, o: { ifMatch?: string; allowOverwrite?: boolean }) => {
     if (failNext) { const e = failNext; failNext = null; throw e; }
@@ -56,4 +57,23 @@ test("read-modify-write updates do not fail on a stale CDN copy, and retry real 
 test("other storage errors keep their own message", async () => {
   failNext = new Error("This store has been suspended.");
   await assert.rejects(update("counter.json", () => ({ n: 0 }), () => undefined), /suspended/);
+});
+
+test("reads are cached for a few seconds and a write clears the cache", async () => {
+  await putJSON("cache/a.json", { v: 1 });
+  heads = 0;
+  assert.deepEqual(await getJSON("cache/a.json"), { v: 1 });
+  assert.deepEqual(await getJSON("cache/a.json"), { v: 1 });
+  assert.equal(heads, 1, "second read served from the cache");
+  await putJSON("cache/a.json", { v: 2 });
+  assert.deepEqual(await getJSON("cache/a.json"), { v: 2 }, "own write is visible at once");
+});
+
+test("a store that never answers fails fast with a clear message instead of hanging the page", async () => {
+  process.env.STORE_READ_LIMIT_MS = "150";
+  hangHead = true;
+  const t = Date.now();
+  await assert.rejects(getJSON("slow/never.json"), /Storage is slow to answer/);
+  assert.ok(Date.now() - t < 2000);
+  hangHead = false; delete process.env.STORE_READ_LIMIT_MS;
 });

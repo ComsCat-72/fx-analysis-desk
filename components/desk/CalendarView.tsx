@@ -1,6 +1,6 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Filter, Play, RefreshCw } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -185,7 +185,9 @@ export function CalendarView({ today, instrumentCurrencies }: { today: string; i
   const [from, to] = range(mode, anchor);
   // Poll every 15 s while a release is awaiting its actual, otherwise every minute; never while the tab is hidden.
   const data = useQuery({ queryKey: ["calrange", from, to, filter], queryFn: () => api.calendarRange(from, to, filter.currencies, filter.impacts),
-    refetchInterval: (q) => ((q.state.data?.rows ?? []).some((r) => awaiting(r, Date.now())) ? 15_000 : 60_000), refetchIntervalInBackground: false, refetchOnWindowFocus: false });
+    refetchInterval: (q) => ((q.state.data?.rows ?? []).some((r) => awaiting(r, Date.now())) ? 15_000 : 60_000), refetchIntervalInBackground: false, refetchOnWindowFocus: false,
+    // Keep the last table on screen while another week or filter loads; a slow answer is retried before any error shows.
+    placeholderData: keepPreviousData, retry: 2, retryDelay: (n) => 1500 * (n + 1) });
   const monthData = useQuery({ queryKey: ["caldates", monthStart(month), monthEnd(month), filter], queryFn: () => api.calendarDates(monthStart(month), monthEnd(month), filter.currencies, filter.impacts),
     staleTime: 5 * 60_000, refetchOnWindowFocus: false });
   const marked = useMemo(() => new Set(monthData.data?.dates), [monthData.data]);
@@ -298,7 +300,13 @@ export function CalendarView({ today, instrumentCurrencies }: { today: string; i
         <div className={cx(COLS, "hidden border-b border-line bg-surface-2 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-faint")}>
           <span /><span>Time</span><span>Cur.</span><span>Impact</span><span>Event</span><span>Detail</span><span className="text-right">Actual</span><span className="text-right">Forecast</span><span className="text-right">Previous</span>
         </div>
-        {data.isLoading ? <Spinner label="Loading calendar" /> : data.error ? (
+        {data.error && data.data && (
+          <div className="flex items-center gap-3 border-b border-line px-4 py-1.5 text-[12.5px] text-warn" role="status">
+            <span>Showing the last loaded calendar: {friendlyError(data.error)}</span>
+            <Button size="sm" variant="ghost" onClick={() => data.refetch()}>Retry</Button>
+          </div>
+        )}
+        {data.isLoading ? <Spinner label="Loading calendar" /> : data.error && !data.data ? (
           <div className="flex items-center gap-3 p-4 text-sm text-danger" role="alert">
             <span>Could not load the calendar: {friendlyError(data.error)}</span>
             <Button size="sm" onClick={() => data.refetch()}>Retry</Button>

@@ -1,6 +1,5 @@
 // JSON document store: Vercel Blob in deployments (BLOB_READ_WRITE_TOKEN), a local .data/ folder otherwise.
-// - putImmutable(): create-only. Published report versions are written this way, so the store itself refuses
-//   to overwrite them (Blob: allowOverwrite=false; local: exclusive create).
+// - getJSON(): a short per-instance read cache, and a time limit on Blob reads.
 // - update(): read-modify-write with an ETag precondition and retries, so concurrent writers never lose updates.
 import { createHash } from "node:crypto";
 import { promises as fs } from "node:fs";
@@ -16,6 +15,8 @@ export function blobToken(): string | undefined {
   return Object.entries(process.env).find(([k, v]) => k.endsWith("_READ_WRITE_TOKEN") && v?.startsWith("vercel_blob_rw_"))?.[1];
 }
 class PreconditionFailed extends Error {}
+export class StorageSlow extends Error { constructor() { super("Storage is slow to answer (Vercel Blob); please try again in a moment."); } }
+const READ_LIMIT_MS = () => Number(process.env.STORE_READ_LIMIT_MS) || 6000;
 
 interface Backend {
   read(p: string): Promise<{ text: string; etag: string } | null>;
@@ -68,8 +69,12 @@ function blobBackend(): Backend {
   const sdk = import("@vercel/blob");
   return {
     async read(p) {
-      const r = await readBlob(p);
-      return r ? { text: await r.body.text(), etag: r.etag } : null;
+      // A slow or rate-limited store must not hold a page: give up after READ_LIMIT_MS with a clear message.
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const limit = new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new StorageSlow()), READ_LIMIT_MS()); });
+      try {
+        return await Promise.race([limit, readBlob(p).then(async (r) => (r ? { text: await r.body.text(), etag: r.etag } : null))]);
+      } finally { clearTimeout(timer); }
     },
     async write(p, body, o) {
       const { put } = await sdk;
@@ -172,12 +177,22 @@ export function store(): Backend {
 export function useLocalStore(dir: string) { backend = fsBackend(dir); }
 export const storageMode = () => (blobToken() ? "vercel-blob" : process.env.VERCEL ? "none" : "local-files");
 
+// Reads are kept for a few seconds per server instance, so a burst of requests (calendar, month grid, sync)
+// reads each document once. This instance's own writes clear it; update() always reads fresh.
+const CACHE_MS = 5000;
+const cache = new Map<string, { at: number; text: string | null }>();
+export const clearReadCache = () => cache.clear();
+
 export async function getJSON<T>(p: string): Promise<T | null> {
+  const hit = cache.get(p);
+  if (hit && Date.now() - hit.at < CACHE_MS) return hit.text == null ? null : (JSON.parse(hit.text) as T);
   const r = await store().read(p);
+  cache.set(p, { at: Date.now(), text: r?.text ?? null });
   return r ? (JSON.parse(r.text) as T) : null;
 }
 
 export async function putJSON(p: string, data: unknown): Promise<void> {
+  cache.delete(p);
   await store().write(p, JSON.stringify(data), {});
 }
 
@@ -189,6 +204,7 @@ export async function update<T>(p: string, init: () => T, fn: (cur: T) => T | vo
     const cur = r ? (JSON.parse(r.text) as T) : init();
     const next = (fn(cur) ?? cur) as T;
     try {
+      cache.delete(p);
       await store().write(p, JSON.stringify(next), r ? { etag: r.etag } : {});
       return next;
     } catch (e) {
