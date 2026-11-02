@@ -8,7 +8,7 @@ const blobs = new Map<string, { body: string; etag: string; url: string }>();
 const cdn = new Map<string, { body: string; etag: string }>(); // what the CDN still serves per url
 let n = 0;
 let failNext: Error | null = null;
-let heads = 0, hangHead = false;
+let heads = 0, hangHead = false, fetches = 0, hangFetch = false;
 mock.module("@vercel/blob", { namedExports: {
   head: async (p: string) => { heads++; if (hangHead) return new Promise(() => {}); const b = blobs.get(p); if (!b) throw new BlobNotFoundError("The requested blob does not exist"); return { url: b.url, etag: b.etag }; },
   get: async (p: string) => { const b = blobs.get(p); return b ? { stream: new Response(b.body).body, blob: { etag: b.etag } } : null; },
@@ -27,13 +27,15 @@ mock.module("@vercel/blob", { namedExports: {
 } });
 // A CDN that ignores nothing: a plain URL returns its cached (possibly stale) copy; a version-specific URL misses the cache.
 globalThis.fetch = (async (input: string) => {
+  fetches++;
+  if (hangFetch) return new Promise(() => {});
   const [url, q] = input.split("?");
   const b = [...blobs.values()].find((x) => x.url === url);
   const served = !q ? cdn.get(url) : b;
   return new Response(served?.body ?? "", { status: served ? 200 : 404, headers: { etag: served?.etag ?? "" } });
 }) as typeof fetch;
 
-process.env.BLOB_READ_WRITE_TOKEN = "vercel_blob_rw_test";
+process.env.BLOB_READ_WRITE_TOKEN = "vercel_blob_rw_store_secret";
 const { getJSON, update, putJSON } = await import("../lib/store.ts");
 
 test("public store: reads return the latest version even while the CDN holds an old copy", async () => {
@@ -61,19 +63,30 @@ test("other storage errors keep their own message", async () => {
 
 test("reads are cached for a few seconds and a write clears the cache", async () => {
   await putJSON("cache/a.json", { v: 1 });
-  heads = 0;
+  fetches = 0;
   assert.deepEqual(await getJSON("cache/a.json"), { v: 1 });
   assert.deepEqual(await getJSON("cache/a.json"), { v: 1 });
-  assert.equal(heads, 1, "second read served from the cache");
+  assert.equal(fetches, 1, "second read served from the cache");
   await putJSON("cache/a.json", { v: 2 });
   assert.deepEqual(await getJSON("cache/a.json"), { v: 2 }, "own write is visible at once");
 });
 
 test("a store that never answers fails fast with a clear message instead of hanging the page", async () => {
   process.env.STORE_READ_LIMIT_MS = "150";
-  hangHead = true;
+  hangHead = true; hangFetch = true;
   const t = Date.now();
   await assert.rejects(getJSON("slow/never.json"), /Storage is slow to answer/);
   assert.ok(Date.now() - t < 2000);
-  hangHead = false; delete process.env.STORE_READ_LIMIT_MS;
+  hangHead = false; hangFetch = false; delete process.env.STORE_READ_LIMIT_MS;
+});
+
+test("reads go straight to the public URL without a Blob API call", async () => {
+  await putJSON("direct/a.json", { v: 1 });
+  await putJSON("direct/a.json", { v: 2 }); // the CDN still holds v1 for the plain URL
+  heads = 0;
+  const { clearReadCache } = await import("../lib/store.ts");
+  clearReadCache();
+  assert.deepEqual(await getJSON("direct/a.json"), { v: 2 });
+  assert.equal(heads, 0);
+  assert.equal(await getJSON("direct/missing.json"), null);
 });

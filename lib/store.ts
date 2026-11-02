@@ -15,6 +15,8 @@ export function blobToken(): string | undefined {
   return Object.entries(process.env).find(([k, v]) => k.endsWith("_READ_WRITE_TOKEN") && v?.startsWith("vercel_blob_rw_"))?.[1];
 }
 class PreconditionFailed extends Error {}
+// The Blob SDK retries a failed API call up to 10 times with growing waits; two keeps a hiccup from stalling a page.
+process.env.VERCEL_BLOB_RETRIES ??= "2";
 export class StorageSlow extends Error { constructor() { super("Storage is slow to answer (Vercel Blob); please try again in a moment."); } }
 const READ_LIMIT_MS = () => Number(process.env.STORE_READ_LIMIT_MS) || 6000;
 
@@ -51,6 +53,19 @@ async function readBlob(p: string): Promise<{ body: Response; etag: string } | n
   if (blobAccess() === "private") {
     const r = await withAccess(() => get(p, { access: blobAccess(), useCache: false, token }));
     return r?.stream ? { body: new Response(r.stream), etag: r.blob.etag } : null;
+  }
+  // Straight from the store's public URL with a unique query, so the CDN cannot serve an old copy. This skips the Blob
+  // API (whose calls are retried with long waits when it hiccups); the API path below is only the fallback.
+  const storeId = token?.split("_")[3];
+  if (storeId) {
+    try {
+      const r = await fetch(`https://${storeId}.public.blob.vercel-storage.com/${p}?t=${Date.now()}${Math.random().toString(36).slice(2, 6)}`,
+        { cache: "no-store", signal: AbortSignal.timeout(4000) });
+      if (r.status === 404) { await r.body?.cancel(); return null; }
+      const etag = r.headers.get("etag");
+      if (r.ok && etag) return { body: r, etag };
+      await r.body?.cancel();
+    } catch { /* fall back to the API */ }
   }
   let meta;
   try { meta = await head(p, { token }); } catch (e) { if (notFound(e)) return null; throw e; }
