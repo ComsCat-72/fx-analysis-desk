@@ -173,7 +173,7 @@ function MiniMonth({ month, selected, today, mode, onPick, marked }: { month: st
 
 export function CalendarView({ today, instrumentCurrencies }: { today: string; instrumentCurrencies: string[] }) {
   const qc = useQueryClient();
-  const [mode, setMode] = useState<Mode>("week"); // the whole week, like Forex Factory's "This week"
+  const [mode, setMode] = useState<Mode>("day"); // today, in the viewer's timezone
   const [anchor, setAnchor] = useState(today);
   const [month, setMonth] = useState(today);
   const [open, setOpen] = useState<string | null>(null);
