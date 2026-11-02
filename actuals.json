@@ -1,0 +1,47 @@
+[
+ {
+  "at": "2026-11-02T00:00:00.000Z",
+  "currency": "AUD",
+  "title": "MI Inflation Gauge m/m",
+  "actual": "0.5%",
+  "sources": [
+   "FXStreet economic calendar (https://www.fxstreet.com/economic-calendar)"
+  ]
+ },
+ {
+  "at": "2026-11-02T00:30:00.000Z",
+  "currency": "AUD",
+  "title": "Building Approvals m/m",
+  "actual": "5.1%",
+  "sources": [
+   "FXStreet economic calendar (https://www.fxstreet.com/economic-calendar)"
+  ]
+ },
+ {
+  "at": "2026-11-02T00:30:00.000Z",
+  "currency": "JPY",
+  "title": "Final Manufacturing PMI",
+  "actual": "53.3",
+  "sources": [
+   "FXStreet economic calendar (https://www.fxstreet.com/economic-calendar)"
+  ]
+ },
+ {
+  "at": "2026-11-02T01:45:00.000Z",
+  "currency": "CNY",
+  "title": "RatingDog Manufacturing PMI",
+  "actual": "52.0",
+  "sources": [
+   "FXStreet economic calendar (https://www.fxstreet.com/economic-calendar)"
+  ]
+ },
+ {
+  "at": "2026-11-02T05:30:00.000Z",
+  "currency": "AUD",
+  "title": "Commodity Prices y/y",
+  "actual": "12.5%",
+  "sources": [
+   "FXStreet economic calendar (https://www.fxstreet.com/economic-calendar)"
+  ]
+ }
+]

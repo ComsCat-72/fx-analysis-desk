@@ -1,0 +1,206 @@
+[
+ {
+  "actual": "0.5%",
+  "event": {
+   "title": "MI Inflation Gauge m/m",
+   "currency": "AUD",
+   "at": "2026-11-02T00:00:00.000Z",
+   "consensus": null,
+   "previous": "0.3%",
+   "history": [
+    {
+     "field": "actual",
+     "value": "0.5%",
+     "source": "FXStreet economic calendar",
+     "url": "https://www.fxstreet.com/economic-calendar",
+     "at": 1793598523745
+    }
+   ]
+  },
+  "candidates": [
+   {
+    "title": "TD-MI Inflation Gauge (MoM)",
+    "source": "FXStreet economic calendar",
+    "actual": "0.5%",
+    "forecast": null,
+    "previous": "0.3%",
+    "unit": "percent",
+    "match": 5
+   },
+   {
+    "title": "TD-MI Inflation Gauge (YoY)",
+    "source": "FXStreet economic calendar",
+    "actual": "4.9%",
+    "forecast": null,
+    "previous": "2.8%",
+    "unit": "percent",
+    "match": 1.5
+   }
+  ]
+ },
+ {
+  "actual": "5.1%",
+  "event": {
+   "title": "Building Approvals m/m",
+   "currency": "AUD",
+   "at": "2026-11-02T00:30:00.000Z",
+   "consensus": "1.8%",
+   "previous": "-6.1%",
+   "history": [
+    {
+     "field": "actual",
+     "value": "5.1%",
+     "source": "FXStreet economic calendar",
+     "url": "https://www.fxstreet.com/economic-calendar",
+     "at": 1793598523745
+    }
+   ]
+  },
+  "candidates": [
+   {
+    "title": "Building Permits (MoM)",
+    "source": "FXStreet economic calendar",
+    "actual": "5.1%",
+    "forecast": "2.1%",
+    "previous": "-6.1%",
+    "unit": "percent",
+    "match": 4.333333333333333
+   },
+   {
+    "title": "Building Permits (YoY)",
+    "source": "FXStreet economic calendar",
+    "actual": "-0.8%",
+    "forecast": null,
+    "previous": "10.3%",
+    "unit": "percent",
+    "match": null
+   },
+   {
+    "title": "ANZ Job Advertisements m/m",
+    "source": "biquote",
+    "actual": null,
+    "forecast": "-0.9",
+    "previous": "2.2",
+    "unit": "percent",
+    "match": null
+   },
+   {
+    "title": "Building Approvals m/m",
+    "source": "biquote",
+    "actual": "5.1",
+    "forecast": "0",
+    "previous": "-6.1",
+    "unit": "percent",
+    "match": 5
+   },
+   {
+    "title": "Private House Approvals m/m",
+    "source": "biquote",
+    "actual": "-5.3",
+    "forecast": null,
+    "previous": "3.7",
+    "unit": "percent",
+    "match": 1.3333333333333333
+   }
+  ]
+ },
+ {
+  "actual": "53.3",
+  "event": {
+   "title": "Final Manufacturing PMI",
+   "currency": "JPY",
+   "at": "2026-11-02T00:30:00.000Z",
+   "consensus": "53.3",
+   "previous": "53.3",
+   "history": [
+    {
+     "field": "actual",
+     "value": "53.3",
+     "source": "FXStreet economic calendar",
+     "url": "https://www.fxstreet.com/economic-calendar",
+     "at": 1793598523745
+    }
+   ]
+  },
+  "candidates": [
+   {
+    "title": "Jibun Bank Manufacturing PMI",
+    "source": "FXStreet economic calendar",
+    "actual": "53.3",
+    "forecast": "53.3",
+    "previous": "53.3",
+    "unit": "none",
+    "match": 7
+   }
+  ]
+ },
+ {
+  "actual": "52.0",
+  "event": {
+   "title": "RatingDog Manufacturing PMI",
+   "currency": "CNY",
+   "at": "2026-11-02T01:45:00.000Z",
+   "consensus": "52.0",
+   "previous": "52.1",
+   "history": [
+    {
+     "field": "actual",
+     "value": "52.0",
+     "source": "FXStreet economic calendar",
+     "url": "https://www.fxstreet.com/economic-calendar",
+     "at": 1793598523745
+    }
+   ]
+  },
+  "candidates": [
+   {
+    "title": "RatingDog Manufacturing PMI",
+    "source": "FXStreet economic calendar",
+    "actual": "52",
+    "forecast": "51.6",
+    "previous": "52.1",
+    "unit": "none",
+    "match": 5
+   }
+  ]
+ },
+ {
+  "actual": "12.5%",
+  "event": {
+   "title": "Commodity Prices y/y",
+   "currency": "AUD",
+   "at": "2026-11-02T05:30:00.000Z",
+   "consensus": null,
+   "previous": "15.5%",
+   "history": [
+    {
+     "field": "actual",
+     "value": "12.5%",
+     "source": "FXStreet economic calendar",
+     "url": "https://www.fxstreet.com/economic-calendar",
+     "at": 1793598523745
+    }
+   ]
+  },
+  "candidates": [
+   {
+    "title": "RBA Commodity Index SDR (YoY)",
+    "source": "FXStreet economic calendar",
+    "actual": "12.5%",
+    "forecast": null,
+    "previous": "15.5%",
+    "unit": "percent",
+    "match": 4.333333333333333
+   },
+   {
+    "title": "RBA Index of Commodity Prices y/y",
+    "source": "biquote",
+    "actual": null,
+    "forecast": "15.9",
+    "previous": "15.5",
+    "unit": "percent",
+    "match": 5
+   }
+  ]
+ }
+]
