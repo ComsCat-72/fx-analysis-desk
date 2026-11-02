@@ -82,11 +82,12 @@ export function hhmm(t: number, tz = displayZone().timezone): string {
 export function stamp(t: number | string | Date, opts: { date?: boolean } = {}): string {
   const d = new Date(t);
   const z = displayZone();
-  if (opts.date === false) return `${hhmm(d.getTime())} ${z.timezone_label}`;
+  const label = zoneLabel(z.timezone, d.getTime()); // the offset in force at that instant (EDT vs EST), not today's
+  if (opts.date === false) return `${hhmm(d.getTime())} ${label}`;
   const s = dtf("en-GB", {
     timeZone: z.timezone, weekday: "short", day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hourCycle: "h23",
   }).format(d);
-  return `${s.replace(/,/g, "")} ${z.timezone_label}`;
+  return `${s.replace(/,/g, "")} ${label}`;
 }
 
 /** "Tue 27 Oct 14:30" in the display timezone (calendar tables). */

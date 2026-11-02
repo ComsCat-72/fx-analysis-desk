@@ -185,7 +185,8 @@ export function CalendarView({ today, instrumentCurrencies }: { today: string; i
   const [from, to] = range(mode, anchor);
   // Poll every 15 s while a release is awaiting its actual, otherwise every minute; never while the tab is hidden.
   const data = useQuery({ queryKey: ["calrange", from, to, filter], queryFn: () => api.calendarRange(from, to, filter.currencies, filter.impacts),
-    refetchInterval: (q) => ((q.state.data?.rows ?? []).some((r) => awaiting(r, Date.now())) ? 15_000 : 60_000), refetchIntervalInBackground: false, refetchOnWindowFocus: false,
+    // 10 s while the server is fetching a newer Forex Factory feed.
+    refetchInterval: (q) => (q.state.data?.refreshing ? 10_000 : (q.state.data?.rows ?? []).some((r) => awaiting(r, Date.now())) ? 15_000 : 60_000), refetchIntervalInBackground: false, refetchOnWindowFocus: false,
     // Keep the last table on screen while another week or filter loads; a slow answer is retried before any error shows.
     placeholderData: keepPreviousData, retry: 2, retryDelay: (n) => 1500 * (n + 1) });
   const monthData = useQuery({ queryKey: ["caldates", monthStart(month), monthEnd(month), filter], queryFn: () => api.calendarDates(monthStart(month), monthEnd(month), filter.currencies, filter.impacts),
@@ -333,7 +334,7 @@ export function CalendarView({ today, instrumentCurrencies }: { today: string; i
           </div>
         )}
         <p className="border-t border-line px-4 py-2 text-[11.5px] text-faint">
-          Schedule, forecast and previous: Forex Factory weekly export. Actual results: <a className="underline" href="https://www.fxstreet.com/economic-calendar" target="_blank" rel="noreferrer">FXStreet</a> and <a className="underline" href="https://biquote.io" target="_blank" rel="noreferrer">biquote.io</a> free economic calendars, checked every 20 seconds right after a release and every two minutes otherwise while the calendar is open (and editable in each row's details).
+          Schedule, forecast and previous: Forex Factory weekly export, fetched automatically every hour{data.data?.feed_fetched_display && <> (last {data.data.feed_fetched_display})</>}. Actual results: <a className="underline" href="https://www.fxstreet.com/economic-calendar" target="_blank" rel="noreferrer">FXStreet</a> and <a className="underline" href="https://biquote.io" target="_blank" rel="noreferrer">biquote.io</a> free economic calendars, checked every 20 seconds right after a release and every two minutes otherwise while the calendar is open (and editable in each row's details).
           {data.data?.actuals_synced_display && <> Last actuals update: {data.data.actuals_synced_display}.</>}
           {data.data?.actuals_sync?.error && <span className="text-warn"> {data.data.actuals_sync.error}.</span>}{" "}
           Forex Factory's free feed covers the current week; earlier weeks show what was stored while they were current.

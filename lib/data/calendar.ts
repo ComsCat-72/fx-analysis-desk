@@ -36,9 +36,11 @@ export function parseFeed(rows: FeedRow[]): Omit<CalendarEvent, "history">[] {
   });
 }
 
+const FEED_URL = () => process.env.CALENDAR_FEED_URL || CONFIG.calendar.feed; // overridable for local testing
+
 /** Fetch this week's feed and merge it into the store. Changed consensus/previous/times are appended to history. */
 export async function refreshCalendar(now = Date.now()): Promise<{ stored: number; week: string }> {
-  const r = await fetch(CONFIG.calendar.feed, { headers: { "User-Agent": "fx-analysis-desk/1.0 (calendar widget feed)" }, cache: "no-store" });
+  const r = await fetch(FEED_URL(), { headers: { "User-Agent": "fx-analysis-desk/1.0 (calendar widget feed)" }, cache: "no-store", signal: AbortSignal.timeout(10_000) });
   if (!r.ok) throw new Error(`calendar feed HTTP ${r.status}`);
   const rows = parseFeed(await r.json() as FeedRow[]);
   return mergeEvents(rows, now);
@@ -154,3 +156,32 @@ export function eventCurrencies(code: string): string[] {
   if (i.kind === "fx_spot") return [i.base, i.quote];
   return i.kind === "index" ? DXY_BASKET : ["USD"];
 }
+
+// ---------------------------------------------------------------- automatic refresh
+
+/** When the current week (New York Monday) was last fetched from Forex Factory, or null if never. */
+export async function currentWeekFetchedAt(now = Date.now()): Promise<number | null> {
+  return (await getJSON<CalendarDoc>(calendarPath(monday(dateIn(now, "America/New_York")))).catch(() => null))?.refreshedAt ?? null;
+}
+
+export const FEED_MAX_AGE_MS = 60 * 60_000; // the feed itself updates about hourly
+const RETRY_GAP_MS = 2 * 60_000;             // after a failed attempt, wait before trying again
+let inFlight: Promise<FreshResult> | null = null, lastAttempt = 0;
+export interface FreshResult { fetched: boolean; reason: string; error?: string }
+
+/** Fetch Forex Factory's weekly feed when this week is missing or older than an hour. Never throws; one fetch at a
+ *  time per instance, and after a failure at most one attempt every two minutes, so the free feed is not hammered. */
+export async function ensureCalendarFresh(now = Date.now(), o: { maxAgeMs?: number } = {}): Promise<FreshResult> {
+  if (inFlight) return inFlight;
+  const at = await currentWeekFetchedAt(now);
+  if (inFlight) return inFlight; // another caller started while this one was reading
+  if (at != null && now - at < (o.maxAgeMs ?? FEED_MAX_AGE_MS)) return { fetched: false, reason: "fresh" };
+  if (now - lastAttempt < RETRY_GAP_MS) return { fetched: false, reason: "tried recently" };
+  lastAttempt = now;
+  inFlight = refreshCalendar(now)
+    .then((r) => ({ fetched: true, reason: `stored ${r.stored} new events` }), (e) => ({ fetched: false, reason: "feed failed", error: (e as Error).message }))
+    .finally(() => { inFlight = null; });
+  return inFlight;
+}
+/** For tests. */
+export const resetCalendarFreshness = () => { inFlight = null; lastAttempt = 0; };

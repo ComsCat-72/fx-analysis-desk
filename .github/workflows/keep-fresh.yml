@@ -1,0 +1,42 @@
+# Keeps the deployed site's data fresh with no manual work: every 30 minutes it reads the site's public pages, and
+# each read makes that page refresh its own data when stale (calendar feed hourly, actual results, headlines,
+# central-bank feeds, rate decisions, COT). Free: public repository, no secrets. To use another address, set the
+# repository variable SITE_URL (Settings → Secrets and variables → Actions → Variables).
+name: keep-fresh
+on:
+  schedule:
+    - cron: "7,37 * * * *"   # every 30 minutes (GitHub may start scheduled runs a few minutes late)
+    - cron: "23 4 1 * *"     # monthly heartbeat, see below
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency: { group: keep-fresh, cancel-in-progress: false }
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    env:
+      SITE: ${{ vars.SITE_URL || 'https://fx-analysis-desk.vercel.app' }}
+    steps:
+      - name: Read the site's pages (each refreshes its own data when stale)
+        run: |
+          from=$(date -u -d '-3 days' +%F); to=$(date -u -d '+3 days' +%F)
+          for p in "/api/calendar/range?from=$from&to=$to&currencies=&impacts=" /api/headlines /api/policy /api/markets/cot /api/banks /api/markets/strength; do
+            r=$(curl -s -o /dev/null -w '%{http_code} in %{time_total}s' --max-time 60 -H 'X-Display-TZ: Africa/Kampala' "$SITE$p" || echo "no answer")
+            echo "$p -> $r"
+          done
+          # A second calendar read a minute later picks up the background refresh the first one started.
+          sleep 60
+          curl -s -o /dev/null -w "calendar again -> %{http_code} in %{time_total}s\n" --max-time 60 "$SITE/api/calendar/range?from=$from&to=$to&currencies=&impacts=" || true
+
+      # GitHub pauses scheduled workflows in a public repository after 60 days without activity. A tiny monthly commit
+      # to .github/heartbeat keeps this schedule running for good. vercel.json skips building such commits, and pushes
+      # made with this workflow's token start no other workflows.
+      - if: github.event.schedule == '23 4 1 * *'
+        uses: actions/checkout@v4
+      - if: github.event.schedule == '23 4 1 * *'
+        name: Monthly heartbeat
+        run: |
+          date -u +%FT%TZ > .github/heartbeat
+          git config user.name keep-fresh && git config user.email keep-fresh@users.noreply.github.com
+          git add .github/heartbeat && git commit -qm "keep-fresh heartbeat [skip ci]" && git push -q

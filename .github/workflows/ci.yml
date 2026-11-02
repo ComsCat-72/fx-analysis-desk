@@ -1,6 +1,7 @@
 name: CI
 on:
   push:
+    paths-ignore: [".github/heartbeat"]
   pull_request:
 jobs:
   app:

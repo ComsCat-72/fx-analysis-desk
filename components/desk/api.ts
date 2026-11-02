@@ -50,7 +50,8 @@ export interface CalRow {
 }
 export interface CalRange { from: string; to: string; timezone: string; timezone_label: string; now: string; currencies: string[];
   coverage: { week: string; stored: boolean; refreshed_display: string | null }[]; rows: CalRow[];
-  actuals_sync?: { fetched: number; matched: number; recorded: number; error: string | null; skipped?: string } | null; actuals_synced_display?: string | null }
+  actuals_sync?: { fetched: number; matched: number; recorded: number; error: string | null; skipped?: string } | null; actuals_synced_display?: string | null;
+  refreshing?: boolean; feed_fetched_display?: string | null }
 export interface RateRow { pair: string; rate: number | null; time?: string | null; sources?: string[]; fixture?: boolean; error: string | null }
 
 export class ApiError extends Error {
